@@ -54,7 +54,7 @@ export const peliculas: Pelicula[] = [
     reparto: [],
     horarios: ['14:00', '17:00', '20:00'],
       banner: '',
-      imagenCard: '',
+      imagenCard: 'https://cdn.apis.cineplanet.com.pe/CDN/media/entity/get/FilmPosterGraphic/HO00002588?referenceScheme=HeadOffice&allowPlaceHolder=true',
   },
   {
     id: '4',
@@ -82,12 +82,12 @@ export const peliculas: Pelicula[] = [
     reparto: [],
     horarios: ['25 de septiembre'],
       banner: '',
-      imagenCard: '',
+      imagenCard: 'https://cdn.apis.cineplanet.com.pe/CDN/media/entity/get/FilmPosterGraphic/HO00002472?referenceScheme=HeadOffice&allowPlaceHolder=true',
   },
   {
     id: '6',
-    titulo: 'Una Batalla tras Otra',
-    sinopsis: 'Un documental sobre la perseverancia y el espíritu de lucha.',
+    titulo: 'Función secreta',
+    sinopsis: 'Si estás buscando una forma emocionante de disfrutar de una película, esta Función Secreta es una oportunidad que no querrás perderte. Prepárate para una experiencia cinematográfica única y mantén el misterio hasta el último momento.',
     genero: 'Documental',
     clasificacion: 'PG',
     duracion: '1h 20m',
@@ -96,7 +96,7 @@ export const peliculas: Pelicula[] = [
     reparto: [],
     horarios: ['25 de septiembre'],
       banner: '',
-      imagenCard: '',
+      imagenCard: 'https://cdn.apis.cineplanet.com.pe/CDN/media/entity/get/FilmPosterGraphic/HO00002633?referenceScheme=HeadOffice&allowPlaceHolder=true',
   },
   {
     id: '7',
@@ -110,7 +110,7 @@ export const peliculas: Pelicula[] = [
     reparto: [],
     horarios: ['25 de septiembre'],
       banner: '',
-      imagenCard: '',
+      imagenCard: 'https://cdn.apis.cineplanet.com.pe/CDN/media/entity/get/FilmPosterGraphic/HO00002475?referenceScheme=HeadOffice&allowPlaceHolder=true',
   },
   {
     id: '8',
@@ -124,7 +124,7 @@ export const peliculas: Pelicula[] = [
     reparto: [],
     horarios: ['25 de septiembre'],
       banner: '',
-      imagenCard: '',
+      imagenCard: 'https://cdn.apis.cineplanet.com.pe/CDN/media/entity/get/FilmPosterGraphic/HO00002486?referenceScheme=HeadOffice&allowPlaceHolder=true',
   },
   {
     id: '9',
@@ -138,7 +138,7 @@ export const peliculas: Pelicula[] = [
     reparto: [],
     horarios: ['25 de septiembre'],
       banner: '',
-      imagenCard: '',
+      imagenCard: 'https://cdn.apis.cineplanet.com.pe/CDN/media/entity/get/FilmPosterGraphic/HO00002599?referenceScheme=HeadOffice&allowPlaceHolder=true',
   },
   {
     id: '10',
@@ -152,7 +152,7 @@ export const peliculas: Pelicula[] = [
     reparto: [],
     horarios: ['25 de septiembre'],
       banner: '',
-      imagenCard: '',
+      imagenCard: 'https://cdn.apis.cineplanet.com.pe/CDN/media/entity/get/FilmPosterGraphic/HO00002630?referenceScheme=HeadOffice&allowPlaceHolder=true',
   },
   {
     id: '11',
@@ -166,7 +166,7 @@ export const peliculas: Pelicula[] = [
     reparto: [],
     horarios: ['26 de septiembre'],
       banner: '',
-      imagenCard: '',
+      imagenCard: 'https://cdn.apis.cineplanet.com.pe/CDN/media/entity/get/FilmPosterGraphic/HO00002617?referenceScheme=HeadOffice&allowPlaceHolder=true',
   },
   {
     id: '12',
@@ -180,7 +180,7 @@ export const peliculas: Pelicula[] = [
     reparto: [],
     horarios: ['2 de octubre'],
       banner: '',
-      imagenCard: '',
+      imagenCard: 'https://cdn.apis.cineplanet.com.pe/CDN/media/entity/get/FilmPosterGraphic/HO00002595?referenceScheme=HeadOffice&allowPlaceHolder=true',
   },
   // Cartelera Cinemark
   {
@@ -195,7 +195,7 @@ export const peliculas: Pelicula[] = [
     reparto: [],
     horarios: ['19:00', '21:30'],
       banner: '',
-      imagenCard: '',
+      imagenCard: 'https://cdn.apis.cineplanet.com.pe/CDN/media/entity/get/FilmPosterGraphic/HO00002608?referenceScheme=HeadOffice&allowPlaceHolder=true',
   },
   {
     id: '14',
@@ -209,7 +209,7 @@ export const peliculas: Pelicula[] = [
     reparto: [],
     horarios: ['18:00', '20:00'],
       banner: '',
-      imagenCard: '',
+      imagenCard: 'https://cdn.apis.cineplanet.com.pe/CDN/media/entity/get/FilmPosterGraphic/HO00002600?referenceScheme=HeadOffice&allowPlaceHolder=true',
   },
   {
     id: '15',
@@ -223,7 +223,7 @@ export const peliculas: Pelicula[] = [
     reparto: [],
     horarios: ['16:00', '19:00'],
       banner: '',
-      imagenCard: '',
+      imagenCard: 'https://cdn.apis.cineplanet.com.pe/CDN/media/entity/get/FilmPosterGraphic/HO00002430?referenceScheme=HeadOffice&allowPlaceHolder=true',
   },
   {
     id: '16',
@@ -237,7 +237,7 @@ export const peliculas: Pelicula[] = [
     reparto: [],
     horarios: ['14:00', '17:00'],
       banner: '',
-      imagenCard: '',
+      imagenCard: 'https://cdn.apis.cineplanet.com.pe/CDN/media/entity/get/FilmPosterGraphic/HO00002592?referenceScheme=HeadOffice&allowPlaceHolder=true',
   },
   {
     id: '17',
@@ -265,7 +265,7 @@ export const peliculas: Pelicula[] = [
     reparto: [],
     horarios: ['15:00', '18:00'],
       banner: '',
-      imagenCard: '',
+      imagenCard: 'https://cdn.apis.cineplanet.com.pe/CDN/media/entity/get/FilmPosterGraphic/HO00002481?referenceScheme=HeadOffice&allowPlaceHolder=true',
   },
   // Cartelera Cineplanet
   {
