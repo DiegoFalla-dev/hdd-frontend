@@ -19,15 +19,15 @@ interface Pelicula {
   horarios?: string[];
 }
 
-const TABS = ["En cartelera", "Preventa", "Próximos estrenos"];
+const TABS = ["En cartelera", "Pre-venta", "Próximos estrenos"];
 
 function getPeliculasByTab(tabIdx: number) {
   if (tabIdx === 0) {
-    return peliculas.slice(0, 5);
+    return peliculas.slice(0, 23);
   } else if (tabIdx === 1) {
-    return peliculas.slice(5, 10);
+    return peliculas.slice(23, 32);
   } else if (tabIdx === 2) {
-    return peliculas.slice(10, 15);
+    return peliculas.slice(32, 47);
   } else {
     return [];
   }
@@ -35,8 +35,20 @@ function getPeliculasByTab(tabIdx: number) {
 
 const Cartelera: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState("En cartelera");
+  const [visibleMovies, setVisibleMovies] = useState(6);
   const activeTabIndex = TABS.indexOf(selectedCategory);
-  const movies = getPeliculasByTab(activeTabIndex);
+  const allMovies = getPeliculasByTab(activeTabIndex);
+  const movies = allMovies.slice(0, visibleMovies);
+  const hasMoreMovies = visibleMovies < allMovies.length;
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    setVisibleMovies(6);
+  };
+
+  const loadMoreMovies = () => {
+    setVisibleMovies(prev => prev + 6);
+  };
 
   return (
     <div style={{ background: "var(--cineplus-black)", color: "var(--cineplus-gray-light)" }} className="min-h-screen pt-16">
@@ -51,7 +63,7 @@ const Cartelera: React.FC = () => {
               <FilterDropdown
                 options={TABS}
                 selectedOption={selectedCategory}
-                onSelect={setSelectedCategory}
+                onSelect={handleCategoryChange}
                 placeholder="Categoría"
               />
             </div>
@@ -66,15 +78,28 @@ const Cartelera: React.FC = () => {
 
             {/* Grid de películas */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-              {movies.map((pelicula) => (
+              {movies.map((pelicula, index) => (
                 <div key={pelicula.id} className="aspect-[2/3] transform hover:scale-105 transition-transform duration-300">
                   <MovieCard 
                     pelicula={pelicula} 
-                    showEstrenoLabel={activeTabIndex === 0}
+                    showEstrenoLabel={activeTabIndex === 0 && index < 6}
+                    showPreventaLabel={activeTabIndex === 1}
                   />
                 </div>
               ))}
             </div>
+            
+            {hasMoreMovies && (
+              <div className="flex justify-center mt-8">
+                <button 
+                  onClick={loadMoreMovies}
+                  className="bg-transparent border-2 border-white text-white font-bold px-8 py-3 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+                >
+                  <img src="/logo-white.png" alt="Logo" className="w-14 h-14" />
+                  Ver más Películas
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
