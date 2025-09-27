@@ -48,8 +48,8 @@ const MovieCarousel: React.FC = () => {
               <img src={getPeliculasByTab(activeTab)[0].imagenCard} alt={getPeliculasByTab(activeTab)[0].titulo} className="object-cover w-full h-full" />
               {/* Overlay de botones al hacer hover */}
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 bg-black/40 backdrop-blur-sm" style={{backdropFilter: 'blur(6px)'}}>
-                <button className="flex items-center gap-2 bg-[#e50914] text-white font-bold px-8 py-3 rounded-full text-lg shadow-lg hover:scale-105 hover:bg-[#b0060f] transition-all" onClick={() => window.location.href = `/boletos?pelicula=${getPeliculasByTab(activeTab)[0].id}`}> <ShoppingCart size={20}/> Comprar</button>
-                <button className="flex items-center gap-2 bg-[#0a3cff] text-white font-bold px-8 py-3 rounded-full text-lg shadow-lg hover:scale-105 hover:bg-[#072a99] transition-all" onClick={() => window.location.href = `/detalle?pelicula=${getPeliculasByTab(activeTab)[0].id}`}> <PlusCircle size={20}/> Ver detalles</button>
+                <button className="cursor-pointer flex items-center gap-2 bg-[#e50914] text-white font-bold px-8 py-3 rounded-full text-lg shadow-lg hover:scale-105 hover:bg-[#b0060f] transition-all" onClick={() => window.location.href = `/boletos?pelicula=${getPeliculasByTab(activeTab)[0].id}`}> <ShoppingCart size={20}/> Comprar</button>
+                <button className="cursor-pointer flex items-center gap-2 bg-[#0a3cff] text-white font-bold px-8 py-3 rounded-full text-lg shadow-lg hover:scale-105 hover:bg-[#072a99] transition-all" onClick={() => window.location.href = `/detalle?pelicula=${getPeliculasByTab(activeTab)[0].id}`}> <PlusCircle size={20}/> Ver detalles</button>
               </div>
             </>
           )}
@@ -64,8 +64,8 @@ const MovieCarousel: React.FC = () => {
               )}
               {/* Overlay de botones al hacer hover */}
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 bg-black/40 backdrop-blur-sm" style={{backdropFilter: 'blur(6px)'}}>
-                <button className="flex items-center gap-2 bg-[#e50914] text-white font-bold px-8 py-3 rounded-full text-lg shadow-lg hover:scale-105 hover:bg-[#b0060f] transition-all" onClick={() => window.location.href = `/boletos?pelicula=${p.id}`}> <ShoppingCart size={20}/> Comprar</button>
-                <button className="flex items-center gap-2 bg-[#0a3cff] text-white font-bold px-8 py-3 rounded-full text-lg shadow-lg hover:scale-105 hover:bg-[#072a99] transition-all" onClick={() => window.location.href = `/detalle?pelicula=${p.id}`}> <PlusCircle size={20}/> Ver detalles</button>
+                <button className="cursor-pointer flex items-center gap-2 bg-[#e50914] text-white font-bold px-8 py-3 rounded-full text-lg shadow-lg hover:scale-105 hover:bg-[#b0060f] transition-all" onClick={() => window.location.href = `/boletos?pelicula=${p.id}`}> <ShoppingCart size={20}/> Comprar</button>
+                <button className="cursor-pointer flex items-center gap-2 bg-[#0a3cff] text-white font-bold px-8 py-3 rounded-full text-lg shadow-lg hover:scale-105 hover:bg-[#072a99] transition-all" onClick={() => window.location.href = `/detalle?pelicula=${p.id}`}> <PlusCircle size={20}/> Ver detalles</button>
               </div>
             </div>
           ))}
@@ -77,15 +77,33 @@ const MovieCarousel: React.FC = () => {
               )}
               {/* Overlay de botones al hacer hover */}
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 bg-black/40 backdrop-blur-sm" style={{backdropFilter: 'blur(6px)'}}>
-                <button className="flex items-center gap-2 bg-[#e50914] text-white font-bold px-8 py-3 rounded-full text-lg shadow-lg hover:scale-105 hover:bg-[#b0060f] transition-all" onClick={() => window.location.href = `/boletos?pelicula=${p.id}`}> <ShoppingCart size={20}/> Comprar</button>
-                <button className="flex items-center gap-2 bg-[#0a3cff] text-white font-bold px-8 py-3 rounded-full text-lg shadow-lg hover:scale-105 hover:bg-[#072a99] transition-all" onClick={() => window.location.href = `/detalle?pelicula=${p.id}`}> <PlusCircle size={20}/> Ver detalles</button>
+                <button className="cursor-pointer flex items-center gap-2 bg-[#e50914] text-white font-bold px-8 py-3 rounded-full text-lg shadow-lg hover:scale-105 hover:bg-[#b0060f] transition-all" onClick={() => window.location.href = `/boletos?pelicula=${p.id}`}> <ShoppingCart size={20}/> Comprar</button>
+                <button className="cursor-pointer flex items-center gap-2 bg-[#0a3cff] text-white font-bold px-8 py-3 rounded-full text-lg shadow-lg hover:scale-105 hover:bg-[#072a99] transition-all" onClick={() => window.location.href = `/detalle?pelicula=${p.id}`}> <PlusCircle size={20}/> Ver detalles</button>
               </div>
             </div>
           ))}
         </div>
         {/* Botón vertical "Ver más películas" */}
-        <div className="flex flex-col justify-center items-center rounded shadow" style={{width: 220, height: 608, background: 'var(--cineplus-gray-dark)'}}>
-          <button className="text-[var(--cineplus-gray-light)] text-2xl font-bold px-4 py-8 rotate-0 hover:bg-[var(--cineplus-gray)] transition" style={{writingMode: 'vertical-rl', textOrientation: 'mixed', fontFamily: 'inherit', background: 'var(--cineplus-black)'}} onClick={() => window.location.href = '/cartelera'}>
+        <div
+          className="flex flex-col justify-center items-center rounded shadow"
+          style={{
+            width: 220,
+            height: 608,
+            background: 'linear-gradient(to bottom,rgb(185, 185, 185),rgb(73, 72, 72))', // degradado plateado
+          }}
+        >
+          <button
+            className="cursor-pointer text-white text-2xl font-bold px-4 py-8 transition duration-300 ease-in-out hover:brightness-110"
+            style={{
+              writingMode: 'vertical-rl',
+              textOrientation: 'mixed',
+              fontFamily: 'inherit',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+            onClick={() => window.location.href = '/cartelera'}
+          >
             Ver más películas
           </button>
         </div>
