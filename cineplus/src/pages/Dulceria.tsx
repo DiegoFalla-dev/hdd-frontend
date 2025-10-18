@@ -79,7 +79,7 @@ export default function Dulceria() {
               </p>
               <div className="mb-8">
                 <img 
-                  src="https://sacnkprodpecms.blob.core.windows.net/content/banners/candy/1756237860453-large-2304X800-cierre.webp" 
+                  src="ConfieriaImagen.png" 
                   alt="Banner Dulcería" 
                   className="w-full max-w-4xl mx-auto rounded-lg shadow-lg"
                 />

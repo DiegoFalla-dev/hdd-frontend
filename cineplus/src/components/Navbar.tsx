@@ -43,6 +43,7 @@ const Navbar: React.FC<NavbarProps> = ({ heroHeight = 620, variant = 'landing' }
     setSelectedCine(cine);
     localStorage.setItem("selectedCine", cine);
     setShowCineModal(false);
+    window.location.reload();
   };
 
   useEffect(() => {
