@@ -16,13 +16,13 @@ interface NavbarProps {
 }
 
 const cines = [
-  "Cinemark Asia",
-  "Cinemark Gamarra", 
-  "Cinemark Jockey Plaza",
-  "Cinemark Lambramani",
-  "Cinemark Mall Ave Pza Arequipa",
-  "Cinemark MallPlaza Angamos",
-  "Cinemark Mallplaza Bellavista",
+  "Cineplus Asia",
+  "Cineplus Gamarra", 
+  "Cineplus Jockey Plaza",
+  "Cineplus Lambramani",
+  "Cineplus Mall Ave Pza Arequipa",
+  "Cineplus MallPlaza Angamos",
+  "Cineplus Mallplaza Bellavista",
 ];
 
 const Navbar: React.FC<NavbarProps> = ({ heroHeight = 620, variant = 'landing' }) => {

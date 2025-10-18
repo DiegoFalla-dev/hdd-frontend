@@ -21,7 +21,7 @@ export interface CineDulceria {
 
 export const cinesDulceria: CineDulceria[] = [
   {
-    cineNombre: "Cinemark Asia",
+    cineNombre: "Cineplus Asia",
     productos: {
       combos: [combos[0], combos[1], combos[4]],
       canchita: [canchita[0], canchita[1], canchita[5], canchita[6]],
@@ -30,7 +30,7 @@ export const cinesDulceria: CineDulceria[] = [
     }
   },
   {
-    cineNombre: "Cinemark Gamarra",
+    cineNombre: "Cineplus Gamarra",
     productos: {
       combos: [combos[1], combos[2], combos[5]],
       canchita: [canchita[1], canchita[2], canchita[3], canchita[7]],
@@ -39,7 +39,7 @@ export const cinesDulceria: CineDulceria[] = [
     }
   },
   {
-    cineNombre: "Cinemark Jockey Plaza",
+    cineNombre: "Cineplus Jockey Plaza",
     productos: {
       combos: [combos[0], combos[3], combos[5]],
       canchita: [canchita[0], canchita[4], canchita[6], canchita[7]],
@@ -48,7 +48,7 @@ export const cinesDulceria: CineDulceria[] = [
     }
   },
   {
-    cineNombre: "Cinemark Lambramani",
+    cineNombre: "Cineplus Lambramani",
     productos: {
       combos: [combos[2], combos[4]],
       canchita: [canchita[2], canchita[3], canchita[5]],
@@ -57,7 +57,7 @@ export const cinesDulceria: CineDulceria[] = [
     }
   },
   {
-    cineNombre: "Cinemark Mall Ave Pza Arequipa",
+    cineNombre: "Cineplus Mall Ave Pza Arequipa",
     productos: {
       combos: [combos[1], combos[3], combos[4], combos[5]],
       canchita: [canchita[1], canchita[3], canchita[4], canchita[6]],
@@ -66,7 +66,7 @@ export const cinesDulceria: CineDulceria[] = [
     }
   },
   {
-    cineNombre: "Cinemark MallPlaza Angamos",
+    cineNombre: "Cineplus MallPlaza Angamos",
     productos: {
       combos: [combos[0], combos[2], combos[5]],
       canchita: [canchita[0], canchita[2], canchita[7]],
@@ -75,7 +75,7 @@ export const cinesDulceria: CineDulceria[] = [
     }
   },
   {
-    cineNombre: "Cinemark Mallplaza Bellavista",
+    cineNombre: "Cineplus Mallplaza Bellavista",
     productos: {
       combos: [combos[0], combos[1], combos[2], combos[3], combos[4]],
       canchita: [canchita[0], canchita[1], canchita[4], canchita[5], canchita[6]],
