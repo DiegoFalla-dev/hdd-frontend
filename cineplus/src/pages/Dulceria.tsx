@@ -1,6 +1,19 @@
+import { useEffect } from "react";
 import Navbar from "../components/Navbar";
 
 export default function Dulceria() {
+  useEffect(() => {
+    const selectedCine = localStorage.getItem("selectedCine");
+    if (!selectedCine) {
+      const timer = setTimeout(() => {
+        const elegirCineButton = document.querySelector('button[data-elegir-cine]') as HTMLButtonElement;
+        if (elegirCineButton) {
+          elegirCineButton.click();
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
   return (
   <div style={{ background: "var(--cineplus-black)", color: "var(--cineplus-gray-light)" }} className="min-h-screen pt-16">
       {/* Navbar fijo solo en Dulcería */}
