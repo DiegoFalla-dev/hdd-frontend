@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import ProductCard from "../components/ProductCard";
+import SideModal from "../components/SideModal";
 import { getProductosByCine } from "../data/cinesDulceria";
 
 interface ProductoDulceria {
@@ -22,6 +23,25 @@ export default function Dulceria() {
     snacks: ProductoDulceria[];
   } | null>(null);
   const [activeCategory, setActiveCategory] = useState<'combos' | 'canchita' | 'bebidas' | 'snacks'>('combos');
+  const [showCineModal, setShowCineModal] = useState(false);
+
+  const cines = [
+    "Cineplus Asia",
+    "Cineplus Gamarra", 
+    "Cineplus Jockey Plaza",
+    "Cineplus Lambramani",
+    "Cineplus Mall Ave Pza Arequipa",
+    "Cineplus MallPlaza Angamos",
+    "Cineplus Mallplaza Bellavista",
+  ];
+
+  const handleCineSelection = (cine: string) => {
+    setSelectedCine(cine);
+    localStorage.setItem("selectedCine", cine);
+    setShowCineModal(false);
+    const productosDelCine = getProductosByCine(cine);
+    setProductos(productosDelCine);
+  };
 
   useEffect(() => {
     const savedCine = localStorage.getItem("selectedCine");
@@ -30,13 +50,7 @@ export default function Dulceria() {
       const productosDelCine = getProductosByCine(savedCine);
       setProductos(productosDelCine);
     } else {
-      const timer = setTimeout(() => {
-        const elegirCineButton = document.querySelector('button[data-elegir-cine]') as HTMLButtonElement;
-        if (elegirCineButton) {
-          elegirCineButton.click();
-        }
-      }, 500);
-      return () => clearTimeout(timer);
+      setShowCineModal(true);
     }
   }, []);
 
@@ -89,9 +103,76 @@ export default function Dulceria() {
         </div>
 
         {!productos ? (
-          <div className="text-center py-12">
-            <p className="text-xl">Selecciona un cine para ver los productos disponibles</p>
-          </div>
+          <>
+            {/* Skeleton de categorías */}
+            <div className="flex justify-center mb-8">
+              <div className="flex bg-gray-800 rounded-lg p-1">
+                {[1,2,3,4].map((i) => (
+                  <div key={i} className="px-6 py-3 rounded-md">
+                    <div className="w-20 h-6 bg-gray-700 rounded animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Skeleton de productos */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[1,2,3,4,5,6,7,8].map((i) => (
+                <div key={i} className="bg-gray-800 rounded-lg shadow-md overflow-hidden animate-pulse">
+                  <div className="h-48 bg-gray-700"></div>
+                  <div className="p-4">
+                    <div className="w-3/4 h-6 bg-gray-700 rounded mb-2"></div>
+                    <div className="w-full h-4 bg-gray-700 rounded mb-3"></div>
+                    <div className="flex items-center justify-between">
+                      <div className="w-16 h-6 bg-gray-700 rounded"></div>
+                      <div className="w-8 h-8 bg-gray-700 rounded-full"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <SideModal 
+              isOpen={showCineModal} 
+              onClose={() => {}}
+              title="Elige tu cine"
+            >
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold mb-2" style={{ color: "var(--cineplus-gray)" }}>Selecciona tu cine favorito</h3>
+                <p className="text-xs mb-4" style={{ color: "var(--cineplus-gray)" }}>Ordenado alfabéticamente</p>
+              </div>
+
+              <div className="space-y-3">
+                {cines.map((cine) => (
+                  <div 
+                    key={cine}
+                    onClick={() => handleCineSelection(cine)}
+                    className="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-800"
+                    style={{ 
+                      backgroundColor: selectedCine === cine ? "var(--cineplus-gray-dark)" : "transparent",
+                      border: `1px solid ${selectedCine === cine ? "var(--cineplus-gray)" : "var(--cineplus-gray-dark)"}` 
+                    }}
+                  >
+                    <div>
+                      <h4 className="font-medium" style={{ color: "var(--cineplus-gray-light)" }}>{cine}</h4>
+                      <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>2D</p>
+                    </div>
+                    <div className="w-4 h-4 rounded-full border-2" style={{ 
+                      borderColor: selectedCine === cine ? "var(--cineplus-gray-light)" : "var(--cineplus-gray)",
+                      backgroundColor: selectedCine === cine ? "var(--cineplus-gray-light)" : "transparent"
+                    }} />
+                  </div>
+                ))}
+              </div>
+
+              <button 
+                onClick={() => setShowCineModal(false)}
+                className="w-full mt-6 py-3 px-4 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
+              >
+                APLICAR
+              </button>
+            </SideModal>
+          </>
         ) : (
           <>
             {/* Tabs de categorías */}

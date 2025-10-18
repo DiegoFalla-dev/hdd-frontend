@@ -1,14 +1,357 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import SideModal from "../components/SideModal";
+import { peliculas } from "../data/peliculas";
+import { FiX, FiPlay } from "react-icons/fi";
+
+const cines = [
+  "Cineplus Asia",
+  "Cineplus Gamarra", 
+  "Cineplus Jockey Plaza",
+  "Cineplus Lambramani",
+  "Cineplus Mall Ave Pza Arequipa",
+  "Cineplus MallPlaza Angamos",
+  "Cineplus Mallplaza Bellavista",
+];
 
 const DetallePelicula: React.FC = () => {
-  return (
-  <div style={{ background: "var(--cineplus-black)", color: "var(--cineplus-gray-light)" }} className="min-h-screen">
-      <Navbar />
-      <div className="p-8">
-        <h2 className="text-2xl font-bold mb-4">Detalle de la Película</h2>
-        {/* Aquí iría la información de la película seleccionada */}
+  const [searchParams] = useSearchParams();
+  const [selectedCine, setSelectedCine] = useState<string | null>(null);
+  const [showCineModal, setShowCineModal] = useState(false);
+  const peliculaId = searchParams.get('pelicula');
+  
+  const pelicula = peliculas.find(p => p.id === peliculaId);
+
+  useEffect(() => {
+    const savedCine = localStorage.getItem("selectedCine");
+    if (savedCine) {
+      setSelectedCine(savedCine);
+    } else {
+      setShowCineModal(true);
+    }
+  }, []);
+
+  const handleCineSelection = (cine: string) => {
+    setSelectedCine(cine);
+    localStorage.setItem("selectedCine", cine);
+    setShowCineModal(false);
+  };
+
+  if (!pelicula) {
+    return (
+      <div style={{ background: "var(--cineplus-black)", color: "var(--cineplus-gray-light)" }} className="min-h-screen pt-16">
+        <Navbar />
+        <div className="p-8 text-center">
+          <h2 className="text-2xl font-bold mb-4">Película no encontrada</h2>
+        </div>
+        <Footer />
       </div>
+    );
+  }
+
+  if (!selectedCine) {
+    return (
+      <div style={{ background: "var(--cineplus-black)", color: "var(--cineplus-gray-light)" }} className="min-h-screen pt-16">
+        <Navbar />
+        <div className="max-w-6xl mx-auto p-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Columna izquierda - Skeleton */}
+            <div className="lg:col-span-1">
+              <div className="mb-6">
+                <div className="w-full h-96 bg-gray-700 rounded-lg animate-pulse"></div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-16 h-6 bg-gray-700 rounded animate-pulse"></div>
+                  <div className="w-12 h-6 bg-gray-700 rounded animate-pulse"></div>
+                </div>
+                
+                <div>
+                  <div className="w-32 h-4 bg-gray-700 rounded mb-2 animate-pulse"></div>
+                  <div className="w-8 h-6 bg-gray-700 rounded animate-pulse"></div>
+                </div>
+                
+                <div>
+                  <div className="w-20 h-4 bg-gray-700 rounded mb-2 animate-pulse"></div>
+                  <div className="w-16 h-4 bg-gray-700 rounded animate-pulse"></div>
+                </div>
+                
+                <div>
+                  <div className="w-28 h-4 bg-gray-700 rounded mb-2 animate-pulse"></div>
+                  <div className="w-24 h-4 bg-gray-700 rounded animate-pulse"></div>
+                </div>
+                
+                <div>
+                  <div className="w-24 h-4 bg-gray-700 rounded mb-2 animate-pulse"></div>
+                  <div className="w-32 h-4 bg-gray-700 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Columna derecha - Skeleton */}
+            <div className="lg:col-span-2">
+              <div className="mb-6">
+                <div className="w-3/4 h-10 bg-gray-700 rounded mb-4 animate-pulse"></div>
+                <div className="w-full h-64 bg-gray-700 rounded-lg mb-6 animate-pulse"></div>
+                <div className="space-y-2">
+                  <div className="w-full h-4 bg-gray-700 rounded animate-pulse"></div>
+                  <div className="w-full h-4 bg-gray-700 rounded animate-pulse"></div>
+                  <div className="w-3/4 h-4 bg-gray-700 rounded animate-pulse"></div>
+                </div>
+              </div>
+              
+              <div>
+                <div className="w-24 h-8 bg-gray-700 rounded mb-4 animate-pulse"></div>
+                <div className="flex gap-2 mb-4">
+                  <div className="w-12 h-8 bg-gray-700 rounded animate-pulse"></div>
+                  <div className="w-16 h-8 bg-gray-700 rounded animate-pulse"></div>
+                </div>
+                
+                <div className="flex gap-4 mb-4">
+                  <div className="w-20 h-8 bg-gray-700 rounded animate-pulse"></div>
+                  <div className="w-20 h-8 bg-gray-700 rounded animate-pulse"></div>
+                </div>
+                
+                <div className="mb-6">
+                  <div className="w-40 h-4 bg-gray-700 rounded mb-2 animate-pulse"></div>
+                  <div className="flex gap-4">
+                    <div className="w-12 h-4 bg-gray-700 rounded animate-pulse"></div>
+                    <div className="w-12 h-4 bg-gray-700 rounded animate-pulse"></div>
+                    <div className="w-12 h-4 bg-gray-700 rounded animate-pulse"></div>
+                    <div className="w-12 h-4 bg-gray-700 rounded animate-pulse"></div>
+                  </div>
+                </div>
+                
+                <div className="mb-6">
+                  <div className="w-32 h-4 bg-gray-700 rounded mb-2 animate-pulse"></div>
+                  <div className="w-48 h-6 bg-gray-700 rounded mb-2 animate-pulse"></div>
+                  <div className="w-full h-4 bg-gray-700 rounded mb-4 animate-pulse"></div>
+                  
+                  <div className="w-8 h-4 bg-gray-700 rounded mb-4 animate-pulse"></div>
+                  
+                  <div className="flex gap-2 mb-6">
+                    <div className="w-16 h-8 bg-gray-700 rounded animate-pulse"></div>
+                    <div className="w-16 h-8 bg-gray-700 rounded animate-pulse"></div>
+                    <div className="w-16 h-8 bg-gray-700 rounded animate-pulse"></div>
+                  </div>
+                  
+                  <div className="w-full h-12 bg-gray-700 rounded mb-4 animate-pulse"></div>
+                  <div className="w-full h-12 bg-gray-700 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <SideModal 
+          isOpen={!selectedCine}
+          onClose={() => {}}
+          title="Elige tu cine"
+        >
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold mb-2" style={{ color: "var(--cineplus-gray)" }}>Selecciona tu cine favorito</h3>
+            <p className="text-xs mb-4" style={{ color: "var(--cineplus-gray)" }}>Ordenado alfabéticamente</p>
+          </div>
+
+          <div className="space-y-3">
+            {cines.map((cine) => (
+              <div 
+                key={cine}
+                onClick={() => handleCineSelection(cine)}
+                className="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-800"
+                style={{ 
+                  backgroundColor: selectedCine === cine ? "var(--cineplus-gray-dark)" : "transparent",
+                  border: `1px solid ${selectedCine === cine ? "var(--cineplus-gray)" : "var(--cineplus-gray-dark)"}` 
+                }}
+              >
+                <div>
+                  <h4 className="font-medium" style={{ color: "var(--cineplus-gray-light)" }}>{cine}</h4>
+                  <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>2D</p>
+                </div>
+                <div className="w-4 h-4 rounded-full border-2" style={{ 
+                  borderColor: selectedCine === cine ? "var(--cineplus-gray-light)" : "var(--cineplus-gray)",
+                  backgroundColor: selectedCine === cine ? "var(--cineplus-gray-light)" : "transparent"
+                }} />
+              </div>
+            ))}
+          </div>
+
+          <button 
+            onClick={() => setShowCineModal(false)}
+            className="w-full mt-6 py-3 px-4 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
+          >
+            APLICAR
+          </button>
+        </SideModal>
+        
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: "var(--cineplus-black)", color: "var(--cineplus-gray-light)" }} className="min-h-screen pt-16">
+      <Navbar />
+      <div className="max-w-6xl mx-auto p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Columna izquierda - Poster y detalles */}
+          <div className="lg:col-span-1">
+            <div className="mb-6">
+              <img 
+                src={pelicula.imagenCard} 
+                alt={pelicula.titulo}
+                className="w-full rounded-lg shadow-lg"
+              />
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-1 bg-gray-700 rounded text-sm">{pelicula.genero}</span>
+                <span className="px-2 py-1 bg-red-600 rounded text-sm">{pelicula.clasificacion}</span>
+              </div>
+              
+              <div>
+                <h3 className="font-bold mb-2">FORMATOS DISPONIBLES</h3>
+                <span className="px-3 py-1 bg-gray-700 rounded">2D</span>
+              </div>
+              
+              <div>
+                <h3 className="font-bold mb-2">DURACIÓN</h3>
+                <p style={{ color: "var(--cineplus-gray)" }}>{pelicula.duracion}</p>
+              </div>
+              
+              <div>
+                <h3 className="font-bold mb-2">FECHA DE ESTRENO</h3>
+                <p style={{ color: "var(--cineplus-gray)" }}>18 Octubre, 2025</p>
+              </div>
+              
+              <div>
+                <h3 className="font-bold mb-2">DISTRIBUIDOR</h3>
+                <p style={{ color: "var(--cineplus-gray)" }}>UNITED INTERNATIONAL PICTURES</p>
+              </div>
+              
+              <div>
+                <h3 className="font-bold mb-2">ACTORES Y DIRECTOR</h3>
+                <div className="flex gap-2">
+                  <div className="w-8 h-8 bg-gray-600 rounded"></div>
+                  <div className="w-8 h-8 bg-gray-600 rounded"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Columna derecha - Título, sinopsis y horarios */}
+          <div className="lg:col-span-2">
+            <div className="mb-6">
+              <h1 className="text-4xl font-bold mb-4">{pelicula.titulo.toUpperCase()}</h1>
+              <div className="relative mb-6">
+                <img 
+                  src={pelicula.imagenCard} 
+                  alt={pelicula.titulo}
+                  className="w-full h-64 object-cover rounded-lg"
+                />
+                <button className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg hover:bg-opacity-70 transition-all">
+                  <FiPlay size={48} className="text-white" />
+                </button>
+              </div>
+              <p className="text-sm leading-relaxed" style={{ color: "var(--cineplus-gray)" }}>
+                {pelicula.sinopsis}
+              </p>
+            </div>
+            
+            {/* Sección de horarios */}
+            <div>
+              <h2 className="text-2xl font-bold mb-4">HORARIOS</h2>
+              <div className="mb-4">
+                <div className="flex gap-2 mb-4">
+                  <button className="px-4 py-2 bg-white text-black rounded font-bold">DOM</button>
+                  <button className="px-4 py-2 border border-gray-600 rounded" style={{ color: "var(--cineplus-gray)" }}>19/OCT</button>
+                </div>
+                
+                <div className="flex gap-4 mb-4">
+                  <select className="px-3 py-2 bg-gray-800 rounded">
+                    <option>Formatos</option>
+                    <option>2D</option>
+                  </select>
+                  <select className="px-3 py-2 bg-gray-800 rounded">
+                    <option>Idioma</option>
+                    <option>Español</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="mb-6">
+                <h3 className="font-bold mb-2">DISPONIBILIDAD DE ASIENTOS</h3>
+                <div className="flex gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-500 rounded"></div>
+                    <span>Alta</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+                    <span>Media</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-500 rounded"></div>
+                    <span>Baja</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-gray-500 rounded"></div>
+                    <span>Lleno</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mb-6">
+                <h3 className="font-bold mb-2">CINE PRINCIPAL</h3>
+                <h4 className="text-red-500 font-bold mb-2">HORARIOS EN {selectedCine?.toUpperCase()}</h4>
+                <p className="text-sm mb-4" style={{ color: "var(--cineplus-gray)" }}>
+                  Dirección: Calle Alfredo Mendiola 3698 Km 8.5 de la Av. Panamericana Norte Independencia
+                </p>
+                
+                <div className="mb-4">
+                  <span className="font-bold">2D</span>
+                  <span className="ml-2" style={{ color: "var(--cineplus-gray)" }}>- Doblada</span>
+                </div>
+                
+                <div className="flex gap-2 mb-6">
+                  {pelicula.horarios?.map((horario, index) => (
+                    <button 
+                      key={index}
+                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                    >
+                      {horario}
+                    </button>
+                  )) || (
+                    <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
+                      13:50 hs
+                    </button>
+                  )}
+                </div>
+                
+                <p className="text-sm mb-4" style={{ color: "var(--cineplus-gray)" }}>
+                  Selecciona hasta 3 cines para comparar sesiones y horarios
+                </p>
+                
+                <button className="w-full py-3 border border-gray-600 rounded mb-4 hover:bg-gray-800 transition-colors">
+                  Ver horarios en más cines
+                </button>
+                
+                <button 
+                  className="w-full py-3 bg-red-600 text-white rounded font-bold hover:bg-red-700 transition-colors"
+                  onClick={() => window.location.href = `/boletos?pelicula=${pelicula.id}`}
+                >
+                  COMPRAR ENTRADAS
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <Footer />
     </div>
   );
 };

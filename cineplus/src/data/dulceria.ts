@@ -14,6 +14,7 @@ export const combos: ProductoDulceria[] = [
     nombre: 'Combo Trio',
     descripcion: 'Canchita grande + Gaseosa grande + Hot dog',
     precio: 25.90,
+    imagen: '4x3.png',
     categoria: 'combos'
   },
   {
@@ -21,6 +22,7 @@ export const combos: ProductoDulceria[] = [
     nombre: 'Combo Sal',
     descripcion: 'Canchita mediana + Gaseosa mediana + Nachos',
     precio: 18.50,
+    imagen: '4x3.png',
     categoria: 'combos'
   },
   {
@@ -28,6 +30,7 @@ export const combos: ProductoDulceria[] = [
     nombre: 'Combo Familiar',
     descripcion: 'Canchita gigante + 2 Gaseosas + Tequeños x4',
     precio: 32.90,
+    imagen: '4x3.png',
     categoria: 'combos'
   },
   {
@@ -35,6 +38,7 @@ export const combos: ProductoDulceria[] = [
     nombre: 'Combo Dulce',
     descripcion: 'Canchita grande + Frugos + Nuggets x8',
     precio: 22.90,
+    imagen: '4x3.png',
     categoria: 'combos'
   },
   {
@@ -42,6 +46,7 @@ export const combos: ProductoDulceria[] = [
     nombre: 'Combo Pareja',
     descripcion: 'Canchita grande + 2 Gaseosas medianas',
     precio: 21.90,
+    imagen: '4x3.png',
     categoria: 'combos'
   },
   {
@@ -49,6 +54,7 @@ export const combos: ProductoDulceria[] = [
     nombre: 'Combo Premium',
     descripcion: 'Canchita gigante + Gaseosa grande + Hamburguesa',
     precio: 35.90,
+    imagen: '4x3.png',
     categoria: 'combos'
   }
 ];
@@ -60,6 +66,7 @@ export const canchita: ProductoDulceria[] = [
     nombre: 'Canchita Grande Salada',
     descripcion: 'Porción grande de canchita con sal',
     precio: 16.90,
+    imagen: '4x3.png',
     categoria: 'canchita'
   },
   {
@@ -67,6 +74,7 @@ export const canchita: ProductoDulceria[] = [
     nombre: 'Canchita Mediana Salada', 
     descripcion: 'Porción mediana de canchita con sal',
     precio: 15.90,
+    imagen: '4x3.png',
     categoria: 'canchita'
   },
   {
@@ -74,6 +82,7 @@ export const canchita: ProductoDulceria[] = [
     nombre: 'Canchita Gigante Salada',
     descripcion: 'Porción gigante de canchita con sal',
     precio: 28.90,
+    imagen: '4x3.png',
     categoria: 'canchita'
   },
   {
@@ -81,6 +90,7 @@ export const canchita: ProductoDulceria[] = [
     nombre: 'Canchita Grande Dulce',
     descripcion: 'Porción grande de canchita dulce',
     precio: 17.90,
+    imagen: '4x3.png',
     categoria: 'canchita'
   },
   {
@@ -88,6 +98,7 @@ export const canchita: ProductoDulceria[] = [
     nombre: 'Canchita Mediana Dulce',
     descripcion: 'Porción mediana de canchita dulce', 
     precio: 16.90,
+    imagen: '4x3.png',
     categoria: 'canchita'
   },
   {
@@ -95,6 +106,7 @@ export const canchita: ProductoDulceria[] = [
     nombre: 'Canchita Pequeña Salada',
     descripcion: 'Porción pequeña de canchita con sal',
     precio: 12.90,
+    imagen: '4x3.png',
     categoria: 'canchita'
   },
   {
@@ -102,6 +114,7 @@ export const canchita: ProductoDulceria[] = [
     nombre: 'Canchita Caramelo',
     descripcion: 'Canchita mediana con caramelo',
     precio: 18.90,
+    imagen: '4x3.png',
     categoria: 'canchita'
   },
   {
@@ -109,6 +122,7 @@ export const canchita: ProductoDulceria[] = [
     nombre: 'Canchita Mantequilla',
     descripcion: 'Canchita grande con mantequilla',
     precio: 19.90,
+    imagen: '4x3.png',
     categoria: 'canchita'
   }
 ];
@@ -120,6 +134,7 @@ export const bebidas: ProductoDulceria[] = [
     nombre: 'Gaseosa Grande',
     descripcion: 'Coca Cola 500ml',
     precio: 11.80,
+    imagen: '4x3.png',
     categoria: 'bebidas'
   },
   {
@@ -127,6 +142,7 @@ export const bebidas: ProductoDulceria[] = [
     nombre: 'Agua Sin Gas',
     descripcion: 'Agua mineral 500ml',
     precio: 5.60,
+    imagen: '4x3.png',
     categoria: 'bebidas'
   },
   {
@@ -134,6 +150,7 @@ export const bebidas: ProductoDulceria[] = [
     nombre: 'Frugos 300ml',
     descripcion: 'Jugo de frutas sabor durazno',
     precio: 6.50,
+    imagen: '4x3.png',
     categoria: 'bebidas'
   },
   {
@@ -141,6 +158,7 @@ export const bebidas: ProductoDulceria[] = [
     nombre: 'Gaseosa Mediana',
     descripcion: 'Coca Cola 350ml',
     precio: 9.50,
+    imagen: '4x3.png',
     categoria: 'bebidas'
   },
   {
@@ -148,6 +166,7 @@ export const bebidas: ProductoDulceria[] = [
     nombre: 'Inca Kola Grande',
     descripcion: 'Inca Kola 500ml',
     precio: 11.80,
+    imagen: '4x3.png',
     categoria: 'bebidas'
   },
   {
@@ -155,6 +174,7 @@ export const bebidas: ProductoDulceria[] = [
     nombre: 'Sprite Grande',
     descripcion: 'Sprite 500ml',
     precio: 11.80,
+    imagen: '4x3.png',
     categoria: 'bebidas'
   },
   {
@@ -162,6 +182,7 @@ export const bebidas: ProductoDulceria[] = [
     nombre: 'Jugo de Naranja',
     descripcion: 'Jugo natural de naranja 400ml',
     precio: 8.50,
+    imagen: '4x3.png',
     categoria: 'bebidas'
   },
   {
@@ -169,6 +190,7 @@ export const bebidas: ProductoDulceria[] = [
     nombre: 'Agua con Gas',
     descripcion: 'Agua mineral con gas 500ml',
     precio: 6.50,
+    imagen: '4x3.png',
     categoria: 'bebidas'
   }
 ];
@@ -180,6 +202,7 @@ export const snacks: ProductoDulceria[] = [
     nombre: 'Hot Dog Frankfurter',
     descripcion: 'Hot dog con salchicha alemana y salsas',
     precio: 12.90,
+    imagen: '4x3.png',
     categoria: 'snacks'
   },
   {
@@ -187,6 +210,7 @@ export const snacks: ProductoDulceria[] = [
     nombre: 'Nachos con Queso',
     descripcion: 'Nachos crujientes con salsa de queso',
     precio: 14.50,
+    imagen: '4x3.png',
     categoria: 'snacks'
   },
   {
@@ -194,6 +218,7 @@ export const snacks: ProductoDulceria[] = [
     nombre: 'Papas Fritas',
     descripcion: 'Papas fritas crujientes porción grande',
     precio: 8.90,
+    imagen: '4x3.png',
     categoria: 'snacks'
   },
   {
@@ -201,6 +226,7 @@ export const snacks: ProductoDulceria[] = [
     nombre: 'Tequeños x4 un',
     descripcion: '4 tequeños de queso fritos',
     precio: 10.50,
+    imagen: '4x3.png',
     categoria: 'snacks'
   },
   {
@@ -208,6 +234,7 @@ export const snacks: ProductoDulceria[] = [
     nombre: 'Nuggets x8',
     descripcion: '8 nuggets de pollo crujientes',
     precio: 15.90,
+    imagen: '4x3.png',
     categoria: 'snacks'
   },
   {
@@ -215,6 +242,7 @@ export const snacks: ProductoDulceria[] = [
     nombre: 'Salchipapas',
     descripcion: 'Papas fritas con salchicha y salsas',
     precio: 13.50,
+    imagen: '4x3.png',
     categoria: 'snacks'
   },
   {
@@ -222,6 +250,7 @@ export const snacks: ProductoDulceria[] = [
     nombre: 'Hamburguesa Clásica',
     descripcion: 'Hamburguesa con carne, lechuga y tomate',
     precio: 16.90,
+    imagen: '4x3.png',
     categoria: 'snacks'
   },
   {
@@ -229,6 +258,7 @@ export const snacks: ProductoDulceria[] = [
     nombre: 'Pizza Personal',
     descripcion: 'Pizza individual de pepperoni',
     precio: 18.90,
+    imagen: '4x3.png',
     categoria: 'snacks'
   },
   {
@@ -236,6 +266,7 @@ export const snacks: ProductoDulceria[] = [
     nombre: 'Sandwich Club',
     descripcion: 'Sandwich triple con pollo, tocino y verduras',
     precio: 17.50,
+    imagen: '4x3.png',
     categoria: 'snacks'
   },
   {
@@ -243,6 +274,7 @@ export const snacks: ProductoDulceria[] = [
     nombre: 'Alitas BBQ x6',
     descripcion: '6 alitas de pollo con salsa BBQ',
     precio: 19.90,
+    imagen: '4x3.png',
     categoria: 'snacks'
   },
   {
@@ -250,6 +282,7 @@ export const snacks: ProductoDulceria[] = [
     nombre: 'Quesadilla',
     descripcion: 'Quesadilla de queso con guacamole',
     precio: 14.90,
+    imagen: '4x3.png',
     categoria: 'snacks'
   },
   {
@@ -257,6 +290,7 @@ export const snacks: ProductoDulceria[] = [
     nombre: 'Wrap de Pollo',
     descripcion: 'Wrap con pollo, lechuga y salsa ranch',
     precio: 15.50,
+    imagen: '4x3.png',
     categoria: 'snacks'
   }
 ];

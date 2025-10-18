@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiUser, FiSearch, FiHelpCircle, FiMapPin, FiChevronDown, FiX } from "react-icons/fi";
+import SideModal from "./SideModal";
 
 const navLinks = [
   { label: "Cartelera", to: "/cartelera" },
@@ -31,6 +32,17 @@ const Navbar: React.FC<NavbarProps> = ({ heroHeight = 620, variant = 'landing' }
   const [beyondHero, setBeyondHero] = useState(false);
   const [showCineModal, setShowCineModal] = useState(false);
   const [selectedCine, setSelectedCine] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (showCineModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showCineModal]);
 
   useEffect(() => {
     const savedCine = localStorage.getItem("selectedCine");
@@ -138,62 +150,46 @@ const Navbar: React.FC<NavbarProps> = ({ heroHeight = 620, variant = 'landing' }
       </div>
 
       {/* Modal de selección de cine */}
-      {showCineModal && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={() => setShowCineModal(false)}
-          />
-          <div className="fixed top-0 right-0 h-full w-96 bg-black z-50 shadow-xl" style={{ background: "var(--cineplus-black)" }}>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold" style={{ color: "var(--cineplus-gray-light)" }}>Elige tu cine</h2>
-                <button 
-                  onClick={() => setShowCineModal(false)}
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  <FiX size={24} />
-                </button>
-              </div>
-              
-              <div className="mb-4">
-                <h3 className="text-sm font-semibold mb-2" style={{ color: "var(--cineplus-gray)" }}>Selecciona tu cine favorito</h3>
-                <p className="text-xs mb-4" style={{ color: "var(--cineplus-gray)" }}>Ordenado alfabéticamente</p>
-              </div>
+      <SideModal 
+        isOpen={showCineModal} 
+        onClose={() => setShowCineModal(false)}
+        title="Elige tu cine"
+      >
+        <div className="mb-4">
+          <h3 className="text-sm font-semibold mb-2" style={{ color: "var(--cineplus-gray)" }}>Selecciona tu cine favorito</h3>
+          <p className="text-xs mb-4" style={{ color: "var(--cineplus-gray)" }}>Ordenado alfabéticamente</p>
+        </div>
 
-              <div className="space-y-3">
-                {cines.map((cine) => (
-                  <div 
-                    key={cine}
-                    onClick={() => handleCineSelection(cine)}
-                    className="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-800"
-                    style={{ 
-                      backgroundColor: selectedCine === cine ? "var(--cineplus-gray-dark)" : "transparent",
-                      border: `1px solid ${selectedCine === cine ? "var(--cineplus-gray)" : "var(--cineplus-gray-dark)"}` 
-                    }}
-                  >
-                    <div>
-                      <h4 className="font-medium" style={{ color: "var(--cineplus-gray-light)" }}>{cine}</h4>
-                      <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>2D</p>
-                    </div>
-                    <div className="w-4 h-4 rounded-full border-2" style={{ 
-                      borderColor: selectedCine === cine ? "var(--cineplus-gray-light)" : "var(--cineplus-gray)",
-                      backgroundColor: selectedCine === cine ? "var(--cineplus-gray-light)" : "transparent"
-                    }} />
-                  </div>
-                ))}
+        <div className="space-y-3">
+          {cines.map((cine) => (
+            <div 
+              key={cine}
+              onClick={() => handleCineSelection(cine)}
+              className="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-800"
+              style={{ 
+                backgroundColor: selectedCine === cine ? "var(--cineplus-gray-dark)" : "transparent",
+                border: `1px solid ${selectedCine === cine ? "var(--cineplus-gray)" : "var(--cineplus-gray-dark)"}` 
+              }}
+            >
+              <div>
+                <h4 className="font-medium" style={{ color: "var(--cineplus-gray-light)" }}>{cine}</h4>
+                <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>2D</p>
               </div>
-
-              <button 
-                onClick={() => setShowCineModal(false)}
-                className="w-full mt-6 py-3 px-4 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
-              >
-                APLICAR
-              </button>
+              <div className="w-4 h-4 rounded-full border-2" style={{ 
+                borderColor: selectedCine === cine ? "var(--cineplus-gray-light)" : "var(--cineplus-gray)",
+                backgroundColor: selectedCine === cine ? "var(--cineplus-gray-light)" : "transparent"
+              }} />
             </div>
-          </div>
-        </>
-      )}
+          ))}
+        </div>
+
+        <button 
+          onClick={() => setShowCineModal(false)}
+          className="w-full mt-6 py-3 px-4 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
+        >
+          APLICAR
+        </button>
+      </SideModal>
     </header>
   );
 };
