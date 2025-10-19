@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import SideModal from "../components/SideModal";
 import { peliculas } from "../data/peliculas";
+import { getAvailableDates, getMovieShowtimes, getAvailableTimes } from "../data/cinemasSchedule";
 import { FiX, FiPlay } from "react-icons/fi";
 
 const cines = [
@@ -20,9 +21,21 @@ const DetallePelicula: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [selectedCine, setSelectedCine] = useState<string | null>(null);
   const [showCineModal, setShowCineModal] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
   const peliculaId = searchParams.get('pelicula');
   
   const pelicula = peliculas.find(p => p.id === peliculaId);
+  
+  // Get dynamic dates and showtimes
+  const availableDates = getAvailableDates();
+  const showtimes = selectedCine && peliculaId ? getMovieShowtimes(selectedCine, peliculaId) : [];
+  const availableFormats = [...new Set(showtimes.map(s => s.format))];
+  const availableTimes = selectedDay && selectedFormat ? 
+    getAvailableTimes(showtimes, selectedDay, selectedFormat) : [];
+
+  const isReadyToBuy = selectedDay && selectedTime && selectedFormat;
 
   useEffect(() => {
     const savedCine = localStorage.getItem("selectedCine");
@@ -265,21 +278,49 @@ const DetallePelicula: React.FC = () => {
             {/* Sección de horarios */}
             <div>
               <h2 className="text-2xl font-bold mb-4">HORARIOS</h2>
+              
+              {/* Selección de días */}
               <div className="mb-4">
                 <div className="flex gap-2 mb-4">
-                  <button className="px-4 py-2 bg-white text-black rounded font-bold">DOM</button>
-                  <button className="px-4 py-2 border border-gray-600 rounded" style={{ color: "var(--cineplus-gray)" }}>19/OCT</button>
+                  {availableDates.map((day) => (
+                    <button 
+                      key={day.fullDate}
+                      onClick={() => setSelectedDay(day.fullDate)}
+                      className={`px-4 py-2 rounded font-bold transition-colors ${
+                        selectedDay === day.fullDate 
+                          ? "bg-white text-black" 
+                          : "border border-gray-600 text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      <div className="text-center">
+                        <div>{day.label}</div>
+                        <div className="text-xs">{day.date}</div>
+                      </div>
+                    </button>
+                  ))}
                 </div>
                 
+                {/* Selección de formatos */}
                 <div className="flex gap-4 mb-4">
-                  <select className="px-3 py-2 bg-gray-800 rounded">
-                    <option>Formatos</option>
-                    <option>2D</option>
-                  </select>
-                  <select className="px-3 py-2 bg-gray-800 rounded">
-                    <option>Idioma</option>
-                    <option>Español</option>
-                  </select>
+                  <div className="flex gap-2">
+                    <span className="text-sm font-medium" style={{ color: "var(--cineplus-gray)" }}>Formatos:</span>
+                    {availableFormats.map((format) => (
+                      <button
+                        key={format}
+                        onClick={() => setSelectedFormat(format)}
+                        className={`px-3 py-1 rounded text-sm transition-colors ${
+                          selectedFormat === format
+                            ? "bg-gray-600 text-white"
+                            : "bg-gray-800 text-gray-400 hover:text-white"
+                        }`}
+                      >
+                        {format}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm" style={{ color: "var(--cineplus-gray)" }}>Idioma: Español</span>
+                  </div>
                 </div>
               </div>
               
@@ -313,22 +354,26 @@ const DetallePelicula: React.FC = () => {
                 </p>
                 
                 <div className="mb-4">
-                  <span className="font-bold">2D</span>
+                  <span className="font-bold">{selectedFormat || "2D"}</span>
                   <span className="ml-2" style={{ color: "var(--cineplus-gray)" }}>- Doblada</span>
                 </div>
                 
-                <div className="flex gap-2 mb-6">
-                  {pelicula.horarios?.map((horario, index) => (
+                {/* Selección de horarios */}
+                <div className="flex gap-2 mb-6 flex-wrap">
+                  {availableTimes.length > 0 ? availableTimes.map((time) => (
                     <button 
-                      key={index}
-                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                      key={time}
+                      onClick={() => setSelectedTime(time)}
+                      className={`px-4 py-2 rounded transition-colors ${
+                        selectedTime === time
+                          ? "bg-green-600 text-white"
+                          : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      }`}
                     >
-                      {horario}
+                      {time}
                     </button>
-                  )) || (
-                    <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
-                      13:50 hs
-                    </button>
+                  )) : (
+                    <p className="text-gray-400 text-sm">Selecciona día y formato para ver horarios</p>
                   )}
                 </div>
                 
@@ -341,8 +386,13 @@ const DetallePelicula: React.FC = () => {
                 </button>
                 
                 <button 
-                  className="w-full py-3 bg-red-600 text-white rounded font-bold hover:bg-red-700 transition-colors"
-                  onClick={() => window.location.href = `/boletos?pelicula=${pelicula.id}`}
+                  className={`w-full py-3 rounded font-bold transition-colors ${
+                    isReadyToBuy
+                      ? "bg-red-600 text-white hover:bg-red-700 cursor-pointer"
+                      : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                  }`}
+                  disabled={!isReadyToBuy}
+                  onClick={() => isReadyToBuy && (window.location.href = `/boletos?pelicula=${pelicula.id}&day=${selectedDay}&time=${selectedTime}&format=${selectedFormat}`)}
                 >
                   COMPRAR ENTRADAS
                 </button>
