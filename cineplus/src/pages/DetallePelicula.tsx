@@ -392,7 +392,18 @@ const DetallePelicula: React.FC = () => {
                       : "bg-gray-600 text-gray-400 cursor-not-allowed"
                   }`}
                   disabled={!isReadyToBuy}
-                  onClick={() => isReadyToBuy && (window.location.href = `/boletos?pelicula=${pelicula.id}&day=${selectedDay}&time=${selectedTime}&format=${selectedFormat}`)}
+                  onClick={() => {
+                    if (isReadyToBuy) {
+                      localStorage.setItem('movieSelection', JSON.stringify({
+                        pelicula: pelicula,
+                        selectedDay,
+                        selectedTime,
+                        selectedFormat,
+                        selectedCine
+                      }));
+                      window.location.href = `/boletos?pelicula=${pelicula.id}&day=${selectedDay}&time=${selectedTime}&format=${selectedFormat}`;
+                    }
+                  }}
                 >
                   COMPRAR ENTRADAS
                 </button>

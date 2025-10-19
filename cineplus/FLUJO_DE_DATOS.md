@@ -115,6 +115,30 @@ Se muestra:
 - Botón "CONTINUAR" → redirige a /carrito
 ```
 
+### Paso 7: Carrito - Selección de Entradas
+```
+Página de carrito con funcionalidad completa:
+
+Tipos de entrada disponibles:
+- GENERAL: Promo Online, Persona con Discapacidad, Silla de Ruedas, Niño, Adulto
+- CONVENIOS: 50% DCTO Banco Ripley
+
+Funcionalidades:
+- Agregar entradas: Click en "+" o botón principal
+- Modificar cantidad: Botones "+" y "-" 
+- Eliminar entrada: Al llegar cantidad a 0, se elimina automáticamente
+- Cálculo dinámico del total
+- Botón CONTINUAR:
+  * Sin entradas: Gris, cursor not-allowed, no funcional
+  * Con entradas: Blanco, cursor pointer, redirige a /pago
+
+Panel lateral muestra:
+- Información de película (imagen, título, formato)
+- Datos del cine y horario
+- Lista de entradas seleccionadas con controles
+- Total calculado dinámicamente
+```
+
 ## Funciones Clave para Backend Integration
 
 ### Funciones que deberán convertirse en API calls:
@@ -174,6 +198,18 @@ const time = searchParams.get('time');
 const format = searchParams.get('format');
 ```
 
+**Carrito:**
+```typescript
+const [selectedCine, setSelectedCine] = useState<string | null>(null);
+const [entradas, setEntradas] = useState<Entrada[]>([]);
+const [movieSelection, setMovieSelection] = useState<any>(null);
+// Parámetros URL opcionales para contexto
+const peliculaId = searchParams.get('pelicula');
+const day = searchParams.get('day');
+const time = searchParams.get('time');
+const format = searchParams.get('format');
+```
+
 ## Preparación para APIs de Spring Boot
 
 ### Endpoints Necesarios:
@@ -203,7 +239,14 @@ const format = searchParams.get('format');
    PUT /api/bookings/{id}/confirm → Confirmar reserva
    ```
 
-5. **Dulcería**
+5. **Entradas/Boletos**
+   ```
+   POST /api/tickets → Crear selección de entradas
+   PUT /api/tickets/{id} → Actualizar entradas seleccionadas
+   GET /api/tickets/types → Obtener tipos de entrada disponibles
+   ```
+
+6. **Dulcería**
    ```
    GET /api/concessions?cinema={id} → Productos por cine
    ```
@@ -250,11 +293,21 @@ const format = searchParams.get('format');
 - `selectedCine`: Persiste en localStorage
 
 ### SeleccionBoletos → Carrito
+**Método**: Redirección simple + URL Parameters (opcional)
+```
+/carrito?pelicula={id}&day={date}&time={time}&format={format}
+```
+**Datos transferidos**:
+- Parámetros URL opcionales para mantener contexto
+- `movieSelection`: Persiste en localStorage desde DetallePelicula
+- `selectedCine`: Persiste en localStorage
+
+### Carrito → PasarelaPagos
 **Método**: Redirección simple
 ```
-/carrito
+/pago
 ```
-**Nota**: Los datos de la reserva deberán persistirse en el backend o localStorage antes de la redirección.
+**Nota**: Los datos de entradas seleccionadas deberán persistirse en localStorage o backend antes de la redirección.
 
 ## Componentes Reutilizables
 
@@ -284,4 +337,7 @@ interface SideModalProps {
 5. Considerar caché para datos que no cambian frecuentemente (películas, cines)
 6. **URL Parameters**: Mantener el sistema de parámetros URL para transferencia de datos entre páginas
 7. **Formateo de fechas**: Implementar función `formatDate()` en el backend para consistencia
-8. **Validación**: Validar parámetros URL en SeleccionBoletos antes de mostrar contenido
+8. **Validación**: Validar parámetros URL en SeleccionBoletos y Carrito antes de mostrar contenido
+9. **Estado del carrito**: Implementar persistencia de entradas seleccionadas (localStorage temporal, backend definitivo)
+10. **Cálculos dinámicos**: Mantener cálculo de totales en tiempo real en el frontend
+11. **UX del carrito**: Preservar la funcionalidad de agregar/eliminar entradas y estados del botón CONTINUAR
