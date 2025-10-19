@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FiUser, FiSearch, FiHelpCircle } from "react-icons/fi";
+import { FiUser, FiSearch, FiHelpCircle, FiMapPin, FiChevronDown, FiX } from "react-icons/fi";
+import SideModal from "./SideModal";
 
 const navLinks = [
   { label: "Cartelera", to: "/cartelera" },
@@ -15,10 +16,47 @@ interface NavbarProps {
   variant?: 'landing' | 'boletos';
 }
 
+const cines = [
+  "Cineplus Asia",
+  "Cineplus Gamarra", 
+  "Cineplus Jockey Plaza",
+  "Cineplus Lambramani",
+  "Cineplus Mall Ave Pza Arequipa",
+  "Cineplus MallPlaza Angamos",
+  "Cineplus Mallplaza Bellavista",
+];
+
 const Navbar: React.FC<NavbarProps> = ({ heroHeight = 620, variant = 'landing' }) => {
   const [atTop, setAtTop] = useState(true);
   const [logoHover, setLogoHover] = useState(false);
   const [beyondHero, setBeyondHero] = useState(false);
+  const [showCineModal, setShowCineModal] = useState(false);
+  const [selectedCine, setSelectedCine] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (showCineModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showCineModal]);
+
+  useEffect(() => {
+    const savedCine = localStorage.getItem("selectedCine");
+    if (savedCine) {
+      setSelectedCine(savedCine);
+    }
+  }, []);
+
+  const handleCineSelection = (cine: string) => {
+    setSelectedCine(cine);
+    localStorage.setItem("selectedCine", cine);
+    setShowCineModal(false);
+    window.location.reload();
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -92,6 +130,16 @@ const Navbar: React.FC<NavbarProps> = ({ heroHeight = 620, variant = 'landing' }
         </nav>
         {/* Iconos */}
         <div className="flex items-center gap-5">
+          <button 
+            onClick={() => setShowCineModal(true)}
+            data-elegir-cine
+            className="flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:text-[var(--cineplus-gray)]" 
+            style={{ color: "var(--cineplus-gray-light)" }}
+          >
+            <FiMapPin size={16} />
+            <span>{selectedCine || "ELEGIR CINE"}</span>
+            <FiChevronDown size={14} />
+          </button>
           <Link to="/perfil" title="Usuario" style={{ color: "var(--cineplus-gray-light)" }} className="hover:text-[var(--cineplus-gray)] transition-all duration-300">
             <FiUser size={26} />
           </Link>
@@ -100,6 +148,48 @@ const Navbar: React.FC<NavbarProps> = ({ heroHeight = 620, variant = 'landing' }
           </Link>
         </div>
       </div>
+
+      {/* Modal de selección de cine */}
+      <SideModal 
+        isOpen={showCineModal} 
+        onClose={() => setShowCineModal(false)}
+        title="Elige tu cine"
+      >
+        <div className="mb-4">
+          <h3 className="text-sm font-semibold mb-2" style={{ color: "var(--cineplus-gray)" }}>Selecciona tu cine favorito</h3>
+          <p className="text-xs mb-4" style={{ color: "var(--cineplus-gray)" }}>Ordenado alfabéticamente</p>
+        </div>
+
+        <div className="space-y-3">
+          {cines.map((cine) => (
+            <div 
+              key={cine}
+              onClick={() => handleCineSelection(cine)}
+              className="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-800"
+              style={{ 
+                backgroundColor: selectedCine === cine ? "var(--cineplus-gray-dark)" : "transparent",
+                border: `1px solid ${selectedCine === cine ? "var(--cineplus-gray)" : "var(--cineplus-gray-dark)"}` 
+              }}
+            >
+              <div>
+                <h4 className="font-medium" style={{ color: "var(--cineplus-gray-light)" }}>{cine}</h4>
+                <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>2D</p>
+              </div>
+              <div className="w-4 h-4 rounded-full border-2" style={{ 
+                borderColor: selectedCine === cine ? "var(--cineplus-gray-light)" : "var(--cineplus-gray)",
+                backgroundColor: selectedCine === cine ? "var(--cineplus-gray-light)" : "transparent"
+              }} />
+            </div>
+          ))}
+        </div>
+
+        <button 
+          onClick={() => setShowCineModal(false)}
+          className="w-full mt-6 py-3 px-4 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
+        >
+          APLICAR
+        </button>
+      </SideModal>
     </header>
   );
 };

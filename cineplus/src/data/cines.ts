@@ -10,28 +10,28 @@ export interface Cine {
 export const cines: Cine[] = [
   {
     id: '1',
-    nombre: 'Cineplanet',
+    nombre: 'Cineplus',
     ciudad: 'Lima',
     direccion: 'Av. Universitaria 1234, Comas',
     localidad: 'Mall Plaza Comas',
   },
   {
     id: '2',
-    nombre: 'Cinemark',
+    nombre: 'Cineplus',
     ciudad: 'Lima',
     direccion: 'Av. Alfredo Mendiola 3698, Independencia',
     localidad: 'Plaza Norte Independencia',
   },
   {
     id: '3',
-    nombre: 'Cinepolis',
+    nombre: 'Cineplus',
     ciudad: 'Arequipa',
     direccion: 'Av. Ejército 1000, Cayma',
     localidad: 'Mall Plaza Arequipa',
   },
   {
     id: '4',
-    nombre: 'UVK',
+    nombre: 'Cineplus',
     ciudad: 'Trujillo',
     direccion: 'Av. América Sur 1111, Trujillo',
     localidad: 'Real Plaza Trujillo',
