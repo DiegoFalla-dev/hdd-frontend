@@ -29,7 +29,7 @@ const DetallePelicula: React.FC = () => {
   const pelicula = peliculas.find(p => p.id === peliculaId);
   
   // Get dynamic dates and showtimes
-  const availableDates = getAvailableDates();
+  const availableDates = getAvailableDates(peliculaId || undefined);
   const showtimes = selectedCine && peliculaId ? getMovieShowtimes(selectedCine, peliculaId) : [];
   const availableFormats = [...new Set(showtimes.map(s => s.format))];
   const availableTimes = selectedDay && selectedFormat ? 
