@@ -25,10 +25,88 @@ body {
 @import 'slick-carousel/slick/slick.css';
 @import 'slick-carousel/slick/slick-theme.css';
 
-:root {
-	--cineplus-gray-light: #D9D9D9;
-	--cineplus-gray: #8C8C8C;
-	--cineplus-gray-medium: #595959;
-	--cineplus-gray-dark: #262626;
-	--cineplus-black: #0D0D0D;
+/* Navbar normal */
+.navbar {
+  transition: background-color 0.3s ease;
+}
+
+/* Navbar oscuro cuando se hace scroll */
+.navbar-scrolled {
+  background-color: rgba(0, 0, 0, 0.7); /* Color de fondo oscuro */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra sutil */
+}
+
+/* Efecto de fondo tipo "Glassmorphism" para el contenido */
+.glassmorphism {
+  background: rgba(255, 255, 255, 0.1); /* Fondo semitransparente */
+  backdrop-filter: blur(15px); /* Desenfoque en el fondo */
+  border-radius: 10px; /* Bordes redondeados */
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2); /* Borde sutil */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra sutil */
+}
+
+/* Fondo oscuro para la sección */
+.bg-black {
+  background-color: #0d0d0d !important;
+}
+
+/* Agregar los textos de color gris claro */
+.text-gray-light {
+  color: #D9D9D9;
+}
+/* Efecto de animación de hover para las tarjetas de los cines */
+.cine-card {
+  transition: transform 0.4s ease, box-shadow 0.3s ease, border 0.3s ease;
+  border-radius: 10px;
+}
+
+/* Al pasar el mouse sobre cada tarjeta (sede), se escala y agrega sombra */
+.cine-card:hover {
+  transform: scale(1.05); /* Hace que la tarjeta se agrande un poco */
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2); /* Agrega una sombra suave */
+  border: 2px solid rgba(255, 255, 255, 0.4); /* Borde suave en color blanco */
+}
+
+/* Efecto de hover en los botones */
+button:hover {
+  transform: scale(1.1); /* Escala el botón al pasar el mouse */
+ /* Cambia el color de fondo del botón */
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Añade sombra al botón */
+  transition: all 0.4s ease;
+}
+/* Transición fluida en el dropdown de selección */
+select {
+  transition: all 0.3s ease-in-out; /* Aplicamos transición suave */
+  border-radius: 8px; /* Bordes redondeados */
+  background: var(--cineplus-black); /* Fondo oscuro */
+  color: var(--cineplus-gray-light); /* Texto claro */
+  padding: 10px;
+}
+
+/* Cuando el dropdown se despliega, se añade el efecto de animación */
+select:focus {
+  outline: none; /* Quitamos el contorno */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra sutil */
+  background: rgba(255, 255, 255, 0.1); /* Fondo semi-transparente */
+  backdrop-filter: blur(10px); /* Aplicamos el desenfoque tipo iOS */
+}
+
+/* Opciones dentro del dropdown */
+option {
+  background-color: var(--cineplus-black);
+  color: var(--cineplus-gray-light);
+  padding: 10px;
+  transition: background-color 0.3s ease;
+}
+
+option:hover {
+  background-color: rgba(255, 255, 255, 0.2); /* Efecto hover suave */
+}
+/* Efecto de hover en los labels del navbar */
+.label-hover:hover {
+  transform: scale(1.1); /* Escala el label al pasar el mouse */
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Añade sombra al label */
+  transition: all 0.4s ease;
+  color: #4CAF50; /* Cambia el color del texto (puedes ajustarlo) */
 }

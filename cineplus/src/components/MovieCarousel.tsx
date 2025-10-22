@@ -1,22 +1,23 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ShoppingCart, PlusCircle } from "react-feather";
 import { peliculas } from "../data/peliculas";
+import { getMovies } from "../services/fallbackDataService";
 
 
 const TABS = ["En cartelera", "Preventa", "Próximos estrenos"];
 
 
-function getPeliculasByTab(tabIdx: number) {
+function getPeliculasByTab(tabIdx: number, source = peliculas) {
   if (tabIdx === 0) {
     // Cartelera: las primeras 5
-    return peliculas.slice(0, 5);
+    return source.slice(0, 5);
   } else if (tabIdx === 1) {
     // Preventa: las siguientes 5
-    return peliculas.slice(5, 10);
+    return source.slice(5, 10);
   } else if (tabIdx === 2) {
     // Próximos estrenos: las siguientes 5
-    return peliculas.slice(10, 15);
+    return source.slice(10, 15);
   } else {
     return [];
   }
@@ -24,6 +25,17 @@ function getPeliculasByTab(tabIdx: number) {
 
 const MovieCarousel: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
+  const [moviesData, setMoviesData] = useState<typeof peliculas>(peliculas);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const m = await getMovies();
+      if (!mounted) return;
+      setMoviesData(m);
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   return (
   <section className="w-full max-w-[1070px] mx-auto mt-4 px-0" style={{paddingLeft: 80, paddingRight: 80, background: "var(--cineplus-black)"}}>
@@ -40,12 +52,12 @@ const MovieCarousel: React.FC = () => {
           </button>
         ))}
       </div>
-          <div className="showtimes-grid grid grid-cols-[420px_220px_220px] gap-2 mx-auto items-start justify-center w-full" style={{height: 608}}>
+        <div className="showtimes-grid grid grid-cols-[420px_220px_220px] gap-2 mx-auto items-start justify-center w-full" style={{height: 608}}>
         {/* Póster grande a la izquierda */}
   <div className="rounded shadow flex items-center justify-center overflow-hidden relative group" style={{width: 420, height: 608, background: 'var(--cineplus-gray-dark)'}}>
-          {getPeliculasByTab(activeTab)[0] && (
+          {getPeliculasByTab(activeTab, moviesData)[0] && (
             <>
-              <img src={getPeliculasByTab(activeTab)[0].imagenCard} alt={getPeliculasByTab(activeTab)[0].titulo} className="object-cover w-full h-full" />
+              <img src={getPeliculasByTab(activeTab, moviesData)[0].imagenCard} alt={getPeliculasByTab(activeTab, moviesData)[0].titulo} className="object-cover w-full h-full" />
               {/* Overlay de botones al hacer hover */}
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 bg-black/40 backdrop-blur-sm" style={{backdropFilter: 'blur(6px)'}}>
                 <button className="cursor-pointer flex items-center gap-2 bg-[#e50914] text-white font-bold px-8 py-3 rounded-full text-lg shadow-lg hover:scale-105 hover:bg-[#b0060f] transition-all" onClick={() => window.location.href = `/boletos?pelicula=${getPeliculasByTab(activeTab)[0].id}`}> <ShoppingCart size={20}/> Comprar</button>
@@ -56,7 +68,7 @@ const MovieCarousel: React.FC = () => {
         </div>
         {/* Grid de 4 pósters medianos a la derecha en 2x2 */}
   <div className="flex flex-col gap-2" style={{width: 220, height: 608}}>
-          {getPeliculasByTab(activeTab).slice(1, 2).map((p) => (
+            {getPeliculasByTab(activeTab, moviesData).slice(1, 2).map((p) => (
             <div key={p.id} className="relative rounded shadow overflow-hidden flex items-center justify-center group" style={{width: 220, height: 300, background: 'var(--cineplus-gray-dark)'}}>
               <img src={p.imagenCard} alt={p.titulo} className="object-cover w-full h-full" />
               {activeTab === 0 && (
@@ -69,7 +81,7 @@ const MovieCarousel: React.FC = () => {
               </div>
             </div>
           ))}
-          {getPeliculasByTab(activeTab).slice(3, 4).map((p) => (
+          {getPeliculasByTab(activeTab, moviesData).slice(3, 4).map((p) => (
             <div key={p.id} className="relative rounded shadow overflow-hidden flex items-center justify-center group" style={{width: 220, height: 300, background: 'var(--cineplus-gray-dark)'}}>
               <img src={p.imagenCard} alt={p.titulo} className="object-cover w-full h-full" />
               {activeTab === 0 && (

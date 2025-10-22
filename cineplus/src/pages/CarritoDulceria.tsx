@@ -3,6 +3,14 @@ import { useSearchParams } from "react-router-dom";
 import { FiX, FiPlus, FiMinus } from "react-icons/fi";
 import { peliculas } from "../data/peliculas";
 import { getProductosByCine } from "../data/cinesDulceria";
+import type { ProductoDulceria } from "../data/dulceria";
+
+type ProductosPorCategoria = {
+  combos: ProductoDulceria[];
+  canchita: ProductoDulceria[];
+  bebidas: ProductoDulceria[];
+  snacks: ProductoDulceria[];
+} | null;
 
 interface Entrada {
   id: string;
@@ -11,31 +19,25 @@ interface Entrada {
   cantidad: number;
 }
 
-interface ProductoDulceria {
-  id: string;
-  nombre: string;
-  descripcion: string;
-  precio: number;
-  imagen?: string;
-  categoria: 'combos' | 'canchita' | 'bebidas' | 'snacks';
-}
-
 interface ProductoCarrito extends ProductoDulceria {
   cantidad: number;
+}
+
+interface MovieSelection {
+  pelicula?: { imagenCard?: string; titulo?: string } | null;
+  selectedFormat?: string | null;
+  selectedCine?: string | null;
+  selectedDay?: string | null;
+  selectedTime?: string | null;
 }
 
 const CarritoDulceria: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [selectedCine, setSelectedCine] = useState<string | null>(null);
   const [entradas, setEntradas] = useState<Entrada[]>([]);
-  const [movieSelection, setMovieSelection] = useState<any>(null);
+  const [movieSelection, setMovieSelection] = useState<MovieSelection | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
-  const [productos, setProductos] = useState<{
-    combos: ProductoDulceria[];
-    canchita: ProductoDulceria[];
-    bebidas: ProductoDulceria[];
-    snacks: ProductoDulceria[];
-  } | null>(null);
+  const [productos, setProductos] = useState<ProductosPorCategoria | null>(null);
   const [activeCategory, setActiveCategory] = useState<'combos' | 'canchita' | 'bebidas' | 'snacks'>('combos');
   const [carritoProductos, setCarritoProductos] = useState<ProductoCarrito[]>([]);
   
@@ -50,19 +52,22 @@ const CarritoDulceria: React.FC = () => {
   const totalGeneral = totalEntradas + totalProductos;
 
   useEffect(() => {
-    const savedCine = localStorage.getItem("selectedCine");
-    const savedSelection = localStorage.getItem("movieSelection");
-    const savedEntradas = localStorage.getItem("selectedEntradas");
-    const savedSeats = localStorage.getItem("selectedSeats");
-    
-    if (savedCine) {
-      setSelectedCine(savedCine);
-      const productosDelCine = getProductosByCine(savedCine);
-      setProductos(productosDelCine);
-    }
-    if (savedSelection) setMovieSelection(JSON.parse(savedSelection));
-    if (savedEntradas) setEntradas(JSON.parse(savedEntradas));
-    if (savedSeats) setSelectedSeats(JSON.parse(savedSeats));
+    const init = async () => {
+      const savedCine = localStorage.getItem("selectedCine");
+      const savedSelection = localStorage.getItem("movieSelection");
+      const savedEntradas = localStorage.getItem("selectedEntradas");
+      const savedSeats = localStorage.getItem("selectedSeats");
+
+      if (savedCine) {
+        setSelectedCine(savedCine);
+        const p = getProductosByCine(savedCine);
+        setProductos(p);
+      }
+      if (savedSelection) setMovieSelection(JSON.parse(savedSelection));
+      if (savedEntradas) setEntradas(JSON.parse(savedEntradas));
+      if (savedSeats) setSelectedSeats(JSON.parse(savedSeats));
+    };
+    init();
   }, []);
 
   const formatDate = (dateStr: string) => {
@@ -213,7 +218,7 @@ const CarritoDulceria: React.FC = () => {
                   className="w-12 h-16 object-cover rounded"
                 />
                 <div>
-                  <h5 className="font-medium text-sm">{(movieSelection?.pelicula || pelicula)?.titulo.toUpperCase()}</h5>
+                  <h5 className="font-medium text-sm">{((movieSelection?.pelicula || pelicula)?.titulo || '').toUpperCase()}</h5>
                   <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>{movieSelection?.selectedFormat || format} - Doblada</p>
                 </div>
               </div>

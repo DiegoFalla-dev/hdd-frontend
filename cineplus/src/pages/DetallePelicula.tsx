@@ -4,8 +4,10 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import SideModal from "../components/SideModal";
 import { peliculas } from "../data/peliculas";
+import type { Pelicula } from "../data/peliculas";
 import { getAvailableDates, getMovieShowtimes, getAvailableTimes } from "../data/cinemasSchedule";
-import { FiX, FiPlay } from "react-icons/fi";
+import type { Showtime as CSShowtime } from "../data/cinemasSchedule";
+import { FiPlay } from "react-icons/fi";
 
 const cines = [
   "Cineplus Asia",
@@ -20,20 +22,32 @@ const cines = [
 const DetallePelicula: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [selectedCine, setSelectedCine] = useState<string | null>(null);
-  const [showCineModal, setShowCineModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
   const peliculaId = searchParams.get('pelicula');
   
-  const pelicula = peliculas.find(p => p.id === peliculaId);
-  
+  const [pelicula, setPelicula] = useState<Pelicula | null>(null);
+  const [showtimes, setShowtimes] = useState<CSShowtime[]>([]);
+
+  useEffect(() => {
+    // Use local peliculas data as source of truth
+    setPelicula(peliculas.find(p => p.id === peliculaId) || null);
+  }, [peliculaId]);
+
+  useEffect(() => {
+    (async () => {
+      if (!peliculaId) return;
+      // Use local schedule generator
+      setShowtimes(selectedCine ? getMovieShowtimes(selectedCine, peliculaId) : []);
+    })();
+  }, [peliculaId, selectedCine]);
+
   // Get dynamic dates and showtimes
   const availableDates = getAvailableDates(peliculaId || undefined);
-  const showtimes = selectedCine && peliculaId ? getMovieShowtimes(selectedCine, peliculaId) : [];
-  const availableFormats = [...new Set(showtimes.map(s => s.format))];
+  const availableFormats = [...new Set((showtimes as unknown as CSShowtime[]).map((s) => s.format || '2D'))] as string[];
   const availableTimes = selectedDay && selectedFormat ? 
-    getAvailableTimes(showtimes, selectedDay, selectedFormat) : [];
+    getAvailableTimes(showtimes as unknown as CSShowtime[], selectedDay, selectedFormat) : [];
 
   const isReadyToBuy = selectedDay && selectedTime && selectedFormat;
 
@@ -41,15 +55,12 @@ const DetallePelicula: React.FC = () => {
     const savedCine = localStorage.getItem("selectedCine");
     if (savedCine) {
       setSelectedCine(savedCine);
-    } else {
-      setShowCineModal(true);
     }
   }, []);
 
   const handleCineSelection = (cine: string) => {
     setSelectedCine(cine);
     localStorage.setItem("selectedCine", cine);
-    setShowCineModal(false);
   };
 
   if (!pelicula) {
@@ -193,7 +204,7 @@ const DetallePelicula: React.FC = () => {
           </div>
 
           <button 
-            onClick={() => setShowCineModal(false)}
+            onClick={() => {}}
             className="w-full mt-6 py-3 px-4 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
           >
             APLICAR

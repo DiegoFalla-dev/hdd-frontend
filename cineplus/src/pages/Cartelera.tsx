@@ -1,43 +1,47 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import MovieCard from "../components/MovieCard";
 import FilterDropdown from "../components/FilterDropdown";
 import { peliculas } from "../data/peliculas";
+// removed unused useLocation import
+import { getMovies } from "../services/fallbackDataService";
 
-interface Pelicula {
-  id: string;
-  titulo: string;
-  sinopsis: string;
-  genero: string;
-  clasificacion: string;
-  duracion: string;
-  banner?: string;
-  imagenCard?: string;
-  trailerUrl?: string;
-  reparto?: string[];
-  horarios?: string[];
-}
 
 const TABS = ["En cartelera", "Pre-venta", "Próximos estrenos"];
 
-function getPeliculasByTab(tabIdx: number) {
+function getPeliculasByTab(tabIdx: number, source = peliculas) {
   if (tabIdx === 0) {
-    return peliculas.slice(0, 23);
+    return source.slice(0, 23);
   } else if (tabIdx === 1) {
-    return peliculas.slice(23, 32);
+    return source.slice(23, 32);
   } else if (tabIdx === 2) {
-    return peliculas.slice(32, 48);
+    return source.slice(32, 47);
   } else {
     return [];
   }
 }
 
 const Cartelera: React.FC = () => {
+  const [moviesData, setMoviesData] = useState<typeof peliculas>(peliculas);
   const [selectedCategory, setSelectedCategory] = useState("En cartelera");
   const [visibleMovies, setVisibleMovies] = useState(6);
+
+  useEffect(() => {
+    // Optionally react to `cine` query param if needed in the future
+    // const params = new URLSearchParams(location.search);
+    // const cineFromUrl = params.get("cine");
+    // if (cineFromUrl) { /* use cineFromUrl */ }
+    let mounted = true;
+    (async () => {
+      const m = await getMovies();
+      if (!mounted) return;
+      setMoviesData(m);
+    })();
+    return () => { mounted = false; };
+  }, []);
   const activeTabIndex = TABS.indexOf(selectedCategory);
-  const allMovies = getPeliculasByTab(activeTabIndex);
+  const allMovies = getPeliculasByTab(activeTabIndex, moviesData);
   const movies = allMovies.slice(0, visibleMovies);
   const hasMoreMovies = visibleMovies < allMovies.length;
 
@@ -47,7 +51,7 @@ const Cartelera: React.FC = () => {
   };
 
   const loadMoreMovies = () => {
-    setVisibleMovies(prev => prev + 6);
+    setVisibleMovies((prev) => prev + 6);
   };
 
   return (
@@ -58,7 +62,7 @@ const Cartelera: React.FC = () => {
           {/* Sidebar izquierdo */}
           <div className="w-64 p-6 border-r" style={{ borderColor: "var(--cineplus-gray)" }}>
             <h3 className="text-lg font-bold mb-4" style={{ color: "var(--cineplus-gray-light)" }}>Filtrar Por:</h3>
-            
+
             <div className="space-y-4">
               <FilterDropdown
                 options={TABS}
@@ -88,7 +92,7 @@ const Cartelera: React.FC = () => {
                 </div>
               ))}
             </div>
-            
+
             {hasMoreMovies && (
               <div className="flex justify-center mt-8">
                 <button 
