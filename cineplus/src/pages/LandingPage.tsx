@@ -8,7 +8,7 @@ import Footer from "../components/Footer";
 
 const LandingPage: React.FC = () => {
   return (
-    <div className="bg-gray-100 min-h-screen flex flex-col">
+  <div style={{ background: "var(--cineplus-black)", color: "var(--cineplus-gray-light)" }} className="min-h-screen flex flex-col">
       <Navbar />
       <HeroBanner />
 

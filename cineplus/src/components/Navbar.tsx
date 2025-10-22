@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FiUser, FiSearch, FiHelpCircle } from "react-icons/fi";
+import { FiUser, FiSearch, FiHelpCircle, FiMapPin, FiChevronDown, FiX } from "react-icons/fi";
+import SideModal from "./SideModal";
 
 const navLinks = [
-  { label: "Películas", to: "/cartelera" },
-  { label: "Cines", to: "/" },
+  { label: "Cartelera", to: "/cartelera" },
+  { label: "Cines", to: "/cines" },
   { label: "Promociones", to: "/promociones" },
   { label: "Dulcería", to: "/dulceria" },
 ];
@@ -15,10 +16,47 @@ interface NavbarProps {
   variant?: 'landing' | 'boletos';
 }
 
-const Navbar: React.FC<NavbarProps> = ({ heroHeight = 650, variant = 'landing' }) => {
+const cines = [
+  "Cineplus Asia",
+  "Cineplus Gamarra", 
+  "Cineplus Jockey Plaza",
+  "Cineplus Lambramani",
+  "Cineplus Mall Ave Pza Arequipa",
+  "Cineplus MallPlaza Angamos",
+  "Cineplus Mallplaza Bellavista",
+];
+
+const Navbar: React.FC<NavbarProps> = ({ heroHeight = 620, variant = 'landing' }) => {
   const [atTop, setAtTop] = useState(true);
   const [logoHover, setLogoHover] = useState(false);
   const [beyondHero, setBeyondHero] = useState(false);
+  const [showCineModal, setShowCineModal] = useState(false);
+  const [selectedCine, setSelectedCine] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (showCineModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showCineModal]);
+
+  useEffect(() => {
+    const savedCine = localStorage.getItem("selectedCine");
+    if (savedCine) {
+      setSelectedCine(savedCine);
+    }
+  }, []);
+
+  const handleCineSelection = (cine: string) => {
+    setSelectedCine(cine);
+    localStorage.setItem("selectedCine", cine);
+    setShowCineModal(false);
+    window.location.reload();
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,16 +74,16 @@ const Navbar: React.FC<NavbarProps> = ({ heroHeight = 650, variant = 'landing' }
   if (variant === 'landing') {
     headerClass += 'fixed left-0 top-0 ';
     headerClass += beyondHero
-      ? "bg-cineplus-black border-b border-cineplus-red navbar-shadow-dark"
+      ? "bg-[var(--cineplus-black)] border-b border-[var(--cineplus-gray-medium)] navbar-shadow-dark"
       : atTop
-        ? "bg-transparent color-cineplus-black shadow-none"
-        : "bg-cineplus-black border-cineplus-red navbar-shadow-dark";
-    headerStyle = beyondHero ? { background: "#000000", color: "#ffffff", backdropFilter: "none" } : atTop ? { background: "transparent", color: "#ffffff", backdropFilter: "none" } : { background: "transparent", color: "#ffffff", backdropFilter: "blur(0px)" };
+        ? "bg-transparent color-[var(--cineplus-black)] shadow-none"
+        : "bg-[var(--cineplus-black)] border-[var(--cineplus-gray-medium)] navbar-shadow-dark";
+    headerStyle = beyondHero ? { background: "var(--cineplus-black)", color: "var(--cineplus-gray-light)", backdropFilter: "none" } : atTop ? { background: "transparent", color: "var(--cineplus-gray-light)", backdropFilter: "none" } : { background: "transparent", color: "var(--cineplus-gray-light)", backdropFilter: "blur(0px)" };
   } else if (variant === 'boletos') {
     // Estático, no fixed
-    headerClass += "bg-white border-b border-gray-200 shadow-sm";
-    headerStyle = { background: "#fff", color: "#fffffff", boxShadow: "0 2px 8px 0 rgba(0,0,0,0.04)" };
-    logoSrc = "/public/LOGO_SET1.png";
+    headerClass += "bg-[var(--cineplus-gray-light)] border-b border-[var(--cineplus-gray)] shadow-sm";
+    headerStyle = { background: "var(--cineplus-gray-light)", color: "var(--cineplus-black)", boxShadow: "0 2px 8px 0 rgba(0,0,0,0.04)" };
+    logoSrc = "/public/logo-black.png";
   }
 
   return (
@@ -67,7 +105,7 @@ const Navbar: React.FC<NavbarProps> = ({ heroHeight = 650, variant = 'landing' }
               className="h-9 w-9 transition"
             />
             <span className="font-extrabold text-xl tracking-wide">
-              <span className="text-cineplus-white">Cine</span><span className="text-cineplus-red">Plus</span>
+              <span style={{ color: "var(--cineplus-gray-light)" }}>Cine</span><span style={{ color: "var(--cineplus-gray)" }}>Plus</span>
             </span>
           </Link>
         {/* Links */}
@@ -77,13 +115,13 @@ const Navbar: React.FC<NavbarProps> = ({ heroHeight = 650, variant = 'landing' }
               <li key={link.label} className="relative group">
                 <Link
                   to={link.to}
-                  style={beyondHero ? {color: "#ffffff", backdropFilter: "none"} : atTop ? { background: "transparent", color: "#ffffff"} : { background: "transparent", color: "#ffffff"}}
-                  className="transition-all duration-300 hover:text-cineplus-red group-hover:text-cineplus-red peer"
+                  style={beyondHero ? {color: "var(--cineplus-gray-light)", backdropFilter: "none"} : atTop ? { background: "transparent", color: "var(--cineplus-gray-light)"} : { background: "transparent", color: "var(--cineplus-gray-light)"}}
+                  className="transition-all duration-300 hover:text-[var(--cineplus-gray)] group-hover:text-[var(--cineplus-gray)] peer"
                 >
                   <span className="relative inline-block">
                     {link.label}
                     {/* Subrayado animado solo en hover */}
-                    <span className="block absolute left-0 -bottom-1 w-full h-1 rounded bg-cineplus-red opacity-0 peer-hover:opacity-100 transition-all duration-300 pointer-events-none" />
+                    <span className="block absolute left-0 -bottom-1 w-full h-1 rounded bg-[var(--cineplus-gray)] opacity-0 peer-hover:opacity-100 transition-all duration-300 pointer-events-none" />
                   </span>
                 </Link>
               </li>
@@ -92,17 +130,66 @@ const Navbar: React.FC<NavbarProps> = ({ heroHeight = 650, variant = 'landing' }
         </nav>
         {/* Iconos */}
         <div className="flex items-center gap-5">
-          <Link to="/perfil" title="Usuario" className="text-cineplus-white hover:text-cineplus-red transition-all duration-300">
+          <button 
+            onClick={() => setShowCineModal(true)}
+            data-elegir-cine
+            className="flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:text-[var(--cineplus-gray)]" 
+            style={{ color: "var(--cineplus-gray-light)" }}
+          >
+            <FiMapPin size={16} />
+            <span>{selectedCine || "ELEGIR CINE"}</span>
+            <FiChevronDown size={14} />
+          </button>
+          <Link to="/perfil" title="Usuario" style={{ color: "var(--cineplus-gray-light)" }} className="hover:text-[var(--cineplus-gray)] transition-all duration-300">
             <FiUser size={26} />
           </Link>
-          <Link to="/" title="Buscar" className="text-cineplus-white hover:text-cineplus-red transition-all duration-300">
-            <FiSearch size={26} />
-          </Link>
-          <Link to="/atencion" title="Ayuda" className="relative text-cineplus-white hover:text-cineplus-red transition-all duration-300">
+          <Link to="/atencion" title="Ayuda" style={{ color: "var(--cineplus-gray-light)" }} className="relative hover:text-[var(--cineplus-gray)] transition-all duration-300">
             <FiHelpCircle size={26} />
           </Link>
         </div>
       </div>
+
+      {/* Modal de selección de cine */}
+      <SideModal 
+        isOpen={showCineModal} 
+        onClose={() => setShowCineModal(false)}
+        title="Elige tu cine"
+      >
+        <div className="mb-4">
+          <h3 className="text-sm font-semibold mb-2" style={{ color: "var(--cineplus-gray)" }}>Selecciona tu cine favorito</h3>
+          <p className="text-xs mb-4" style={{ color: "var(--cineplus-gray)" }}>Ordenado alfabéticamente</p>
+        </div>
+
+        <div className="space-y-3">
+          {cines.map((cine) => (
+            <div 
+              key={cine}
+              onClick={() => handleCineSelection(cine)}
+              className="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-800"
+              style={{ 
+                backgroundColor: selectedCine === cine ? "var(--cineplus-gray-dark)" : "transparent",
+                border: `1px solid ${selectedCine === cine ? "var(--cineplus-gray)" : "var(--cineplus-gray-dark)"}` 
+              }}
+            >
+              <div>
+                <h4 className="font-medium" style={{ color: "var(--cineplus-gray-light)" }}>{cine}</h4>
+                <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>2D</p>
+              </div>
+              <div className="w-4 h-4 rounded-full border-2" style={{ 
+                borderColor: selectedCine === cine ? "var(--cineplus-gray-light)" : "var(--cineplus-gray)",
+                backgroundColor: selectedCine === cine ? "var(--cineplus-gray-light)" : "transparent"
+              }} />
+            </div>
+          ))}
+        </div>
+
+        <button 
+          onClick={() => setShowCineModal(false)}
+          className="w-full mt-6 py-3 px-4 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
+        >
+          APLICAR
+        </button>
+      </SideModal>
     </header>
   );
 };

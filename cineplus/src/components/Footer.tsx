@@ -1,7 +1,8 @@
 import React from "react";
+import { FaFacebookF, FaXTwitter, FaInstagram, FaYoutube } from "react-icons/fa6";
 
 const Footer: React.FC = () => (
-  <footer className="bg-[#010202] text-white pt-12 pb-0 mt-8">
+  <footer className="pt-12 pb-0 mt-8" style={{ background: "var(--cineplus-black)", color: "var(--cineplus-gray-light)" }}>
     <div className="max-w-7xl mx-auto px-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
         {/* Columna 1 */}
@@ -55,24 +56,53 @@ const Footer: React.FC = () => (
       </div>
     </div>
     {/* Línea inferior */}
-    <div className="border-t-4 border-pink-500 mt-8"></div>
-    <div className="bg-white text-[#122241] text-sm py-4">
-      <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+  <div style={{ borderTop: "4px solid var(--cineplus-gray)", marginTop: 32 }}></div>
+  <div style={{ background: "var(--cineplus-gray-light)", color: "var(--cineplus-black)", fontSize: 14, padding: '16px 0' }}>
+  <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
         <div>
           Cineplus S.A<br />
           Todos los derechos reservados 2025
         </div>
         <div className="flex items-center gap-4">
-          <a href="#" className="flex items-center gap-1 hover:underline">
+          <a href="#" className="flex items-center gap-1 hover:underline" style={{ color: "var(--cineplus-gray-dark)" }}>
             Descarga la app
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M17 17v1a3 3 0 01-3 3H7a3 3 0 01-3-3V7a3 3 0 013-3h1" /><path d="M7 7l10 10" /><path d="M15 7h2a2 2 0 012 2v8a2 2 0 01-2 2h-8a2 2 0 01-2-2v-2" /></svg>
           </a>
-          <span className="hidden md:inline">|</span>
-          <span>Síguenos en</span>
-          <a href="#" className="mx-1 hover:text-blue-600"><i className="fab fa-facebook-f"></i></a>
-          <a href="#" className="mx-1 hover:text-blue-400"><i className="fab fa-x-twitter"></i></a>
-          <a href="#" className="mx-1 hover:text-pink-600"><i className="fab fa-instagram"></i></a>
-          <a href="#" className="mx-1 hover:text-red-600"><i className="fab fa-youtube"></i></a>
+          <span className="hidden md:inline" style={{ color: "var(--cineplus-gray-medium)" }}>|</span>
+          <span style={{ color: "var(--cineplus-gray-dark)" }}>Síguenos en</span>
+          <a
+            href="#"
+            className="mx-1 social-icon social-facebook"
+            aria-label="Facebook"
+            style={{ color: "var(--cineplus-gray-dark)" }}
+          >
+            <FaFacebookF size={20} />
+          </a>
+          <a
+            href="#"
+            className="mx-1 social-icon social-x"
+            aria-label="X (Twitter)"
+            style={{ color: "var(--cineplus-gray-dark)" }}
+          >
+            <FaXTwitter size={20} />
+          </a>
+          <a
+            href="#"
+            className="mx-1 social-icon social-instagram"
+            aria-label="Instagram"
+            style={{ color: "var(--cineplus-gray-dark)" }}
+          >
+            <FaInstagram size={20} />
+          </a>
+          <a
+            href="#"
+            className="mx-1 social-icon social-youtube"
+            aria-label="YouTube"
+            style={{ color: "var(--cineplus-gray-dark)" }}
+          >
+            <FaYoutube size={20} />
+          </a>
+
         </div>
       </div>
     </div>

@@ -41,16 +41,18 @@ const FilterBar: React.FC = () => {
   };
 
   return (
-    <section className="flex justify-center w-full -mt-12 z-20 relative">
+  <section className="flex justify-center w-full -mt-12 z-20 relative">
       <form
-        className="bg-white shadow-lg rounded-md flex flex-col md:flex-row items-stretch px-2 py-4 gap-4 md:gap-0 w-full max-w-2xl md:min-w-[700px]"
+        style={{ background: "var(--cineplus-gray-light)" }}
+        className="shadow-lg rounded-md flex flex-col md:flex-row items-stretch px-2 py-4 gap-4 md:gap-0 w-full max-w-2xl md:min-w-[700px]"
         onSubmit={handleSubmit}
       >
         {/* Filtro 1 */}
-        <div className="flex flex-col justify-center flex-1 min-w-0 px-0 md:px-6 border-b border-gray-200 md:border-b-0 md:border-r">
-          <label className="font-bold text-base text-gray-800 mb-0">Por película</label>
+        <div className="flex flex-col justify-center flex-1 min-w-0 px-0 md:px-6 border-b md:border-b-0 md:border-r" style={{ borderColor: "var(--cineplus-gray)" }}>
+          <label className="font-bold text-base mb-0" style={{ color: "var(--cineplus-gray-dark)" }}>Por película</label>
           <select
-            className="text-gray-500 text-sm bg-transparent focus:outline-none w-full"
+            className="text-sm bg-transparent focus:outline-none w-full"
+            style={{ color: "var(--cineplus-gray)", border: "none" }}
             value={movie}
             onChange={e => setMovie(e.target.value)}
           >
@@ -62,10 +64,11 @@ const FilterBar: React.FC = () => {
         </div>
 
         {/* Filtro 2 */}
-        <div className="flex flex-col justify-center flex-1 min-w-0 px-0 md:px-6 border-b border-gray-200 md:border-b-0 md:border-r">
-          <label className="font-bold text-base text-gray-800 mb-0">Por ciudad</label>
+        <div className="flex flex-col justify-center flex-1 min-w-0 px-0 md:px-6 border-b md:border-b-0 md:border-r" style={{ borderColor: "var(--cineplus-gray)" }}>
+          <label className="font-bold text-base mb-0" style={{ color: "var(--cineplus-gray-dark)" }}>Por ciudad</label>
           <select
-            className="text-gray-500 text-sm bg-transparent focus:outline-none w-full"
+            className="text-sm bg-transparent focus:outline-none w-full"
+            style={{ color: "var(--cineplus-gray)", border: "none" }}
             value={city}
             onChange={e => {
               setCity(e.target.value);
@@ -80,10 +83,11 @@ const FilterBar: React.FC = () => {
         </div>
 
         {/* Filtro 3 */}
-        <div className="flex flex-col justify-center flex-1 px-0 md:px-6 border-b border-gray-200 md:border-b-0 md:border-r">
-          <label className="font-bold text-base text-gray-800 mb-0">Por cine/localidad</label>
+        <div className="flex flex-col justify-center flex-1 px-0 md:px-6 border-b md:border-b-0 md:border-r" style={{ borderColor: "var(--cineplus-gray)" }}>
+          <label className="font-bold text-base mb-0" style={{ color: "var(--cineplus-gray-dark)" }}>Por cine/localidad</label>
           <select
-            className="text-gray-500 text-sm bg-transparent focus:outline-none w-full"
+            className="text-sm bg-transparent focus:outline-none w-full"
+            style={{ color: "var(--cineplus-gray)", border: "none" }}
             value={cinema}
             onChange={e => setCinema(e.target.value)}
             disabled={!city}
@@ -99,9 +103,10 @@ const FilterBar: React.FC = () => {
 
         {/* Filtro 4 */}
         <div className="flex flex-col justify-center flex-1 px-0 md:px-6">
-          <label className="font-bold text-base text-gray-800 mb-0">Por fecha</label>
+          <label className="font-bold text-base mb-0" style={{ color: "var(--cineplus-gray-dark)" }}>Por fecha</label>
           <select
-            className="text-gray-500 text-sm bg-transparent focus:outline-none w-full"
+            className="text-sm bg-transparent focus:outline-none w-full"
+            style={{ color: "var(--cineplus-gray)", border: "none" }}
             value={date}
             onChange={e => setDate(e.target.value)}
           >
@@ -119,9 +124,10 @@ const FilterBar: React.FC = () => {
             disabled={!isReady}
             className={`flex items-center gap-2 font-semibold rounded-full px-6 py-2 transition w-full md:w-auto
               ${isReady
-                ? "bg-blue-600 text-white hover:bg-blue-700"
-                : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                ? "bg-[var(--cineplus-gray-dark)] text-[var(--cineplus-gray-light)] hover:bg-[var(--cineplus-black)]"
+                : "bg-[var(--cineplus-gray)] text-[var(--cineplus-gray-light)] cursor-not-allowed"
               }`}
+            style={{ border: "none" }}
           >
             <Sliders size={18} />
             Filtrar
