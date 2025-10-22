@@ -17,6 +17,7 @@ import Cines from "./pages/Cines";
 import Promociones from "./pages/Promociones";
 
 // 👉 Componente que fuerza scroll al inicio
+
 const ScrollToTop: React.FC = () => {
   const { pathname } = useLocation();
 
@@ -45,6 +46,9 @@ const App: React.FC = () => {
         <Route path="/perfil" element={<PerfilUsuario />} />
         <Route path="/atencion" element={<AtencionCliente />} />
         <Route path="/dulceria" element={<Dulceria />} />
+         <Route path="/" element={<LandingPage />} />
+        <Route path="/cines" element={<Cines />} />
+        <Route path="/cartelera" element={<Cartelera />} />
       </Routes>
     </>
   );

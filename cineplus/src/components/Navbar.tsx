@@ -10,7 +10,6 @@ const navLinks = [
   { label: "Dulcería", to: "/dulceria" },
 ];
 
-
 interface NavbarProps {
   heroHeight?: number;
   variant?: 'landing' | 'boletos';
@@ -61,7 +60,7 @@ const Navbar: React.FC<NavbarProps> = ({ heroHeight = 620, variant = 'landing' }
   useEffect(() => {
     const handleScroll = () => {
       setAtTop(window.scrollY < 10);
-      setBeyondHero(window.scrollY > heroHeight - 60); // 60px: navbar height approx
+      setBeyondHero(window.scrollY > 0); // Se oscurece apenas toque el scroll
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
@@ -116,7 +115,7 @@ const Navbar: React.FC<NavbarProps> = ({ heroHeight = 620, variant = 'landing' }
                 <Link
                   to={link.to}
                   style={beyondHero ? {color: "var(--cineplus-gray-light)", backdropFilter: "none"} : atTop ? { background: "transparent", color: "var(--cineplus-gray-light)"} : { background: "transparent", color: "var(--cineplus-gray-light)"}}
-                  className="transition-all duration-300 hover:text-[var(--cineplus-gray)] group-hover:text-[var(--cineplus-gray)] peer"
+                  className="transition-all duration-300 transform hover:scale-110 hover:text-[var(--cineplus-gray)] group-hover:text-[var(--cineplus-gray)] peer"
                 >
                   <span className="relative inline-block">
                     {link.label}

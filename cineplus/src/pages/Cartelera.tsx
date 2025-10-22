@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import MovieCard from "../components/MovieCard";
 import FilterDropdown from "../components/FilterDropdown";
 import { peliculas } from "../data/peliculas";
+import { useLocation } from "react-router-dom";
 
 interface Pelicula {
   id: string;
@@ -36,6 +37,25 @@ function getPeliculasByTab(tabIdx: number) {
 const Cartelera: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState("En cartelera");
   const [visibleMovies, setVisibleMovies] = useState(6);
+  const [selectedCine, setSelectedCine] = useState<string | null>(null);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    // Obtener el cine desde la URL (query parameter)
+    const params = new URLSearchParams(location.search);
+    const cineFromUrl = params.get("cine");
+
+    if (cineFromUrl) {
+      setSelectedCine(cineFromUrl); // Establecer el cine seleccionado desde la URL
+    } else {
+      const savedCine = localStorage.getItem("selectedCine");
+      if (savedCine) {
+        setSelectedCine(savedCine); // Recuperar desde localStorage si no está en la URL
+      }
+    }
+  }, [location]);
+
   const activeTabIndex = TABS.indexOf(selectedCategory);
   const allMovies = getPeliculasByTab(activeTabIndex);
   const movies = allMovies.slice(0, visibleMovies);
@@ -47,7 +67,7 @@ const Cartelera: React.FC = () => {
   };
 
   const loadMoreMovies = () => {
-    setVisibleMovies(prev => prev + 6);
+    setVisibleMovies((prev) => prev + 6);
   };
 
   return (
@@ -58,7 +78,7 @@ const Cartelera: React.FC = () => {
           {/* Sidebar izquierdo */}
           <div className="w-64 p-6 border-r" style={{ borderColor: "var(--cineplus-gray)" }}>
             <h3 className="text-lg font-bold mb-4" style={{ color: "var(--cineplus-gray-light)" }}>Filtrar Por:</h3>
-            
+
             <div className="space-y-4">
               <FilterDropdown
                 options={TABS}
@@ -88,7 +108,7 @@ const Cartelera: React.FC = () => {
                 </div>
               ))}
             </div>
-            
+
             {hasMoreMovies && (
               <div className="flex justify-center mt-8">
                 <button 
