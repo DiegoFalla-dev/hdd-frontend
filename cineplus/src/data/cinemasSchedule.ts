@@ -29,15 +29,19 @@ export const SEAT_MATRICES = {
   xlarge: { rows: 17, cols: 20 } // 340 seats
 };
 
-// Generate showtimes for next 3 days
-const generateShowtimes = (movieId: string): Showtime[] => {
+// Generate showtimes based on movie type
+const generateShowtimes = (movieId: string, isPreSale = false): Showtime[] => {
   const showtimes: Showtime[] = [];
   const today = new Date();
   const formats: ('2D' | '3D' | 'XD')[] = ['2D', '3D', 'XD'];
   const matrices: ('small' | 'medium' | 'large' | 'xlarge')[] = ['small', 'medium', 'large', 'xlarge'];
   const baseTimes = ['10:00', '13:00', '16:00', '19:00', '22:00'];
 
-  for (let dayOffset = 0; dayOffset < 3; dayOffset++) {
+  // Set date range based on movie type
+  const startOffset = isPreSale ? 14 : 0; // Pre-sale starts in 2 weeks
+  const dayCount = isPreSale ? 16 : 3; // Pre-sale has 16 days (2 weeks + 2 days), regular has 3 days
+
+  for (let dayOffset = startOffset; dayOffset < startOffset + dayCount; dayOffset++) {
     const date = new Date(today);
     date.setDate(today.getDate() + dayOffset);
     const dateStr = date.toISOString().split('T')[0];
@@ -64,70 +68,120 @@ const generateShowtimes = (movieId: string): Showtime[] => {
   return showtimes;
 };
 
-// Cinema data with different showtimes for each cinema
+// Cinema data with different movie distributions
 export const cinemaSchedules: Cinema[] = [
+  // 3 main cinemas with all cartelera movies (1-23) + pre-sale (24-32)
   {
     id: 'asia',
     name: 'Cineplus Asia',
     movies: [
-      { movieId: '1', showtimes: generateShowtimes('1') },
-      { movieId: '2', showtimes: generateShowtimes('2') },
-      { movieId: '3', showtimes: generateShowtimes('3') },
-      // Add more movies as needed
-    ]
-  },
-  {
-    id: 'gamarra',
-    name: 'Cineplus Gamarra',
-    movies: [
-      { movieId: '1', showtimes: generateShowtimes('1') },
-      { movieId: '2', showtimes: generateShowtimes('2') },
-      { movieId: '3', showtimes: generateShowtimes('3') },
+      // Cartelera movies (1-23)
+      ...Array.from({length: 23}, (_, i) => ({ 
+        movieId: (i + 1).toString(), 
+        showtimes: generateShowtimes((i + 1).toString()) 
+      })),
+      // Pre-sale movies (24-32)
+      ...Array.from({length: 9}, (_, i) => ({ 
+        movieId: (i + 24).toString(), 
+        showtimes: generateShowtimes((i + 24).toString(), true) 
+      }))
     ]
   },
   {
     id: 'jockey',
     name: 'Cineplus Jockey Plaza',
     movies: [
-      { movieId: '1', showtimes: generateShowtimes('1') },
-      { movieId: '2', showtimes: generateShowtimes('2') },
-      { movieId: '3', showtimes: generateShowtimes('3') },
-    ]
-  },
-  {
-    id: 'lambramani',
-    name: 'Cineplus Lambramani',
-    movies: [
-      { movieId: '1', showtimes: generateShowtimes('1') },
-      { movieId: '2', showtimes: generateShowtimes('2') },
-      { movieId: '3', showtimes: generateShowtimes('3') },
-    ]
-  },
-  {
-    id: 'arequipa',
-    name: 'Cineplus Mall Ave Pza Arequipa',
-    movies: [
-      { movieId: '1', showtimes: generateShowtimes('1') },
-      { movieId: '2', showtimes: generateShowtimes('2') },
-      { movieId: '3', showtimes: generateShowtimes('3') },
-    ]
-  },
-  {
-    id: 'angamos',
-    name: 'Cineplus MallPlaza Angamos',
-    movies: [
-      { movieId: '1', showtimes: generateShowtimes('1') },
-      { movieId: '2', showtimes: generateShowtimes('2') },
-      { movieId: '3', showtimes: generateShowtimes('3') },
+      // Cartelera movies (1-23)
+      ...Array.from({length: 23}, (_, i) => ({ 
+        movieId: (i + 1).toString(), 
+        showtimes: generateShowtimes((i + 1).toString()) 
+      })),
+      // Pre-sale movies (24-32)
+      ...Array.from({length: 9}, (_, i) => ({ 
+        movieId: (i + 24).toString(), 
+        showtimes: generateShowtimes((i + 24).toString(), true) 
+      }))
     ]
   },
   {
     id: 'bellavista',
     name: 'Cineplus Mallplaza Bellavista',
     movies: [
-      { movieId: '1', showtimes: generateShowtimes('1') },
-      { movieId: '2', showtimes: generateShowtimes('2') },
-      { movieId: '3', showtimes: generateShowtimes('3') },
+      // Cartelera movies (1-23)
+      ...Array.from({length: 23}, (_, i) => ({ 
+        movieId: (i + 1).toString(), 
+        showtimes: generateShowtimes((i + 1).toString()) 
+      })),
+      // Pre-sale movies (24-32)
+      ...Array.from({length: 9}, (_, i) => ({ 
+        movieId: (i + 24).toString(), 
+        showtimes: generateShowtimes((i + 24).toString(), true) 
+      }))
+    ]
+  },
+  // Smaller cinemas with partial movie selections
+  {
+    id: 'gamarra',
+    name: 'Cineplus Gamarra',
+    movies: [
+      // 15 cartelera movies (1-15)
+      ...Array.from({length: 15}, (_, i) => ({ 
+        movieId: (i + 1).toString(), 
+        showtimes: generateShowtimes((i + 1).toString()) 
+      })),
+      // 4 pre-sale movies (24-27)
+      ...Array.from({length: 4}, (_, i) => ({ 
+        movieId: (i + 24).toString(), 
+        showtimes: generateShowtimes((i + 24).toString(), true) 
+      }))
+    ]
+  },
+  {
+    id: 'lambramani',
+    name: 'Cineplus Lambramani',
+    movies: [
+      // 17 cartelera movies (1-17)
+      ...Array.from({length: 17}, (_, i) => ({ 
+        movieId: (i + 1).toString(), 
+        showtimes: generateShowtimes((i + 1).toString()) 
+      })),
+      // 5 pre-sale movies (24-28)
+      ...Array.from({length: 5}, (_, i) => ({ 
+        movieId: (i + 24).toString(), 
+        showtimes: generateShowtimes((i + 24).toString(), true) 
+      }))
+    ]
+  },
+  {
+    id: 'arequipa',
+    name: 'Cineplus Mall Ave Pza Arequipa',
+    movies: [
+      // 18 cartelera movies (1-18)
+      ...Array.from({length: 18}, (_, i) => ({ 
+        movieId: (i + 1).toString(), 
+        showtimes: generateShowtimes((i + 1).toString()) 
+      })),
+      // 6 pre-sale movies (24-29)
+      ...Array.from({length: 6}, (_, i) => ({ 
+        movieId: (i + 24).toString(), 
+        showtimes: generateShowtimes((i + 24).toString(), true) 
+      }))
+    ]
+  },
+  {
+    id: 'angamos',
+    name: 'Cineplus MallPlaza Angamos',
+    movies: [
+      // 15 cartelera movies (6-20)
+      ...Array.from({length: 15}, (_, i) => ({ 
+        movieId: (i + 6).toString(), 
+        showtimes: generateShowtimes((i + 6).toString()) 
+      })),
+      // 4 pre-sale movies (28-31)
+      ...Array.from({length: 4}, (_, i) => ({ 
+        movieId: (i + 28).toString(), 
+        showtimes: generateShowtimes((i + 28).toString(), true) 
+      }))
     ]
   }
 ];
@@ -145,12 +199,17 @@ export const getMovieShowtimes = (cinemaName: string, movieId: string): Showtime
   return movie ? movie.showtimes : [];
 };
 
-export const getAvailableDates = (): { label: string; date: string; fullDate: string }[] => {
+export const getAvailableDates = (movieId?: string): { label: string; date: string; fullDate: string }[] => {
   const today = new Date();
   const dates = [];
   const dayNames = ['DOM', 'LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB'];
   
-  for (let i = 0; i < 3; i++) {
+  // Check if it's a pre-sale movie (24-32)
+  const isPreSale = movieId && parseInt(movieId) >= 24 && parseInt(movieId) <= 32;
+  const startOffset = isPreSale ? 14 : 0;
+  const dayCount = isPreSale ? 16 : 3;
+  
+  for (let i = startOffset; i < startOffset + dayCount; i++) {
     const date = new Date(today);
     date.setDate(today.getDate() + i);
     
@@ -170,18 +229,18 @@ export const getAvailableDates = (): { label: string; date: string; fullDate: st
 
 export const getAvailableTimes = (showtimes: Showtime[], selectedDate: string, selectedFormat: string): string[] => {
   const now = new Date();
-  const currentTime = now.getHours() * 60 + now.getMinutes(); // Current time in minutes
+  const currentTime = now.getHours() * 60 + now.getMinutes();
   const today = now.toISOString().split('T')[0];
   
   return showtimes
     .filter(showtime => {
       if (showtime.date !== selectedDate || showtime.format !== selectedFormat) return false;
       
-      // If it's today, filter out times that are less than 2 hours from now
+      // Only apply time filter for today's showings
       if (selectedDate === today) {
         const [hours, minutes] = showtime.time.split(':').map(Number);
         const showtimeMinutes = hours * 60 + minutes;
-        return showtimeMinutes >= currentTime + 120; // 2 hours buffer
+        return showtimeMinutes >= currentTime + 120;
       }
       
       return true;

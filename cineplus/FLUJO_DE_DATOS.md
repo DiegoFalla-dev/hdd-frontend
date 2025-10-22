@@ -40,6 +40,21 @@ interface Cinema {
 }
 ```
 
+**Distribución de Películas por Cine**:
+- **3 Cines Principales** (Asia, Jockey Plaza, Bellavista): 
+  - Todas las 23 películas en cartelera (ID 1-23)
+  - Todas las 9 películas en pre-venta (ID 24-32)
+- **Cines Secundarios**:
+  - Gamarra: 15 cartelera (1-15) + 4 pre-venta (24-27)
+  - Lambramani: 17 cartelera (1-17) + 5 pre-venta (24-28)
+  - Arequipa: 18 cartelera (1-18) + 6 pre-venta (24-29)
+  - Angamos: 15 cartelera (6-20) + 4 pre-venta (28-31)
+
+**Manejo de Fechas**:
+- **Películas en Cartelera** (1-23): Próximos 3 días desde hoy
+- **Películas Pre-venta** (24-32): Desde 2 semanas futuras por 16 días
+- **Próximos Estrenos** (33-48): Solo en cartelera, sin horarios
+
 ### 3. `dulceria.ts` + `cinesDulceria.ts`
 **Propósito**: Productos de dulcería por cine
 - `dulceria.ts`: Catálogo general de productos
@@ -71,9 +86,13 @@ Si SÍ hay cine seleccionado:
 ```
 Se ejecutan funciones de cinemasSchedule.ts:
 
-getAvailableDates() → Genera próximos 3 días desde hoy (GMT-5)
+getAvailableDates(movieId) → Genera fechas según tipo de película:
+  - Cartelera (1-23): Próximos 3 días desde hoy
+  - Pre-venta (24-32): Desde 2 semanas futuras por 16 días
 ↓
 getMovieShowtimes(cineName, movieId) → Obtiene horarios del cine específico
+  - Verifica si el cine tiene esa película disponible
+  - Retorna horarios solo si la película está en ese cine
 ↓
 Se extraen formatos únicos disponibles [2D, 3D, XD]
 ```
@@ -222,9 +241,9 @@ Datos del QR:
 
 ### Funciones que deberán convertirse en API calls:
 
-1. **`getAvailableDates()`**
-   - Actual: Genera fechas en frontend
-   - Futuro API: `GET /api/showtimes/dates`
+1. **`getAvailableDates(movieId?)`**
+   - Actual: Genera fechas en frontend según tipo de película
+   - Futuro API: `GET /api/showtimes/dates?movieId={id}`
 
 2. **`getMovieShowtimes(cinemaName, movieId)`**
    - Actual: Filtra datos locales
@@ -335,12 +354,17 @@ const [acceptTerms, setAcceptTerms] = useState(false);
    ```
    GET /api/movies → Lista todas las películas
    GET /api/movies/{id} → Detalle de película específica
+   GET /api/movies?category=cartelera → Películas en cartelera (1-23)
+   GET /api/movies?category=preventa → Películas en pre-venta (24-32)
+   GET /api/movies?category=proximamente → Próximos estrenos (33-48)
    ```
 
 2. **Cines**
    ```
    GET /api/cinemas → Lista todos los cines
-   GET /api/cinemas/{id}/movies → Películas disponibles en un cine
+   GET /api/cinemas/{id}/movies → Películas disponibles en un cine específico
+   GET /api/cinemas/{id}/movies?category=cartelera → Solo cartelera del cine
+   GET /api/cinemas/{id}/movies?category=preventa → Solo pre-venta del cine
    ```
 
 3. **Horarios**

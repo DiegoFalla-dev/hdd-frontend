@@ -27,7 +27,7 @@ function getPeliculasByTab(tabIdx: number) {
   } else if (tabIdx === 1) {
     return peliculas.slice(23, 32);
   } else if (tabIdx === 2) {
-    return peliculas.slice(32, 47);
+    return peliculas.slice(32, 48);
   } else {
     return [];
   }
