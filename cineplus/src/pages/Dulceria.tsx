@@ -4,24 +4,19 @@ import Footer from "../components/Footer";
 import ProductCard from "../components/ProductCard";
 import SideModal from "../components/SideModal";
 import { getProductosByCine } from "../data/cinesDulceria";
+import type { ProductoDulceria } from "../data/dulceria";
 
-interface ProductoDulceria {
-  id: string;
-  nombre: string;
-  descripcion: string;
-  precio: number;
-  imagen?: string;
-  categoria: 'combos' | 'canchita' | 'bebidas' | 'snacks';
-}
+type ProductosPorCategoria = {
+  combos: ProductoDulceria[];
+  canchita: ProductoDulceria[];
+  bebidas: ProductoDulceria[];
+  snacks: ProductoDulceria[];
+} | null;
 
 export default function Dulceria() {
   const [selectedCine, setSelectedCine] = useState<string | null>(null);
-  const [productos, setProductos] = useState<{
-    combos: ProductoDulceria[];
-    canchita: ProductoDulceria[];
-    bebidas: ProductoDulceria[];
-    snacks: ProductoDulceria[];
-  } | null>(null);
+  const [productos, setProductos] = useState<ProductosPorCategoria | null>(null);
+  const [loadingProductos, setLoadingProductos] = useState(false);
   const [activeCategory, setActiveCategory] = useState<'combos' | 'canchita' | 'bebidas' | 'snacks'>('combos');
   const [showCineModal, setShowCineModal] = useState(false);
 
@@ -39,29 +34,35 @@ export default function Dulceria() {
     setSelectedCine(cine);
     localStorage.setItem("selectedCine", cine);
     setShowCineModal(false);
-    const productosDelCine = getProductosByCine(cine);
-    setProductos(productosDelCine);
+    setLoadingProductos(true);
+    const p = getProductosByCine(cine);
+    setProductos(p);
+    setLoadingProductos(false);
   };
 
   useEffect(() => {
     const savedCine = localStorage.getItem("selectedCine");
     if (savedCine) {
       setSelectedCine(savedCine);
-      const productosDelCine = getProductosByCine(savedCine);
-      setProductos(productosDelCine);
+      setLoadingProductos(true);
+      const p = getProductosByCine(savedCine);
+      setProductos(p);
+      setLoadingProductos(false);
     } else {
       setShowCineModal(true);
     }
   }, []);
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      const savedCine = localStorage.getItem("selectedCine");
-      if (savedCine) {
-        setSelectedCine(savedCine);
-        const productosDelCine = getProductosByCine(savedCine);
-        setProductos(productosDelCine);
-      }
+    const handleStorageChange = async () => {
+        const savedCine = localStorage.getItem("selectedCine");
+        if (savedCine) {
+          setSelectedCine(savedCine);
+          setLoadingProductos(true);
+          const p = getProductosByCine(savedCine);
+          setProductos(p);
+          setLoadingProductos(false);
+        }
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -102,7 +103,7 @@ export default function Dulceria() {
           )}
         </div>
 
-        {!productos ? (
+        {!productos || loadingProductos ? (
           <>
             {/* Skeleton de categorías */}
             <div className="flex justify-center mb-8">

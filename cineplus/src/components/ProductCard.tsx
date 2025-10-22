@@ -1,14 +1,6 @@
 import React from "react";
 import { Plus } from "react-feather";
-
-interface ProductoDulceria {
-  id: string;
-  nombre: string;
-  descripcion: string;
-  precio: number;
-  imagen?: string;
-  categoria: 'combos' | 'canchita' | 'bebidas' | 'snacks';
-}
+import type { ProductoDulceria } from "../data/dulceria";
 
 interface ProductCardProps {
   producto: ProductoDulceria;
