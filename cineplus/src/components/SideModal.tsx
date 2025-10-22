@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { FiX } from "react-icons/fi";
 
 interface SideModalProps {
@@ -29,8 +30,8 @@ const SideModal: React.FC<SideModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50" style={{ backdropFilter: "blur(4px)" }}>
+  return createPortal(
+    <div className="fixed inset-0 z-[9999]" style={{ backdropFilter: "blur(4px)" }}>
       {/* Invisible overlay for closing */}
       <div 
         className="absolute inset-0"
@@ -66,7 +67,8 @@ const SideModal: React.FC<SideModalProps> = ({
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
