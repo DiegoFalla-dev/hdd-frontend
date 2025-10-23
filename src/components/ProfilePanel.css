@@ -1,0 +1,513 @@
+/* ProfilePanel.css */
+
+/* -------------------------------------------------------------------------- */
+/*                     Estilos del Contenedor Principal                       */
+/* -------------------------------------------------------------------------- */
+
+.profile-panel-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 100%; /* Ajusta si tienes un ancho fijo */
+  max-width: 400px; /* Ejemplo de ancho máximo, ajusta según tu diseño */
+  height: 100%;
+  background-color: #1a1a1a; /* Fondo oscuro */
+  color: #fff;
+  z-index: 1000; /* Asegura que esté por encima de otros elementos */
+  box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5); /* Sombra para dar profundidad */
+  display: flex;
+  flex-direction: column;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                           Estilos del Encabezado                           */
+/* -------------------------------------------------------------------------- */
+
+.profile-header, .sub-panel-header {
+  display: flex;
+  align-items: center;
+  padding: 15px 16px; /* Ajustado para mejor espaciado */
+  border-bottom: 1px solid #333;
+  background-color: #222; /* Fondo ligeramente diferente para el header */
+  flex-shrink: 0; /* Asegura que el header no se encoja */
+}
+
+.profile-title, .sub-panel-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  flex-grow: 1; /* Permite que el título ocupe el espacio disponible */
+  text-align: center; /* Centra el título */
+}
+
+.close-btn, .back-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 5px;
+  display: flex; /* Para centrar el icono */
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.close-btn:hover, .back-btn:hover {
+  color: #ccc;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                       Estilos de las Secciones de Contenido                */
+/* -------------------------------------------------------------------------- */
+
+/* Contenedor general para el contenido principal (login, profile, register) */
+.profile-content,
+.login-panel-content,
+.sub-panel-content {
+  flex-grow: 1; /* Permite que el contenido ocupe el espacio restante */
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; /* ¡AQUÍ ESTÁ LA CLAVE PARA EL SCROLL! */
+  -webkit-overflow-scrolling: touch; /* Mejora el scroll en iOS */
+  padding-bottom: 20px; /* Espacio extra al final para el scroll */
+}
+
+/* Ajustes para la vista de registro que tiene un header interno */
+.register-panel-content {
+  flex-grow: 1; /* También ocupa el espacio restante */
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; /* ¡Y AQUÍ! */
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 20px; /* Espacio extra al final para el scroll */
+}
+
+/* Asegurar que los formularios internos también puedan crecer si es necesario */
+.register-form {
+  flex-grow: 1; /* Permite que el formulario se estire */
+  overflow-y: visible; /* El scroll lo maneja el padre (.register-panel-content) */
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Estilos de la sección de usuario y avatar */
+.profile-user-section {
+  padding: 20px 16px;
+  text-align: center;
+  border-bottom: 1px solid #333;
+  position: relative;
+  flex-shrink: 0; /* No se encoje con el scroll */
+}
+
+.profile-avatar-wrapper {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 10px;
+}
+
+.profile-avatar-img-large {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #555;
+}
+
+.profile-avatar-icon-large {
+  font-size: 100px;
+  color: #777;
+}
+
+.profile-edit-avatar-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background-color: #e50914; /* Rojo de Cinemark */
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid #1a1a1a;
+}
+
+.profile-username {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-top: 5px;
+}
+
+/* Estilos para la cuadrícula de acciones */
+.profile-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* 2 columnas */
+  gap: 15px;
+  padding: 20px 16px;
+  border-bottom: 1px solid #333;
+  flex-shrink: 0; /* No se encoje con el scroll */
+}
+
+.profile-action-item {
+  background-color: #2a2a2a;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.profile-action-item:hover {
+  background-color: #3a3a3a;
+  border-color: #e50914;
+}
+
+/* Botón de cerrar sesión */
+.logout-btn {
+  background-color: #e50914; /* Rojo de Cinemark */
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  margin: 20px 16px; /* Ajusta los márgenes */
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0; /* No se encoje con el scroll */
+}
+
+.logout-btn:hover {
+  background-color: #cc0812;
+}
+
+/* --- Estilos para la vista de Cuenta/Información Personal --- */
+.personal-info-section {
+  padding: 15px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px; /* Espacio entre los grupos de input */
+  flex-grow: 1; /* Permite que ocupe el espacio y empuje el botón */
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e50914; /* Color rojo de Cinemark */
+  margin-bottom: 5px;
+  text-align: left;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-item label {
+  font-size: 0.85rem;
+  color: #aaa;
+  margin-bottom: 5px;
+}
+
+.info-item input, .info-item select {
+  background-color: #333;
+  border: 1px solid #555;
+  border-radius: 8px;
+  padding: 12px;
+  color: #fff;
+  font-size: 1rem;
+  width: 100%;
+}
+
+.info-item input:focus, .info-item select:focus {
+  outline: none;
+  border-color: #e50914;
+}
+
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-with-icon input, .input-with-icon select {
+  padding-right: 40px; /* Espacio para el icono */
+}
+
+.input-with-icon .input-icon {
+  position: absolute;
+  right: 12px;
+  color: #888;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.checkbox-item input[type="checkbox"] {
+  margin-right: 10px;
+  width: 18px;
+  height: 18px;
+  accent-color: #e50914; /* Color del checkbox al activarse */
+}
+
+.checkbox-item label {
+  font-size: 0.9rem;
+  color: #ccc;
+  cursor: pointer;
+}
+
+.update-data-btn {
+  background-color: #e50914;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  margin-top: 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  width: 100%;
+  flex-shrink: 0; /* Asegura que el botón siempre sea visible */
+}
+
+.update-data-btn:hover {
+  background-color: #cc0812;
+}
+
+/* --- Estilos para la vista de Compras/Empty State --- */
+.empty-state-message {
+  flex-grow: 1; /* Ocupa el espacio restante */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #aaa;
+  padding: 20px;
+}
+
+.empty-state-message p {
+  font-size: 1.1rem;
+}
+
+/* --- Estilos para el Login --- */
+.login-panel-content {
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow-y: auto; /* ¡También para el login! */
+  -webkit-overflow-scrolling: touch;
+}
+
+.login-greeting {
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 30px;
+  color: #fff;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-shrink: 0; /* No se encoje */
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-group label {
+  font-size: 0.9rem;
+  color: #ccc;
+  margin-bottom: 5px;
+}
+
+.input-group input {
+  background-color: #333;
+  border: 1px solid #555;
+  border-radius: 8px;
+  padding: 12px;
+  color: #fff;
+  font-size: 1rem;
+  width: 100%;
+}
+
+.input-group input::placeholder {
+  color: #777;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #e50914;
+}
+
+.password-input-wrapper {
+  position: relative;
+}
+
+.password-input-wrapper input {
+  padding-right: 40px; /* Espacio para el botón de visibilidad */
+}
+
+.toggle-password-visibility {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+}
+
+.toggle-password-visibility:hover {
+  color: #ccc;
+}
+
+.login-error-message {
+  color: #ff4d4f; /* Rojo de error */
+  font-size: 0.9rem;
+  text-align: center;
+  margin-top: -10px;
+}
+
+.login-submit-btn {
+  background-color: #e50914;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  width: 100%;
+}
+
+.login-submit-btn:hover {
+  background-color: #cc0812;
+}
+
+.forgot-password-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 0.9rem;
+  margin-top: 10px;
+  cursor: pointer;
+  text-align: center;
+  transition: color 0.2s ease;
+  padding: 5px;
+}
+
+.forgot-password-btn:hover {
+  color: #fff;
+}
+
+.create-account-btn {
+  background-color: #444; /* Un color secundario para el botón */
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  width: 100%;
+  margin-top: auto; /* Empuja el botón hacia abajo si hay espacio */
+  flex-shrink: 0; /* Evita que el botón se encoja */
+}
+
+.create-account-btn:hover {
+  background-color: #555;
+}
+
+/* --- Estilos para el formulario de Registro (register-panel-content) --- */
+.register-panel-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; /* ¡AQUÍ PARA EL FORMULARIO DE REGISTRO! */
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 24px;
+}
+
+.register-form {
+  padding: 0 16px; /* Ajusta padding para que coincida con la imagen */
+  display: flex;
+  flex-direction: column;
+  gap: 20px; /* Espacio entre los grupos de input */
+  /* Remove overflow-y: auto from here, it's handled by .register-panel-content */
+  flex-grow: 1; /* Ocupa el espacio restante */
+}
+
+.register-form select {
+  background-color: #333;
+  border: 1px solid #555;
+  border-radius: 8px;
+  padding: 12px;
+  color: #fff;
+  font-size: 1rem;
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+}
+
+.register-form select option {
+  background-color: #333;
+  color: #fff;
+}
+
+.input-with-icon select {
+  padding-right: 40px;
+}
+
+.register-form input[type="date"] {
+  color-scheme: dark;
+}
+
+.login-success-message {
+  color: #4CAF50;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.register-panel-content .sub-panel-title {
+  text-align: center;
+  flex-grow: 1;
+  margin-left: -40px;
+}
+
+.login-panel-content .profile-header .profile-title {
+    text-align: center;
+    flex-grow: 1;
+    margin-left: auto;
+    margin-right: auto;
+}
