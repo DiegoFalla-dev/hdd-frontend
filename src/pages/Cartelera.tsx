@@ -51,35 +51,37 @@ const Cartelera: React.FC = () => {
   };
 
   return (
-    <div style={{ background: 'var(--cineplus-black)', color: 'var(--cineplus-gray-light)' }} className="min-h-screen pt-16">
+    <div className="min-h-screen pt-16 bg-neutral-900 text-neutral-100">
       <Navbar />
-      <div className="max-w-6xl mx-auto">
-        <div className="flex">
-          {/* Sidebar izquierdo */}
-          <div className="w-64 p-6 border-r" style={{ borderColor: 'var(--cineplus-gray)' }}>
-            <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--cineplus-gray-light)' }}>Filtrar Por:</h3>
 
-            <div className="space-y-4">
-              <FilterDropdown
-                options={TABS}
-                selectedOption={selectedCategory}
-                onSelect={handleCategoryChange}
-                placeholder="Categoría"
-              />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Sidebar izquierdo */}
+          <aside className="lg:col-span-1">
+            <div className="sticky top-24 bg-neutral-800/40 backdrop-blur rounded-lg p-6 border border-neutral-700">
+              <h3 className="text-lg font-semibold mb-4">Filtrar Por:</h3>
+              <div className="space-y-4">
+                <FilterDropdown
+                  options={TABS}
+                  selectedOption={selectedCategory}
+                  onSelect={handleCategoryChange}
+                  placeholder="Categoría"
+                />
+              </div>
             </div>
-          </div>
+          </aside>
 
           {/* Contenido principal */}
-          <div className="flex-1 p-8">
-            <div className="mb-8">
-              <h2 className="text-4xl font-bold mb-2" style={{ color: 'var(--cineplus-gray-light)' }}>Películas</h2>
-              <p className="text-lg" style={{ color: 'var(--cineplus-gray)' }}>Descubre las mejores películas en cartelera</p>
+          <section className="lg:col-span-3">
+            <div className="mb-6">
+              <h2 className="text-4xl font-extrabold tracking-tight mb-2">Películas</h2>
+              <p className="text-neutral-300">Descubre las mejores películas en cartelera</p>
             </div>
 
             {/* Grid de películas */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {movies.map((pelicula, index) => (
-                <div key={pelicula.id ?? index} className="aspect-[2/3] transform hover:scale-105 transition-transform duration-300">
+                <div key={pelicula.id ?? index} className="transform hover:scale-105 transition-transform duration-300">
                   <MovieCard
                     pelicula={pelicula}
                     showEstrenoLabel={activeTabIndex === 0 && index < 6}
@@ -90,19 +92,23 @@ const Cartelera: React.FC = () => {
             </div>
 
             {hasMoreMovies && (
-              <div className="flex justify-center mt-8">
+              <div className="flex justify-center mt-10">
                 <button
                   onClick={loadMoreMovies}
-                  className="bg-transparent border-2 border-white text-white font-bold px-8 py-3 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+                  className="inline-flex items-center gap-3 text-white font-semibold px-6 py-3 rounded-full shadow-lg hover:scale-105 transition-transform duration-200"
+                  style={{ background: 'linear-gradient(90deg, var(--cinepal-primary), var(--cinepal-primary-700))' }}
                 >
-                  <img src="/logo-white.png" alt="Logo" className="w-14 h-14" />
-                  Ver más Películas
+                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                    <img src="https://i.imgur.com/K9o09F6.png" alt="Logo" />
+                  </div>
+                  <span>Ver más Películas</span>
                 </button>
               </div>
             )}
-          </div>
+          </section>
         </div>
-      </div>
+      </main>
+
       <Footer />
     </div>
   );

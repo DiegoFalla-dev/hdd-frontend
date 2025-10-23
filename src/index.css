@@ -1,6 +1,20 @@
 @import "tailwindcss";
-/* index styles cleared to make the app visually blank */
+@import "./styles/palette.css";
+
+/* Base layout rules and integration with palette */
 html, body, #root {
   height: 100%;
   margin: 0;
+  background-color: var(--cinepal-gray-900); /* fallback background */
+  color: var(--text-default);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Utility: small container to center content consistently */
+.cinepal-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
