@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import type { Cinema } from '../types/Cinema';
 import { getAllCinemas } from '../services/cinemaService';
+import Footer from '../components/Footer';
 
 const Cines = () => {
   const [cinemas, setCinemas] = useState<Cinema[]>([]);
@@ -126,41 +127,7 @@ const Cines = () => {
         </div>
       </div>
 
-      <div className="bg-[#595959] text-white p-8 mt-12">
-        <h2 className="text-xl font-bold mb-6">Información importante</h2>
-        <p className="text-gray-300 mb-8">
-          Recuerda que el horario mostrado corresponde a la hora del inicio de la publicidad.
-          El horario de apertura del cine es 20 minutos antes de la primera función programada.
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div>
-            <h3 className="font-bold mb-3">Acerca de Cineplus</h3>
-            <ul className="text-gray-300">
-              <li>Quiénes somos</li>
-              <li>Trabaja con nosotros</li>
-              <li>Términos y condiciones</li>
-              <li>Políticas de privacidad</li>
-              <li>Políticas de cambios y devoluciones</li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-bold mb-3">Sostenibilidad</h3>
-            <ul className="text-gray-300">
-              <li>Compromiso ambiental</li>
-              <li>Responsabilidad social</li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-bold mb-3">Ayuda y Contacto</h3>
-            <ul className="text-gray-300">
-              <li>Preguntas frecuentes</li>
-              <li>Contáctanos</li>
-              <li>Libro de reclamaciones</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+      <Footer />
     </div>
   );
 };
