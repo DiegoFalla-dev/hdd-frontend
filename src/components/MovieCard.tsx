@@ -36,13 +36,22 @@ const MovieCard: React.FC<MovieCardProps> = ({ pelicula, showEstrenoLabel = fals
 			)}
 
 			<div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/50">
-				<button
-					className="flex items-center gap-2 px-5 py-2 rounded-full font-bold text-white w-40 justify-center transform transition-transform duration-200 hover:-translate-y-1 hover:scale-105 hover:brightness-110"
-					style={{ background: 'var(--cinepal-primary-700)' }}
-					onClick={() => window.location.href = `/detalle-pelicula?pelicula=${pelicula.id}`}
-				>
-					<PlusCircle size={16} /> Ver detalles
-				</button>
+				<div className="flex flex-col items-center gap-3">
+					<button
+						className="flex items-center gap-2 px-5 py-2 rounded-full font-bold text-white w-40 justify-center transform transition-transform duration-200 hover:-translate-y-1 hover:scale-105 hover:brightness-110"
+						style={{ background: 'var(--cinepal-primary)' }}
+						onClick={() => window.location.href = `/boletos?pelicula=${pelicula.id}`}
+					>
+						<ShoppingCart size={16} /> Comprar
+					</button>
+					<button
+						className="flex items-center gap-2 px-5 py-2 rounded-full font-bold text-white w-40 justify-center transform transition-transform duration-200 hover:-translate-y-1 hover:scale-105 hover:brightness-110"
+						style={{ background: 'var(--cinepal-primary-700)' }}
+						onClick={() => window.location.href = `/detalle?pelicula=${pelicula.id}`}
+					>
+						<PlusCircle size={16} /> Ver detalles
+					</button>
+				</div>
 			</div>
 		</div>
 	);
