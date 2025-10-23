@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import SideModal from "../components/SideModal";
 import { getMovies, type Pelicula } from "../services/moviesService";
-import { getAllCinemas, getCinemaById } from "../services/cinemaService";
+import { getAllCinemas } from "../services/cinemaService";
 import type { Cinema } from "../types/Cinema";
 import { cinemaStorage } from "../utils/cinemaStorage";
 import { FiPlay } from "react-icons/fi";
@@ -34,11 +34,8 @@ const getAvailableDates = () => {
 
 const DetallePelicula: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [selectedCine, setSelectedCine] = useState<string | null>(null);
-  const [selectedCinemaData, setSelectedCinemaData] = useState<Cinema | null>(null);
   const [showCineModal, setShowCineModal] = useState(false);
-  const [tempSelectedCinema, setTempSelectedCinema] = useState<Cinema | null>(null);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
@@ -69,10 +66,11 @@ const DetallePelicula: React.FC = () => {
         setPelicula(foundMovie || null);
         setCinemas(cinemasData);
         
-        const savedCinema = cinemaStorage.load();
-        if (savedCinema) {
-          setSelectedCine(savedCinema.name);
-          setSelectedCinemaData(savedCinema);
+
+        
+        const savedCine = cinemaStorage.load();
+        if (savedCine) {
+          setSelectedCine(savedCine.name);
         } else {
           setShowCineModal(true);
         }
@@ -90,20 +88,11 @@ const DetallePelicula: React.FC = () => {
     }
   }, [peliculaId]);
 
-
-
   const handleCineSelection = (cineId: string) => {
     const selectedCinema = cinemas.find(c => c.id.toString() === cineId);
     if (selectedCinema) {
-      setTempSelectedCinema(selectedCinema);
-    }
-  };
-
-  const handleApply = () => {
-    if (tempSelectedCinema) {
-      setSelectedCine(tempSelectedCinema.name);
-      setSelectedCinemaData(tempSelectedCinema);
-      cinemaStorage.save(tempSelectedCinema);
+      setSelectedCine(selectedCinema.name);
+      cinemaStorage.save(selectedCinema);
       setShowCineModal(false);
       // Recargar para sincronizar con Navbar
       window.location.reload();
@@ -277,9 +266,7 @@ const DetallePelicula: React.FC = () => {
               
               <div className="mb-6">
                 <h3 className="font-bold mb-2">CINE PRINCIPAL</h3>
-                <h4 className="font-bold mb-2" style={{ color: "#BB2228" }}>
-                  HORARIOS EN {selectedCine?.toUpperCase()}
-                </h4>
+                <h4 className="font-bold mb-2" style={{ color: "#BB2228" }}>HORARIOS EN {selectedCine?.toUpperCase()}</h4>
                 <p className="text-sm mb-4" style={{ color: "#E3E1E2" }}>
                   Dirección: Calle Alfredo Mendiola 3698 Km 8.5 de la Av. Panamericana Norte Independencia
                 </p>
@@ -344,9 +331,9 @@ const DetallePelicula: React.FC = () => {
         </div>
       </div>
       
-      <SideModal
+      <SideModal 
         isOpen={showCineModal}
-        onClose={() => navigate('/cartelera')}
+        onClose={() => setShowCineModal(false)}
         title="Seleccionar Cine"
         subtitle="Selecciona tu cine favorito"
         orderText="Ordenado alfabéticamente"
@@ -355,7 +342,7 @@ const DetallePelicula: React.FC = () => {
           {cinemas.map((cinema) => (
             <div
               key={cinema.id}
-              className={`cinema-item ${tempSelectedCinema?.id === cinema.id ? 'selected' : ''}`}
+              className={`cinema-item ${selectedCine === cinema.name ? 'selected' : ''}`}
               onClick={() => handleCineSelection(cinema.id.toString())}
             >
               <span className="cinema-name">{cinema.name}</span>
@@ -363,7 +350,7 @@ const DetallePelicula: React.FC = () => {
           ))}
         </div>
         <div className="cinema-apply-container">
-          <button className="cinema-apply-btn" onClick={handleApply}>
+          <button className="cinema-apply-btn" onClick={() => setShowCineModal(false)}>
             APLICAR
           </button>
         </div>

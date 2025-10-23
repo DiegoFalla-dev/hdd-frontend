@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import './Navbar.css';
 import authService from '../services/authService';
-import SideModal from './SideModal';
+import SideModal from './SideModal'; // Asume que este componente exista
 import ProfilePanel from './ProfilePanel';
 import { FaUser, FaMapMarkerAlt, FaChevronDown } from 'react-icons/fa';
-import { getAllCinemas } from '../services/cinemaService';
-import type { Cinema } from '../types/Cinema';
+import { getAllCinemas } from '../services/cinemaService'; // Asume que este servicio existe
+import type { Cinema } from '../types/Cinema'; // Asume que este tipo existe
 import { cinemaStorage } from '../utils/cinemaStorage';
 
 type NavbarProps = {

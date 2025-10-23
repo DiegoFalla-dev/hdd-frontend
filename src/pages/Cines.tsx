@@ -5,6 +5,7 @@ import type { Cinema } from '../types/Cinema';
 import { getAllCinemas } from '../services/cinemaService';
 import Footer from '../components/Footer';
 import { FaMapMarkerAlt, FaFilm, FaBuilding } from 'react-icons/fa';
+import { cinemaStorage } from '../utils/cinemaStorage';
 
 const Cines = () => {
   const [cinemas, setCinemas] = useState<Cinema[]>([]);
@@ -30,9 +31,9 @@ const Cines = () => {
     fetchCinemas();
   }, []);
 
-  const handleCineClick = (cineName: string) => {
-    localStorage.setItem("selectedCine", cineName);
-    navigate(`/cartelera?cine=${cineName}`);
+  const handleCineClick = (cinema: Cinema) => {
+    cinemaStorage.save(cinema);
+    navigate(`/cartelera?cine=${cinema.name}`);
   };
 
   if (loading) {
@@ -111,7 +112,7 @@ const Cines = () => {
             <div
               key={cinema.id}
               className="cine-card bg-gray rounded-2xl shadow-lg p-0 cursor-pointer transform transition-transform hover:scale-105 hover:shadow-2xl border border-[var(--cinepal-gray-700)] group flex flex-col"
-              onClick={() => handleCineClick(cinema.name)}
+              onClick={() => handleCineClick(cinema)}
               style={{ minHeight: 340 }}
             >
               <div className="relative">
