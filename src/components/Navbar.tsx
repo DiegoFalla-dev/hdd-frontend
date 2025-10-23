@@ -7,6 +7,7 @@ import ProfilePanel from './ProfilePanel';
 import { FaUser, FaMapMarkerAlt, FaChevronDown } from 'react-icons/fa';
 import { getAllCinemas } from '../services/cinemaService'; // Asume que este servicio existe
 import type { Cinema } from '../types/Cinema'; // Asume que este tipo existe
+import { cinemaStorage } from '../utils/cinemaStorage';
 
 type NavbarProps = {
   variant?: string;
@@ -32,9 +33,9 @@ const Navbar: React.FC<NavbarProps> = () => {
     window.addEventListener('auth:logout', onLogout);
     
     // Lógica para cargar el cine seleccionado del localStorage
-    const savedCinema = localStorage.getItem('selectedCine');
+    const savedCinema = cinemaStorage.load();
     if (savedCinema) {
-      setSelectedCinema(JSON.parse(savedCinema));
+      setSelectedCinema(savedCinema);
     }
     
     return () => { window.removeEventListener('storage', onStorage); window.removeEventListener('auth:logout', onLogout); };
@@ -68,7 +69,7 @@ const Navbar: React.FC<NavbarProps> = () => {
 
   const handleApply = () => {
     if (selectedCinema) {
-      localStorage.setItem('selectedCine', JSON.stringify(selectedCinema));
+      cinemaStorage.save(selectedCinema);
     }
     setIsModalOpen(false);
     // Recargar la página para aplicar el cambio del cine seleccionado

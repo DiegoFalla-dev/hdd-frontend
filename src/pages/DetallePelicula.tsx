@@ -6,6 +6,7 @@ import SideModal from "../components/SideModal";
 import { getMovies, type Pelicula } from "../services/moviesService";
 import { getAllCinemas } from "../services/cinemaService";
 import type { Cinema } from "../types/Cinema";
+import { cinemaStorage } from "../utils/cinemaStorage";
 import { FiPlay } from "react-icons/fi";
 
 const getAvailableDates = () => {
@@ -67,9 +68,9 @@ const DetallePelicula: React.FC = () => {
         
 
         
-        const savedCine = localStorage.getItem("selectedCine");
+        const savedCine = cinemaStorage.load();
         if (savedCine) {
-          setSelectedCine(savedCine);
+          setSelectedCine(savedCine.name);
         } else {
           setShowCineModal(true);
         }
@@ -91,8 +92,10 @@ const DetallePelicula: React.FC = () => {
     const selectedCinema = cinemas.find(c => c.id.toString() === cineId);
     if (selectedCinema) {
       setSelectedCine(selectedCinema.name);
-      localStorage.setItem("selectedCine", selectedCinema.name);
+      cinemaStorage.save(selectedCinema);
       setShowCineModal(false);
+      // Recargar para sincronizar con Navbar
+      window.location.reload();
     }
   };
 
@@ -331,43 +334,26 @@ const DetallePelicula: React.FC = () => {
       <SideModal 
         isOpen={showCineModal}
         onClose={() => setShowCineModal(false)}
-        title="Elige tu cine"
+        title="Seleccionar Cine"
+        subtitle="Selecciona tu cine favorito"
+        orderText="Ordenado alfabéticamente"
       >
-        <div className="mb-4">
-          <h3 className="text-sm font-semibold mb-2" style={{ color: "#E3E1E2" }}>Selecciona tu cine favorito</h3>
-          <p className="text-xs mb-4" style={{ color: "#E3E1E2" }}>Ordenado alfabéticamente</p>
-        </div>
-
-        <div className="space-y-3">
-          {cinemas.map((cine) => (
-            <div 
-              key={cine.id}
-              onClick={() => handleCineSelection(cine.id.toString())}
-              className="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors"
-              style={{ 
-                backgroundColor: selectedCine === cine.name ? "#393A3A" : "transparent",
-                border: `1px solid ${selectedCine === cine.name ? "#E3E1E2" : "#393A3A"}` 
-              }}
+        <div className="cinema-list">
+          {cinemas.map((cinema) => (
+            <div
+              key={cinema.id}
+              className={`cinema-item ${selectedCine === cinema.name ? 'selected' : ''}`}
+              onClick={() => handleCineSelection(cinema.id.toString())}
             >
-              <div>
-                <h4 className="font-medium" style={{ color: "#EFEFEE" }}>{cine.name}</h4>
-                <p className="text-xs" style={{ color: "#E3E1E2" }}>{cine.location}</p>
-              </div>
-              <div className="w-4 h-4 rounded-full border-2" style={{ 
-                borderColor: selectedCine === cine.name ? "#EFEFEE" : "#E3E1E2",
-                backgroundColor: selectedCine === cine.name ? "#EFEFEE" : "transparent"
-              }} />
+              <span className="cinema-name">{cinema.name}</span>
             </div>
           ))}
         </div>
-
-        <button 
-          onClick={() => setShowCineModal(false)}
-          className="w-full mt-6 py-3 px-4 font-semibold rounded-lg transition-colors"
-          style={{ backgroundColor: "#BB2228", color: "#EFEFEE" }}
-        >
-          APLICAR
-        </button>
+        <div className="cinema-apply-container">
+          <button className="cinema-apply-btn" onClick={() => setShowCineModal(false)}>
+            APLICAR
+          </button>
+        </div>
       </SideModal>
       
       <Footer />

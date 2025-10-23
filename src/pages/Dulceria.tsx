@@ -7,6 +7,7 @@ import type { ConcessionProduct, ProductCategory } from '../types/ConcessionProd
 import type { Cinema } from '../types/Cinema';
 import { getProductsByCinema } from '../services/concessionService';
 import { getAllCinemas } from '../services/cinemaService';
+import { cinemaStorage } from '../utils/cinemaStorage';
 import axios from 'axios';
 
 type ProductsByCategory = {
@@ -88,7 +89,7 @@ export default function Dulceria() {
     console.log('Seleccionando cine:', cinema.name, 'con ID:', cinema.id);
     setSelectedCine(cinema);
     // Guardamos la información completa del cine en localStorage
-    localStorage.setItem("selectedCine", JSON.stringify(cinema));
+    cinemaStorage.save(cinema);
   }, []);
 
   const handleApply = () => {
@@ -119,18 +120,11 @@ export default function Dulceria() {
         
         // Intentar recuperar el cine guardado
         let selectedCinema = null;
-        const savedCineStr = localStorage.getItem("selectedCine");
+        const savedCine = cinemaStorage.load();
         
-        if (savedCineStr) {
-          try {
-            const savedCine = JSON.parse(savedCineStr);
-            // Verificar que el cine guardado existe en la lista actual
-            selectedCinema = data.find(c => c.id === savedCine.id || c.name === savedCine.name || c.name === savedCine);
-          } catch (e) {
-            console.error('Error parsing saved cinema:', e);
-            // Si falla el parsing, intentar como string directo
-            selectedCinema = data.find(c => c.name === savedCineStr);
-          }
+        if (savedCine) {
+          // Verificar que el cine guardado existe en la lista actual
+          selectedCinema = data.find(c => c.id === savedCine.id);
         }
 
         // Si no hay cine guardado o no se encontró en la lista, mostrar modal
@@ -164,22 +158,12 @@ export default function Dulceria() {
 
   useEffect(() => {
     const handleStorageChange = () => {
-      const savedCineStr = localStorage.getItem("selectedCine");
-      if (savedCineStr && cines.length > 0) {
-        try {
-          const savedCine = JSON.parse(savedCineStr);
-          const cinema = cines.find(c => c.id === savedCine.id || c.name === savedCine.name || c.name === savedCine);
-          if (cinema) {
-            setSelectedCine(cinema);
-            loadProductos(cinema);
-          }
-        } catch (e) {
-          console.error('Error parsing saved cinema:', e);
-          const cinema = cines.find(c => c.name === savedCineStr);
-          if (cinema) {
-            setSelectedCine(cinema);
-            loadProductos(cinema);
-          }
+      const savedCine = cinemaStorage.load();
+      if (savedCine && cines.length > 0) {
+        const cinema = cines.find(c => c.id === savedCine.id);
+        if (cinema) {
+          setSelectedCine(cinema);
+          loadProductos(cinema);
         }
       }
     };
