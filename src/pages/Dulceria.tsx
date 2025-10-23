@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import SideModal from '../components/SideModal';
@@ -16,6 +17,7 @@ type ProductsByCategory = {
 };
 
 export default function Dulceria() {
+  const navigate = useNavigate();
   const [selectedCine, setSelectedCine] = useState<Cinema | null>(null);
   const [productos, setProductos] = useState<ProductsByCategory | null>(null);
   const [loadingProductos, setLoadingProductos] = useState(false);
@@ -87,10 +89,15 @@ export default function Dulceria() {
     setSelectedCine(cinema);
     // Guardamos la información completa del cine en localStorage
     localStorage.setItem("selectedCine", JSON.stringify(cinema));
-    setShowCineModal(false);
-    // Cargamos los productos asociados a este cine
-    loadProductos(cinema);
-  }, [loadProductos]);
+  }, []);
+
+  const handleApply = () => {
+    if (selectedCine) {
+      setShowCineModal(false);
+      // Recargar la página para que el Navbar se actualice
+      window.location.reload();
+    }
+  };
 
   // Efecto para inicializar la carga de cines y productos
   useEffect(() => {
@@ -126,11 +133,10 @@ export default function Dulceria() {
           }
         }
 
-        // Si no hay cine guardado o no se encontró en la lista, usar el primero
+        // Si no hay cine guardado o no se encontró en la lista, mostrar modal
         if (!selectedCinema) {
-          selectedCinema = data[0];
-          // Guardar el cine seleccionado por defecto
-          localStorage.setItem("selectedCine", JSON.stringify(selectedCinema));
+          setShowCineModal(true);
+          return;
         }
 
         console.log('Cine seleccionado:', selectedCinema);
@@ -159,20 +165,28 @@ export default function Dulceria() {
   useEffect(() => {
     const handleStorageChange = () => {
       const savedCineStr = localStorage.getItem("selectedCine");
-      if (savedCineStr) {
+      if (savedCineStr && cines.length > 0) {
         try {
           const savedCine = JSON.parse(savedCineStr);
-          const cinema = cines.find(c => c.id === savedCine.id);
+          const cinema = cines.find(c => c.id === savedCine.id || c.name === savedCine.name || c.name === savedCine);
           if (cinema) {
             setSelectedCine(cinema);
             loadProductos(cinema);
           }
         } catch (e) {
           console.error('Error parsing saved cinema:', e);
+          const cinema = cines.find(c => c.name === savedCineStr);
+          if (cinema) {
+            setSelectedCine(cinema);
+            loadProductos(cinema);
+          }
         }
       }
     };
 
+    // Ejecutar inmediatamente para sincronizar con localStorage
+    handleStorageChange();
+    
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [loadProductos, cines]);
@@ -202,7 +216,7 @@ export default function Dulceria() {
                 src="https://i.imgur.com/STQ6A0v.png" 
                 alt="Dulcería" 
                 className="mx-auto cursor-pointer hover:opacity-80 transition-opacity"
-                onClick={() => setShowCineModal(true)}
+onClick={() => setShowCineModal(true)}
               />
             </>
           )}
@@ -242,7 +256,7 @@ export default function Dulceria() {
                 <button
                   key={key}
                   onClick={() => setActiveCategory(key)}
-                  className="mx-2 px-6 py-3 rounded-full transition duration-300"
+                  className="mx-2 px-6 py-3 rounded-lg transition duration-300 hover:brightness-75"
                   style={{
                     backgroundColor: activeCategory === key ? "#BB2228" : "#393A3A",
                     color: activeCategory === key ? "#EFEFEE" : "#E3E1E2"
@@ -275,7 +289,7 @@ export default function Dulceria() {
                       </span>
                       <button
                         onClick={() => handleAddToCart(producto)}
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold transition duration-300 hover:opacity-80"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-lg font-bold transition duration-300 cursor-pointer hover:brightness-75"
                         style={{ backgroundColor: "#E3E1E2", color: "#141113" }}
                       >
                         +
@@ -298,36 +312,38 @@ export default function Dulceria() {
       </div>
 
       <SideModal 
-        isOpen={showCineModal} 
-        onClose={() => setShowCineModal(false)}
-        title="Elige tu cine"
+        isOpen={showCineModal || !selectedCine} 
+        onClose={() => navigate('/')}
+        title="Seleccionar Cine"
       >
-        <div className="grid grid-cols-1 gap-4">
-          {loadingCines ? (
-            <div className="text-center py-4">
-              <p style={{ color: "#E3E1E2" }}>Cargando cines...</p>
+        {loadingCines ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+          </div>
+        ) : (
+          <>
+            <div className="cinema-list">
+              {cines.map((cinema) => (
+                <div
+                  key={cinema.id}
+                  className={`cinema-item ${selectedCine?.id === cinema.id ? 'selected' : ''}`}
+                  onClick={() => handleCineSelection(cinema)}
+                >
+                  <span className="cinema-name">{cinema.name}</span>
+                </div>
+              ))}
             </div>
-          ) : error ? (
-            <div className="text-center py-4">
-              <p style={{ color: "#BB2228" }}>{error}</p>
-            </div>
-          ) : cines.length === 0 ? (
-            <div className="text-center py-4">
-              <p style={{ color: "#E3E1E2" }}>No hay cines disponibles</p>
-            </div>
-          ) : (
-            cines.map((cine: Cinema) => (
-              <button
-                key={cine.id}
-                onClick={() => handleCineSelection(cine)}
-                className="w-full text-left px-4 py-3 rounded transition duration-300"
-                style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}
+            <div className="cinema-apply-container">
+              <button 
+                className="cinema-apply-btn" 
+                onClick={handleApply}
+                disabled={!selectedCine}
               >
-                {cine.name}
+                APLICAR
               </button>
-            ))
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </SideModal>
 
       <Footer />
