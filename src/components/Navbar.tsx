@@ -1,22 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import './Navbar.css';
+import authService from '../services/authService';
 
 const Navbar: React.FC = () => {
-  const [usuario, setUsuario] = useState<{ username?: string } | null>(null);
-  const navigate = useNavigate();
+  const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('usuario');
-    if (stored) setUsuario(JSON.parse(stored));
+    const u = authService.getCurrentUser();
+    setUsername(u?.username ?? null);
+    const onStorage = () => setUsername(authService.getCurrentUser()?.username ?? null);
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('usuario');
-    setUsuario(null);
-    navigate('/');
-  };
 
   return (
     <header className="cineplus-header">
@@ -30,15 +26,9 @@ const Navbar: React.FC = () => {
         </ul>
       </nav>
       <div className="user-actions">
-        <span className="location">Cineplus Asia</span>
-        {usuario ? (
-          <div className="profile-actions">
-            <button className="icon-user" onClick={() => navigate('/perfil')}>👤 {usuario.username}</button>
-            <button className="logout" onClick={handleLogout}>Salir</button>
-          </div>
-        ) : (
-          <button className="icon-user" onClick={() => navigate('/perfil')}>Iniciar</button>
-        )}
+        <Link to="/perfil" className="icon-user" aria-label="Perfil usuario">
+          {username ? <span>👤 {username}</span> : <span>👤</span>}
+        </Link>
       </div>
     </header>
   );
