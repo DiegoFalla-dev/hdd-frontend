@@ -1,0 +1,8 @@
+.cineplus-home{background:#0b0b0b;color:#fff;min-height:100vh}
+.main-banner{height:360px;background:#222;display:flex;align-items:center;justify-content:center}
+.banner-placeholder{color:#bbb}
+.filters-section{display:flex;justify-content:center;padding:24px}
+.movies-section{padding:40px 24px}
+.movies-list{display:flex;gap:16px}
+.movie-poster{background:#222;width:220px;height:340px;display:flex;align-items:center;justify-content:center}
+.see-more-movies{width:220px;height:340px;background:linear-gradient(180deg,#bfbfbf,#8f8f8f);display:flex;align-items:center;justify-content:center;color:#fff}
