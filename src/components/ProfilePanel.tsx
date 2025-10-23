@@ -668,7 +668,7 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     if (activeView === 'register') return 'Crear Cuenta';
 
     // Títulos para las vistas principales
-    if (!isLoggedIn) return 'Iniciar sesión en Cinemark';
+    if (!isLoggedIn) return '';
     return 'Perfil'; // Título por defecto para el perfil principal logueado
   };
 
