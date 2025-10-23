@@ -15,6 +15,8 @@ const PerfilUsuario: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    birthDate: '',
+    nationalId: '',
   });
 
   useEffect(() => {
@@ -34,37 +36,42 @@ const PerfilUsuario: React.FC = () => {
     e.preventDefault();
     setMessage(null);
     try {
-  await authService.login(loginForm);
+      await authService.login(loginForm);
       setIsLogged(true);
       setMessage('Login exitoso');
-      // navigate to home or refresh
       navigate('/');
-    } catch (err: any) {
+    } catch (err) {
       console.error('Login error', err);
-      setMessage(err?.response?.data?.message || 'Error al iniciar sesión');
+  // @ts-expect-error - may be AxiosError with response
+  setMessage(err?.response?.data?.message || 'Error al iniciar sesión');
     }
   };
 
   const submitRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
-    if (registerForm.password !== registerForm.confirmPassword) {
-      setMessage('Las contraseñas no coinciden');
-      return;
-    }
+    // Build payload expected by backend (see RegisterRequestDto)
     try {
+      if (registerForm.password !== registerForm.confirmPassword) {
+        setMessage('Las contraseñas no coinciden');
+        return;
+      }
       const payload = {
         firstName: registerForm.firstName,
         lastName: registerForm.lastName,
         email: registerForm.email,
         password: registerForm.password,
         confirmPassword: registerForm.confirmPassword,
+        birthDate: registerForm.birthDate || undefined,
+        nationalId: registerForm.nationalId || undefined,
+        roles: ['USER'],
       };
       await authService.register(payload);
       setMessage('Registro exitoso. Por favor inicia sesión.');
       setIsRegistering(false);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Register error', err);
+      // @ts-expect-error - err may be an AxiosError with response
       setMessage(err?.response?.data?.message || 'Error al registrar usuario');
     }
   };
@@ -112,11 +119,15 @@ const PerfilUsuario: React.FC = () => {
                 <label className="block mb-2">Apellido</label>
                 <input name="lastName" value={registerForm.lastName} onChange={handleRegisterChange} className="w-full mb-3 p-2 bg-gray-800" />
                 <label className="block mb-2">Correo</label>
-                <input name="email" value={registerForm.email} onChange={handleRegisterChange} className="w-full mb-3 p-2 bg-gray-800" />
+                <input name="email" type="email" value={registerForm.email} onChange={handleRegisterChange} className="w-full mb-3 p-2 bg-gray-800" />
                 <label className="block mb-2">Contraseña</label>
                 <input name="password" type="password" value={registerForm.password} onChange={handleRegisterChange} className="w-full mb-3 p-2 bg-gray-800" />
                 <label className="block mb-2">Confirmar contraseña</label>
                 <input name="confirmPassword" type="password" value={registerForm.confirmPassword} onChange={handleRegisterChange} className="w-full mb-3 p-2 bg-gray-800" />
+                <label className="block mb-2">Fecha de nacimiento</label>
+                <input name="birthDate" type="date" value={registerForm.birthDate} onChange={handleRegisterChange} className="w-full mb-3 p-2 bg-gray-800" />
+                <label className="block mb-2">DNI / Documento</label>
+                <input name="nationalId" value={registerForm.nationalId} onChange={handleRegisterChange} className="w-full mb-3 p-2 bg-gray-800" />
                 <button type="submit" className="btn">Registrar</button>
               </form>
             )}

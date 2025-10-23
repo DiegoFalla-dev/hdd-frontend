@@ -22,6 +22,17 @@ export interface JwtResponse {
     type?: string;
 }
 
+export interface RegisterRequest {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+    birthDate?: string; // ISO date string
+    nationalId?: string;
+    roles?: string[];
+}
+
 const STORAGE_TOKEN_KEY = 'token';
 const STORAGE_USER_KEY = 'usuario';
 
@@ -34,14 +45,17 @@ async function login(payload: LoginRequest): Promise<JwtResponse> {
     return data;
 }
 
-async function register(payload: any): Promise<any> {
-    // Backend may use /api/auth/signup or /api/auth/register. Try signup first.
+async function register(payload: RegisterRequest): Promise<any> {
+    // Register should call the backend register/signup endpoint.
+    // Use /api/auth/register as primary; include default role USER if not provided.
+    const body: RegisterRequest = { ...payload };
+    if (!body.roles) body.roles = ['USER'];
     try {
-        const resp = await api.post('/api/auth/login', payload);
+        const resp = await api.post('/api/auth/register', body);
         return resp.data;
-    } catch (err) {
-        // fallback to /api/auth/register
-        const resp = await api.post('/api/auth/register', payload);
+    } catch (_err) {
+        // If backend uses /api/auth/signup instead, try that as a fallback.
+        const resp = await api.post('/api/auth/signup', body);
         return resp.data;
     }
 }

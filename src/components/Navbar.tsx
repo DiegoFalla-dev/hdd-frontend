@@ -6,7 +6,12 @@ import SideModal from './SideModal'; // Asume que este componente existe
 import { getAllCinemas } from '../services/cinemaService'; // Asume que este servicio existe
 import type { Cinema } from '../types/Cinema'; // Asume que este tipo existe
 
-const Navbar: React.FC = () => {
+type NavbarProps = {
+  variant?: string;
+  heroHeight?: number;
+};
+
+const Navbar: React.FC<NavbarProps> = () => {
   const [username, setUsername] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
