@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import authService from '../services/authService';
+import userAuthService from '../services/userAuthService';
 import { useNavigate } from 'react-router-dom';
+import CuentaPanel from '../components/CuentaPanel';
 
 const PerfilUsuario: React.FC = () => {
   const navigate = useNavigate();
   const [isRegistering, setIsRegistering] = useState(false);
   const [isLogged, setIsLogged] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [activePanel, setActivePanel] = useState<'cuenta' | null>(null);
 
   const [loginForm, setLoginForm] = useState({ usernameOrEmail: '', password: '' });
   const [registerForm, setRegisterForm] = useState({
@@ -18,7 +20,7 @@ const PerfilUsuario: React.FC = () => {
   });
 
   useEffect(() => {
-    const user = authService.getCurrentUser();
+    const user = userAuthService.getStoredUser();
     setIsLogged(Boolean(user));
   }, []);
 
@@ -34,7 +36,7 @@ const PerfilUsuario: React.FC = () => {
     e.preventDefault();
     setMessage(null);
     try {
-  await authService.login(loginForm);
+  await userAuthService.login(loginForm);
       setIsLogged(true);
       setMessage('Login exitoso');
       // navigate to home or refresh
@@ -60,7 +62,7 @@ const PerfilUsuario: React.FC = () => {
         password: registerForm.password,
         confirmPassword: registerForm.confirmPassword,
       };
-      await authService.register(payload);
+      await userAuthService.register(payload);
       setMessage('Registro exitoso. Por favor inicia sesión.');
       setIsRegistering(false);
     } catch (err: any) {
@@ -70,60 +72,84 @@ const PerfilUsuario: React.FC = () => {
   };
 
   const handleLogout = () => {
-    authService.logout();
+    userAuthService.logout();
     setIsLogged(false);
     navigate('/');
   };
 
-  const user = authService.getCurrentUser();
+  const user = userAuthService.getStoredUser();
 
   return (
     <div className="min-h-screen bg-black text-white p-6">
-      <div className="max-w-md mx-auto bg-gray-900 p-6 rounded-lg">
-        <h2 className="text-xl mb-4">Perfil de Usuario</h2>
+      <div className="max-w-lg mx-auto">
+        {/* Modal-like card */}
+        <div className="bg-gray-900 rounded-lg p-4">
+          <div className="flex items-start justify-between">
+            <h3 className="text-2xl font-extrabold">Perfil</h3>
+            <button onClick={() => navigate('/')} className="bg-gray-800 rounded p-2">✕</button>
+          </div>
 
-        {isLogged && user ? (
-          <div>
-            <p>Has iniciado sesión como <strong>{user.username}</strong></p>
-            <p className="mt-2">Email: {user.email}</p>
+          {isLogged && user ? (
             <div className="mt-4">
-              <button onClick={handleLogout} className="btn">Cerrar sesión</button>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <div className="mb-4">
-              <button onClick={() => setIsRegistering(false)} className={`mr-2 btn ${!isRegistering ? 'active' : ''}`}>Iniciar sesión</button>
-              <button onClick={() => setIsRegistering(true)} className={`btn ${isRegistering ? 'active' : ''}`}>Registrarse</button>
-            </div>
+              <h1 className="text-4xl font-extrabold tracking-tight">HOLA, {user.username?.toUpperCase() ?? ''}</h1>
 
-            {!isRegistering ? (
-              <form onSubmit={submitLogin}>
-                <label className="block mb-2">Usuario o correo</label>
-                <input name="usernameOrEmail" value={loginForm.usernameOrEmail} onChange={handleLoginChange} className="w-full mb-3 p-2 bg-gray-800" />
-                <label className="block mb-2">Contraseña</label>
-                <input name="password" type="password" value={loginForm.password} onChange={handleLoginChange} className="w-full mb-3 p-2 bg-gray-800" />
-                <button type="submit" className="btn">Entrar</button>
-              </form>
-            ) : (
-              <form onSubmit={submitRegister}>
-                <label className="block mb-2">Nombre</label>
-                <input name="firstName" value={registerForm.firstName} onChange={handleRegisterChange} className="w-full mb-3 p-2 bg-gray-800" />
-                <label className="block mb-2">Apellido</label>
-                <input name="lastName" value={registerForm.lastName} onChange={handleRegisterChange} className="w-full mb-3 p-2 bg-gray-800" />
-                <label className="block mb-2">Correo</label>
-                <input name="email" value={registerForm.email} onChange={handleRegisterChange} className="w-full mb-3 p-2 bg-gray-800" />
-                <label className="block mb-2">Contraseña</label>
-                <input name="password" type="password" value={registerForm.password} onChange={handleRegisterChange} className="w-full mb-3 p-2 bg-gray-800" />
-                <label className="block mb-2">Confirmar contraseña</label>
-                <input name="confirmPassword" type="password" value={registerForm.confirmPassword} onChange={handleRegisterChange} className="w-full mb-3 p-2 bg-gray-800" />
-                <button type="submit" className="btn">Registrar</button>
-              </form>
-            )}
+              <div className="mt-6 flex flex-col items-center">
+                <div className="relative">
+                  <div className="w-36 h-36 rounded-full bg-gray-700 flex items-center justify-center text-6xl">👤</div>
+                  <button className="absolute -right-2 -bottom-2 bg-gray-800 p-2 rounded-full">✎</button>
+                </div>
 
-            {message && <p className="mt-4 text-sm text-yellow-300">{message}</p>}
-          </div>
-        )}
+                {activePanel === 'cuenta' ? (
+                  <CuentaPanel onClose={() => setActivePanel(null)} />
+                ) : (
+                  <div className="w-full mt-4 grid grid-cols-2 gap-3">
+                    <button onClick={() => navigate('/compras')} className="p-4 bg-gray-800 rounded">COMPRAS</button>
+                    <button onClick={() => setActivePanel('cuenta')} className="p-4 bg-gray-800 rounded">CUENTA</button>
+                    <button onClick={() => navigate('/metodos-pago')} className="p-4 bg-gray-800 rounded">METODOS DE PAGO</button>
+                    <button onClick={() => navigate('/escribenos')} className="p-4 bg-gray-800 rounded">ESCRÍBENOS</button>
+                  </div>
+                )}
+
+                <div className="mt-4 w-full text-left">
+                  <button onClick={handleLogout} className="text-sm text-gray-400">Cerrar sesión</button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4">
+              <div className="mb-4">
+                <button onClick={() => setIsRegistering(false)} className={`mr-2 btn ${!isRegistering ? 'active' : ''}`}>Iniciar sesión</button>
+                <button onClick={() => setIsRegistering(true)} className={`btn ${isRegistering ? 'active' : ''}`}>Registrarse</button>
+              </div>
+
+              {!isRegistering ? (
+                <form onSubmit={submitLogin}>
+                  <label className="block mb-2">Usuario o correo</label>
+                  <input name="usernameOrEmail" value={loginForm.usernameOrEmail} onChange={handleLoginChange} className="w-full mb-3 p-2 bg-gray-800" />
+                  <label className="block mb-2">Contraseña</label>
+                  <input name="password" type="password" value={loginForm.password} onChange={handleLoginChange} className="w-full mb-3 p-2 bg-gray-800" />
+                  <button type="submit" className="btn">Entrar</button>
+                </form>
+              ) : (
+                <form onSubmit={submitRegister}>
+                  <label className="block mb-2">Nombre</label>
+                  <input name="firstName" value={registerForm.firstName} onChange={handleRegisterChange} className="w-full mb-3 p-2 bg-gray-800" />
+                  <label className="block mb-2">Apellido</label>
+                  <input name="lastName" value={registerForm.lastName} onChange={handleRegisterChange} className="w-full mb-3 p-2 bg-gray-800" />
+                  <label className="block mb-2">Correo</label>
+                  <input name="email" value={registerForm.email} onChange={handleRegisterChange} className="w-full mb-3 p-2 bg-gray-800" />
+                  <label className="block mb-2">Contraseña</label>
+                  <input name="password" type="password" value={registerForm.password} onChange={handleRegisterChange} className="w-full mb-3 p-2 bg-gray-800" />
+                  <label className="block mb-2">Confirmar contraseña</label>
+                  <input name="confirmPassword" type="password" value={registerForm.confirmPassword} onChange={handleRegisterChange} className="w-full mb-3 p-2 bg-gray-800" />
+                  <button type="submit" className="btn">Registrar</button>
+                </form>
+              )}
+
+              {message && <p className="mt-4 text-sm text-yellow-300">{message}</p>}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

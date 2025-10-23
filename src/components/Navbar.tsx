@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import './Navbar.css';
-import authService from '../services/authService';
+import userAuthService from '../services/userAuthService';
 
 const Navbar: React.FC = () => {
   const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
-    const u = authService.getCurrentUser();
+    const u = userAuthService.getStoredUser();
     setUsername(u?.username ?? null);
-    const onStorage = () => setUsername(authService.getCurrentUser()?.username ?? null);
+    const onStorage = () => setUsername(userAuthService.getStoredUser()?.username ?? null);
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);

@@ -1,5 +1,3 @@
-/* index styles cleared to make the app visually blank */
-html, body, #root {
-  height: 100%;
-  margin: 0;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
