@@ -7,5 +7,5 @@ export interface ConcessionProduct {
     price: number;
     imageUrl: string;
     category: ProductCategory;
-    cinemaIds: number[];
+    cinemaId: number;
 }

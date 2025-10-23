@@ -6,6 +6,7 @@ import type { ConcessionProduct, ProductCategory } from '../types/ConcessionProd
 import type { Cinema } from '../types/Cinema';
 import { getProductsByCinema } from '../services/concessionService';
 import { getAllCinemas } from '../services/cinemaService';
+import axios from 'axios';
 
 type ProductsByCategory = {
   COMBOS: ConcessionProduct[];
@@ -24,16 +25,21 @@ export default function Dulceria() {
   const [cines, setCines] = useState<Cinema[]>([]);
   const [loadingCines, setLoadingCines] = useState(true);
 
-  const loadProductos = useCallback(async (cinemas: Cinema) => {
-    if (!cinemas) return;
+  const loadProductos = useCallback(async (cinema: Cinema) => {
+    if (!cinema?.id) {
+      console.warn('No se proporcionó un ID de cine válido');
+      return;
+    }
 
-    console.log('Cargando productos para cine:', cinemas.name);
+    console.log('Cargando productos para cine:', cinema.name, 'ID:', cinema.id);
     setLoadingProductos(true);
     setError(null);
     setProductos(null);
     
     try {
-      const products = await getProductsByCinema(cinemas.id);
+      // Obtenemos los productos asociados al cine específico a través de cinema_product
+      const products = await getProductsByCinema(cinema.id);
+      console.log('Productos recibidos:', products);
       
       const productsByCategory: ProductsByCategory = {
         COMBOS: [],
@@ -42,9 +48,18 @@ export default function Dulceria() {
         SNACKS: []
       };
 
+      // Verificamos que los productos recibidos son válidos
+      if (!Array.isArray(products)) {
+        throw new Error('La respuesta del servidor no es un array válido');
+      }
+
+      // Organizamos los productos por categoría
       products.forEach(product => {
-        if (productsByCategory[product.category]) {
-          productsByCategory[product.category].push(product);
+        const category = product.category;
+        if (productsByCategory[category]) {
+          productsByCategory[category].push(product);
+        } else {
+          console.warn('Categoría no reconocida:', category);
         }
       });
 
@@ -52,6 +67,14 @@ export default function Dulceria() {
       setError(null);
     } catch (err) {
       console.error('Error al cargar productos:', err);
+      if (err instanceof Error) {
+        console.error('Detalles del error:', err.message);
+        if (axios.isAxiosError(err)) {
+          console.error('Detalles de la respuesta:', err.response?.data);
+          console.error('URL de la solicitud:', err.config?.url);
+          console.error('Parámetros:', err.config?.params);
+        }
+      }
       setProductos(null);
       setError('Error al cargar los productos. Por favor, intenta de nuevo más tarde.');
     } finally {
@@ -60,10 +83,12 @@ export default function Dulceria() {
   }, []);
 
   const handleCineSelection = useCallback((cinema: Cinema) => {
-    console.log('Seleccionando cine:', cinema.name);
+    console.log('Seleccionando cine:', cinema.name, 'con ID:', cinema.id);
     setSelectedCine(cinema);
-    localStorage.setItem("selectedCine", JSON.stringify({ id: cinema.id, name: cinema.name }));
+    // Guardamos la información completa del cine en localStorage
+    localStorage.setItem("selectedCine", JSON.stringify(cinema));
     setShowCineModal(false);
+    // Cargamos los productos asociados a este cine
     loadProductos(cinema);
   }, [loadProductos]);
 
@@ -75,32 +100,51 @@ export default function Dulceria() {
         setLoadingCines(true);
         const data = await getAllCinemas();
         console.log('Cines recibidos:', data);
-        if (data && data.length > 0) {
-          setCines(data);
-          // Si no hay cine seleccionado o el cine seleccionado no existe en la lista
-          const savedCineStr = localStorage.getItem("selectedCine");
-          let savedCine = null;
-          try {
-            if (savedCineStr) {
-              savedCine = JSON.parse(savedCineStr);
-            }
-          } catch (e) {
-            console.error('Error parsing saved cinema:', e);
-          }
-          
-          const validCine = savedCine && data.some(c => c.id === savedCine.id) 
-            ? data.find(c => c.id === savedCine.id)!
-            : data[0];
-          
-          setSelectedCine(validCine);
-          loadProductos(validCine);
-        } else {
+        
+        if (!Array.isArray(data) || data.length === 0) {
           console.log('No se recibieron cines');
           setError('No hay cines disponibles');
           setShowCineModal(true);
+          return;
         }
+
+        setCines(data);
+        
+        // Intentar recuperar el cine guardado
+        let selectedCinema = null;
+        const savedCineStr = localStorage.getItem("selectedCine");
+        
+        if (savedCineStr) {
+          try {
+            const savedCine = JSON.parse(savedCineStr);
+            // Verificar que el cine guardado existe en la lista actual
+            selectedCinema = data.find(c => c.id === savedCine.id);
+          } catch (e) {
+            console.error('Error parsing saved cinema:', e);
+          }
+        }
+
+        // Si no hay cine guardado o no se encontró en la lista, usar el primero
+        if (!selectedCinema) {
+          selectedCinema = data[0];
+          // Guardar el cine seleccionado por defecto
+          localStorage.setItem("selectedCine", JSON.stringify(selectedCinema));
+        }
+
+        console.log('Cine seleccionado:', selectedCinema);
+        setSelectedCine(selectedCinema);
+        
+        // Cargar los productos del cine seleccionado
+        await loadProductos(selectedCinema);
+        
       } catch (err) {
         console.error('Error detallado al cargar cines:', err);
+        if (err instanceof Error) {
+          console.error('Mensaje de error:', err.message);
+          if (axios.isAxiosError(err)) {
+            console.error('Detalles de la respuesta:', err.response?.data);
+          }
+        }
         setError('Error al cargar la lista de cines');
       } finally {
         setLoadingCines(false);

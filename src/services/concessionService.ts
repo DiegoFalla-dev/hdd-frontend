@@ -12,10 +12,21 @@ const api = axios.create({
 
 export const getProductsByCinema = async (cinemaId: number): Promise<ConcessionProduct[]> => {
     try {
-        const response = await api.get(`?cinema=${cinemaId}`);
+        console.log('Fetching products for cinema:', cinemaId);
+        const response = await api.get('', {
+            params: {
+                cinema: cinemaId
+            }
+        });
+        console.log('Products response:', response.data);
         return response.data;
     } catch (error) {
         console.error('Error fetching concession products:', error);
+        if (axios.isAxiosError(error)) {
+            console.error('Response data:', error.response?.data);
+            console.error('Request URL:', error.config?.url);
+            console.error('Request params:', error.config?.params);
+        }
         throw error;
     }
 };
