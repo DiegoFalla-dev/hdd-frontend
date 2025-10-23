@@ -4,6 +4,7 @@ import authService, { type LoginRequest, type JwtResponse, type RegisterRequest 
 import './ProfilePanel.css';
 import { getAllCinemas } from '../services/cinemaService';
 import type { Cinema } from '../types/Cinema';
+import { getUserName } from '../services/userService';
 
 import {
   FaUserCircle, FaEdit, FaShoppingBag, FaUser, FaCreditCard, FaEnvelope, FaTimes, FaEye, FaEyeSlash,
@@ -97,10 +98,33 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const userFavoriteCinemaName = cinemas.find(c => c.id.toString() === userFavoriteCinemaId)?.name || userFavoriteCinemaId;
 
 
+  // State to hold authoritative name from backend
+  const [apiFirstName, setApiFirstName] = useState<string | null>(null);
+  const [apiLastName, setApiLastName] = useState<string | null>(null);
+
+  // Fetch authoritative first/last name from backend when we have a logged-in user id
+  const userId = currentUserData?.id;
+  useEffect(() => {
+    if (!userId) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const resp = await getUserName(userId as number | string);
+        if (!mounted) return;
+        setApiFirstName(resp.firstName || null);
+        setApiLastName(resp.lastName || null);
+      } catch (err: unknown) {
+        // ignore and keep using local values
+        console.debug('No se pudo obtener nombre desde backend:', err);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [userId]);
+
   const displayFullName =
-    (firstName && lastName) ? `${firstName} ${lastName}` :
-    firstName ? firstName :
-    lastName ? lastName :
+    (apiFirstName || firstName) && (apiLastName || lastName) ? `${apiFirstName || firstName} ${apiLastName || lastName}` :
+    (apiFirstName || firstName) ? (apiFirstName || firstName) :
+    (apiLastName || lastName) ? (apiLastName || lastName) :
     'Usuario';
 
   useEffect(() => {
@@ -141,10 +165,11 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
       } else {
         setLoginError('Credenciales incorrectas o error al iniciar sesión.');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error durante el login:', error);
-      if (error.response && error.response.data && error.response.data.message) {
-        setLoginError(error.response.data.message);
+      const maybeErr = error as { response?: { data?: { message?: string } } } | undefined;
+      if (maybeErr && maybeErr.response && maybeErr.response.data && maybeErr.response.data.message) {
+        setLoginError(maybeErr.response.data.message as string);
       } else {
         setLoginError('Error al intentar iniciar sesión. Intenta de nuevo.');
       }
