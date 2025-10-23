@@ -73,7 +73,7 @@
 }
 
 .logo-plus {
-  color: #888;
+  color: var(--cinepal-primary);
 }
 
 .main-nav ul {
