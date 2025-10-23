@@ -1,5 +1,12 @@
 @import "tailwindcss";
+@import 'slick-carousel/slick/slick.css';
+@import 'slick-carousel/slick/slick-theme.css';
 @import "./styles/palette.css";
+
+.social-icon:hover.social-facebook { color: #1877f3 !important; }
+.social-icon:hover.social-x { color: #1da1f2 !important; }
+.social-icon:hover.social-instagram { color: #e1306c !important; }
+.social-icon:hover.social-youtube { color: #ff0000 !important; }
 
 /* Base layout rules and integration with palette */
 html, body, #root {
@@ -9,6 +16,14 @@ html, body, #root {
   color: var(--text-default);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+:root {
+	--cineplus-gray-light: #D9D9D9;
+	--cineplus-gray: #8C8C8C;
+	--cineplus-gray-medium: #595959;
+	--cineplus-gray-dark: #262626;
+	--cineplus-black: #0D0D0D;
 }
 
 /* Utility: small container to center content consistently */
