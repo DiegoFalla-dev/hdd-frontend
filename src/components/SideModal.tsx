@@ -6,9 +6,11 @@ interface SideModalProps {
     onClose: () => void;
     title: string;
     children: React.ReactNode;
+    subtitle?: string;
+    orderText?: string;
 }
 
-const SideModal: React.FC<SideModalProps> = ({ isOpen, onClose, title, children }) => {
+const SideModal: React.FC<SideModalProps> = ({ isOpen, onClose, title, children, subtitle, orderText }) => {
     if (!isOpen) return null;
 
     return (
@@ -18,9 +20,9 @@ const SideModal: React.FC<SideModalProps> = ({ isOpen, onClose, title, children 
             <div className="side-modal-container">
                 <div className="side-modal-header">
                     <h2 className="side-modal-title">{title}</h2>
-                    {/* Elementos de diseño adicionales */}
-                    <p className="side-modal-subtitle">Selecciona tu cine favorito</p>
-                    <p className="side-modal-order">Ordenado alfabéticamente</p>
+                    {/* Elementos de diseño adicionales (opcionales) */}
+                    {subtitle && <p className="side-modal-subtitle">{subtitle}</p>}
+                    {orderText && <p className="side-modal-order">{orderText}</p>}
                     <button className="side-modal-close" onClick={onClose}>
                         ✕
                     </button>
