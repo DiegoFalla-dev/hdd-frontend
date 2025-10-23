@@ -1,0 +1,12 @@
+.cineplus-header{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:#0f0f0f;color:#fff}
+.cineplus-header .logo{font-weight:700;text-decoration:none;color:#fff;transition:color 0.2s}
+.cineplus-header .logo:hover{color:#e50914}
+.cineplus-header .main-nav ul{display:flex;gap:18px;list-style:none;margin:0;padding:0}
+.cineplus-header .main-nav li{cursor:pointer}
+.cineplus-header .main-nav a{color:#fff;text-decoration:none;transition:color 0.2s;padding:6px 0;position:relative}
+.cineplus-header .main-nav a:hover{color:#e50914}
+.cineplus-header .main-nav a.active{color:#e50914}
+.cineplus-header .main-nav a.active::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:#e50914}
+.cineplus-header .user-actions{display:flex;gap:12px;align-items:center}
+.cineplus-header .icon-user{background:none;border:none;color:#fff;cursor:pointer;padding:8px;transition:opacity 0.2s}
+.cineplus-header .icon-user:hover{opacity:0.8}
