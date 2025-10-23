@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShoppingCart, PlusCircle } from 'react-feather';
+import { useNavigate } from 'react-router-dom';
 
 interface Pelicula {
 	id: string;
@@ -14,7 +15,10 @@ interface MovieCardProps {
 	showPreventaLabel?: boolean;
 }
 
+// MovieCard shows a single movie. Navigation to details uses the movie's id.
+
 const MovieCard: React.FC<MovieCardProps> = ({ pelicula, showEstrenoLabel = false, showPreventaLabel = false }) => {
+	const navigate = useNavigate();
 	return (
 		<div className="relative rounded overflow-hidden group" style={{ background: 'var(--cineplus-gray-dark)' }}>
 			{pelicula.imagenCard ? (
@@ -37,17 +41,17 @@ const MovieCard: React.FC<MovieCardProps> = ({ pelicula, showEstrenoLabel = fals
 
 			<div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/50">
 				<div className="flex flex-col items-center gap-3">
-					<button
+                    <button
 						className="flex items-center gap-2 px-5 py-2 rounded-full font-bold text-white w-40 justify-center transform transition-transform duration-200 hover:-translate-y-1 hover:scale-105 hover:brightness-110"
 						style={{ background: 'var(--cinepal-primary)' }}
-						onClick={() => window.location.href = `/boletos?pelicula=${pelicula.id}`}
+					onClick={() => window.location.href = `/boletos?pelicula=${pelicula.id}`}
 					>
 						<ShoppingCart size={16} /> Comprar
 					</button>
 					<button
 						className="flex items-center gap-2 px-5 py-2 rounded-full font-bold text-white w-40 justify-center transform transition-transform duration-200 hover:-translate-y-1 hover:scale-105 hover:brightness-110"
 						style={{ background: 'var(--cinepal-primary-700)' }}
-						onClick={() => window.location.href = `/detalle?pelicula=${pelicula.id}`}
+						onClick={() => navigate(`/detalle-pelicula?pelicula=${pelicula.id}`)}
 					>
 						<PlusCircle size={16} /> Ver detalles
 					</button>
