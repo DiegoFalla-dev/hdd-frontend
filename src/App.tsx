@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage'
 import Cartelera from './pages/Cartelera'
 import Cines from './pages/Cines'
 import Dulceria from './pages/Dulceria'
+import DetallePelicula from './pages/DetallePelicula'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import PerfilUsuario from './pages/PerfilUsuario'
@@ -26,6 +27,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/cartelera" element={<Cartelera />} />
         <Route path="/cines" element={<Cines />} />
+        <Route path="/detalle-pelicula" element={<DetallePelicula />} />
         <Route path="/promociones" element={<PlaceholderPage title="Promociones" />} />
         <Route path="/dulceria" element={<Dulceria />} />
         <Route path="/perfil" element={<PerfilUsuario />} />

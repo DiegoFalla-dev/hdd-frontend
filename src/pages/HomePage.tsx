@@ -1,54 +1,25 @@
 import React from 'react';
-import './HomePage.css'; // Puedes crear este archivo para estilos personalizados
+import './HomePage.css';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import HeroBanner from '../components/HeroBanner';
+import FilterBar from '../components/FilterBar';
+import MovieCarousel from '../components/MovieCarousel';
 
 const HomePage: React.FC = () => {
   return (
     <div className="cineplus-home">
-      <Navbar />
-
-      {/* Banner/Carrusel principal */}
-      <section className="main-banner">
-        {/* Aquí irá el carrusel de imágenes/promociones */}
-        <div className="banner-placeholder">Banner principal</div>
+      <Navbar variant="landing" heroHeight={600} />
+      
+      <HeroBanner />
+      
+      <section className="bg-black py-8">
+        <FilterBar />
       </section>
 
-      {/* Filtros de búsqueda */}
-      <section className="filters-section">
-        <form className="filters-form">
-          <select name="pelicula">
-            <option>Por película</option>
-          </select>
-          <select name="ciudad">
-            <option>Por ciudad</option>
-          </select>
-          <select name="cine">
-            <option>Por cine/localidad</option>
-          </select>
-          <select name="fecha">
-            <option>Por fecha</option>
-          </select>
-          <button type="submit">Filtrar</button>
-        </form>
-      </section>
-
-      {/* Sección de películas */}
-      <main className="movies-section">
-        <h2>Películas</h2>
-        <nav className="movies-nav">
-          <span>En cartelera</span>
-          <span>Preventa</span>
-          <span>Próximos estrenos</span>
-        </nav>
-        <div className="movies-list">
-          {/* Aquí irán los posters de las películas */}
-          <div className="movie-poster">Poster 1</div>
-          <div className="movie-poster">Poster 2</div>
-          <div className="movie-poster">Poster 3</div>
-        </div>
-        <aside className="see-more-movies">Ver más películas</aside>
-      </main>
+      <MovieCarousel />
+      
+      <div className="py-32"></div>
 
       <Footer />
     </div>
