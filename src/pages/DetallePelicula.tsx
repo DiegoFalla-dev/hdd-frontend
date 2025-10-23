@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import SideModal from "../components/SideModal";
 import { getMovies, type Pelicula } from "../services/moviesService";
-import { getAllCinemas } from "../services/cinemaService";
+import { getAllCinemas, getCinemaById } from "../services/cinemaService"; // Importar getCinemaById
 import type { Cinema } from "../types/Cinema";
 import { FiPlay } from "react-icons/fi";
 
@@ -33,7 +33,8 @@ const getAvailableDates = () => {
 
 const DetallePelicula: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const [selectedCine, setSelectedCine] = useState<string | null>(null);
+  const [selectedCineName, setSelectedCineName] = useState<string | null>(null); // Cambiado a selectedCineName
+  const [selectedCinemaData, setSelectedCinemaData] = useState<Cinema | null>(null); // Nuevo estado para los datos del cine
   const [showCineModal, setShowCineModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -65,11 +66,13 @@ const DetallePelicula: React.FC = () => {
         setPelicula(foundMovie || null);
         setCinemas(cinemasData);
         
-
-        
-        const savedCine = localStorage.getItem("selectedCine");
-        if (savedCine) {
-          setSelectedCine(savedCine);
+        const savedCineId = localStorage.getItem("selectedCineId"); // Ahora guardamos el ID
+        if (savedCineId) {
+          const foundSavedCine = cinemasData.find(c => c.id.toString() === savedCineId);
+          if (foundSavedCine) {
+            setSelectedCineName(foundSavedCine.name);
+            setSelectedCinemaData(foundSavedCine); // Almacena los datos completos
+          }
         } else {
           setShowCineModal(true);
         }
@@ -87,11 +90,33 @@ const DetallePelicula: React.FC = () => {
     }
   }, [peliculaId]);
 
+  // Nuevo useEffect para cargar los datos del cine cuando selectedCineName o cinemas cambien
+  useEffect(() => {
+    const loadCinemaData = async () => {
+      if (selectedCineName && cinemas.length > 0) {
+        const foundCine = cinemas.find(c => c.name === selectedCineName);
+        if (foundCine) {
+          try {
+            // Aquí usamos getCinemaById para obtener los datos más recientes del cine desde el backend
+            const cinemaDetails = await getCinemaById(foundCine.id.toString()); 
+            setSelectedCinemaData(cinemaDetails);
+          } catch (error) {
+            console.error('Error fetching cinema details:', error);
+            setSelectedCinemaData(foundCine); // Fallback a los datos locales si falla la API
+          }
+        }
+      }
+    };
+
+    loadCinemaData();
+  }, [selectedCineName, cinemas]); // Dependencias: cuando cambie el nombre del cine o la lista de cines
+
   const handleCineSelection = (cineId: string) => {
     const selectedCinema = cinemas.find(c => c.id.toString() === cineId);
     if (selectedCinema) {
-      setSelectedCine(selectedCinema.name);
-      localStorage.setItem("selectedCine", selectedCinema.name);
+      setSelectedCineName(selectedCinema.name);
+      setSelectedCinemaData(selectedCinema); // También guarda los datos completos aquí
+      localStorage.setItem("selectedCineId", selectedCinema.id.toString()); // Guarda el ID
       setShowCineModal(false);
     }
   };
@@ -263,9 +288,11 @@ const DetallePelicula: React.FC = () => {
               
               <div className="mb-6">
                 <h3 className="font-bold mb-2">CINE PRINCIPAL</h3>
-                <h4 className="font-bold mb-2" style={{ color: "#BB2228" }}>HORARIOS EN {selectedCine?.toUpperCase()}</h4>
+                <h4 className="font-bold mb-2" style={{ color: "#BB2228" }}>
+                  HORARIOS EN {selectedCinemaData?.name ? selectedCinemaData.name.toUpperCase() : "SELECCIONA UN CINE"}
+                </h4>
                 <p className="text-sm mb-4" style={{ color: "#E3E1E2" }}>
-                  Dirección: Calle Alfredo Mendiola 3698 Km 8.5 de la Av. Panamericana Norte Independencia
+                  Dirección: {selectedCinemaData?.location || "Dirección no disponible"}
                 </p>
                 
                 <div className="mb-4">
@@ -302,21 +329,21 @@ const DetallePelicula: React.FC = () => {
                 <button 
                   className="w-full py-3 rounded font-bold transition-colors"
                   style={{
-                    backgroundColor: isReadyToBuy ? "#BB2228" : "#393A3A",
-                    color: isReadyToBuy ? "#EFEFEE" : "#E3E1E2",
-                    cursor: isReadyToBuy ? "pointer" : "not-allowed"
+                    backgroundColor: isReadyToBuy && selectedCinemaData ? "#BB2228" : "#393A3A",
+                    color: isReadyToBuy && selectedCinemaData ? "#EFEFEE" : "#E3E1E2",
+                    cursor: isReadyToBuy && selectedCinemaData ? "pointer" : "not-allowed"
                   }}
-                  disabled={!isReadyToBuy}
+                  disabled={!isReadyToBuy || !selectedCinemaData}
                   onClick={() => {
-                    if (isReadyToBuy) {
+                    if (isReadyToBuy && selectedCinemaData) {
                       localStorage.setItem('movieSelection', JSON.stringify({
                         pelicula: pelicula,
                         selectedDay,
                         selectedTime,
                         selectedFormat,
-                        selectedCine
+                        selectedCineId: selectedCinemaData.id // Guardar el ID del cine
                       }));
-                      window.location.href = `/boletos?pelicula=${pelicula.id}&day=${selectedDay}&time=${selectedTime}&format=${selectedFormat}`;
+                      window.location.href = `/boletos?pelicula=${pelicula.id}&day=${selectedDay}&time=${selectedTime}&format=${selectedFormat}&cineId=${selectedCinemaData.id}`;
                     }
                   }}
                 >
@@ -345,8 +372,8 @@ const DetallePelicula: React.FC = () => {
               onClick={() => handleCineSelection(cine.id.toString())}
               className="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors"
               style={{ 
-                backgroundColor: selectedCine === cine.name ? "#393A3A" : "transparent",
-                border: `1px solid ${selectedCine === cine.name ? "#E3E1E2" : "#393A3A"}` 
+                backgroundColor: selectedCineName === cine.name ? "#393A3A" : "transparent",
+                border: `1px solid ${selectedCineName === cine.name ? "#E3E1E2" : "#393A3A"}` 
               }}
             >
               <div>
@@ -354,8 +381,8 @@ const DetallePelicula: React.FC = () => {
                 <p className="text-xs" style={{ color: "#E3E1E2" }}>{cine.location}</p>
               </div>
               <div className="w-4 h-4 rounded-full border-2" style={{ 
-                borderColor: selectedCine === cine.name ? "#EFEFEE" : "#E3E1E2",
-                backgroundColor: selectedCine === cine.name ? "#EFEFEE" : "transparent"
+                borderColor: selectedCineName === cine.name ? "#EFEFEE" : "#E3E1E2",
+                backgroundColor: selectedCineName === cine.name ? "#EFEFEE" : "transparent"
               }} />
             </div>
           ))}
