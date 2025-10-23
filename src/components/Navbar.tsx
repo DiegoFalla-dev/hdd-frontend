@@ -22,7 +22,7 @@ const Navbar: React.FC = () => {
     window.addEventListener('storage', onStorage);
     
     // Lógica para cargar el cine seleccionado del localStorage
-    const savedCinema = localStorage.getItem('selectedCinema');
+    const savedCinema = localStorage.getItem('selectedCine');
     if (savedCinema) {
       setSelectedCinema(JSON.parse(savedCinema));
     }
@@ -58,7 +58,7 @@ const Navbar: React.FC = () => {
 
   const handleApply = () => {
     if (selectedCinema) {
-      localStorage.setItem('selectedCinema', JSON.stringify(selectedCinema));
+      localStorage.setItem('selectedCine', JSON.stringify(selectedCinema));
     }
     setIsModalOpen(false);
     // Recargar la página para aplicar el cambio del cine seleccionado

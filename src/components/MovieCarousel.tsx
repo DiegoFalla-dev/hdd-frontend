@@ -140,11 +140,11 @@ const MovieCarousel: React.FC = () => {
           style={{
             width: 220,
             height: 608,
-            background: 'linear-gradient(to bottom,rgb(185, 185, 185),rgb(73, 72, 72))',
+            background: 'linear-gradient(to bottom, #393A3A, #141113)',
           }}
         >
           <button
-            className="cursor-pointer text-white text-2xl font-bold px-4 py-8 transition duration-300 ease-in-out hover:brightness-110"
+            className="cursor-pointer text-2xl font-bold px-4 py-8 transition duration-300 ease-in-out hover:brightness-75"
             style={{
               writingMode: 'vertical-rl',
               textOrientation: 'mixed',
@@ -152,6 +152,7 @@ const MovieCarousel: React.FC = () => {
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
+              color: '#EFEFEE'
             }}
             onClick={() => navigate('/cartelera')}
           >
