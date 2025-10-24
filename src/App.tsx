@@ -5,6 +5,7 @@ import Cartelera from './pages/Cartelera'
 import Cines from './pages/Cines'
 import Dulceria from './pages/Dulceria'
 import DetallePelicula from './pages/DetallePelicula'
+import Confirmacion from './pages/Confirmacion'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 
@@ -27,6 +28,7 @@ function App() {
         <Route path="/cartelera" element={<Cartelera />} />
         <Route path="/cines" element={<Cines />} />
         <Route path="/detalle-pelicula" element={<DetallePelicula />} />
+  <Route path="/confirmacion" element={<Confirmacion />} />
         <Route path="/promociones" element={<PlaceholderPage title="Promociones" />} />
         <Route path="/dulceria" element={<Dulceria />} />
       </Routes>

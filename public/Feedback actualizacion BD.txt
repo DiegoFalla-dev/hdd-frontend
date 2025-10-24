@@ -1,0 +1,199 @@
+Entidades (Entity)
+Promotion.java
+	Propósito: Representa una promoción o descuento que puede ser aplicado a las órdenes.
+	Componentes internos clave:
+		id: Identificador único de la promoción.
+		code: Código de la promoción (ej. "VERANO20").
+		description: Descripción del descuento.
+		discountType: Tipo de descuento (porcentaje o monto fijo) - usa el enum DiscountType.
+		value: El valor del descuento (ej. 0.10 para 10% o 5.00 para $5).
+		startDate, endDate: Periodo de validez de la promoción.
+		minAmount: Monto mínimo de compra para aplicar el descuento.
+		maxUses, currentUses: Límite y contador de usos de la promoción.
+		isActive: Estado de activación de la promoción.
+Order.java
+	Propósito: Representa una transacción de compra de entradas y/o productos de concesión.
+	Componentes internos clave:
+		id: Identificador único de la orden.
+		user: El usuario que realizó la orden (relación ManyToOne con User).
+		orderDate: Fecha y hora de creación de la orden.
+		totalAmount: Monto total de la orden.
+		paymentMethod: El método de pago utilizado (relación ManyToOne con PaymentMethod).
+		orderStatus: Estado actual de la orden (pendiente, completada, cancelada, etc.) - usa el enum OrderStatus.
+		invoiceNumber, invoicePdfUrl: Información de la factura.
+		qrCodeUrl: URL del código QR asociado a la orden.
+		orderItems: Lista de ítems individuales (entradas) que componen la orden (relación OneToMany con OrderItem).
+		promotion: (Opcional) La promoción aplicada a esta orden (relación ManyToOne con Promotion).
+OrderItem.java
+	Propósito: Representa una entrada individual o un producto dentro de una orden.
+	Componentes internos clave:
+		id: Identificador único del ítem de la orden.
+		order: La orden a la que pertenece este ítem (relación ManyToOne con Order).
+		showtime: La función de la película para la que es esta entrada (relación ManyToOne con Showtime).
+		seat: El asiento específico reservado para esta entrada (relación ManyToOne con Seat).
+		price: Precio individual de este ítem (entrada).
+		ticketStatus: Estado de la entrada (válida, usada, cancelada) - usa el enum TicketStatus.
+		qrCodeTicketUrl, ticketPdfUrl: URLs del código QR y PDF para esta entrada individual.
+	Enums Auxiliares
+		DiscountType.java: Define los tipos de descuento (PERCENTAGE, FIXED_AMOUNT).
+		OrderStatus.java: Define los posibles estados de una orden (PENDING, COMPLETED, CANCELLED, REFUNDED).
+		TicketStatus.java: Define los posibles estados de una entrada individual (VALID, USED, CANCELLED).
+
+Repositorios (Repository)
+Ubicación: src/main/java/com.cineplus.cineplus.domain.repository
+PromotionRepository.java
+	Función: Interfaz para operaciones CRUD y de consulta sobre la entidad Promotion.
+	Componentes Clave: Extiende JpaRepository<Promotion, Long>, métodos como findByCode, findByIsActiveTrueAndStartDateBeforeAndEndDateAfter, findByIsActive.
+	Feedback: Adecuada. Los métodos personalizados facilitan la búsqueda de promociones por código y por estado/fecha, lo cual es fundamental para su aplicación.
+OrderRepository.java
+	Función: Interfaz para operaciones CRUD y de consulta sobre la entidad Order.
+	Componentes Clave: Extiende JpaRepository<Order, Long>, métodos como findByUser, findByUserAndOrderStatus, findByOrderStatus, findByInvoiceNumber, findByOrderDateBetween.
+	Feedback: Muy bien. Permite consultar órdenes por usuario, estado, número de factura y rango de fechas, cubriendo las necesidades básicas de seguimiento de órdenes.
+OrderItemRepository.java
+	Función: Interfaz para operaciones CRUD y de consulta sobre la entidad OrderItem.
+	Componentes Clave: Extiende JpaRepository<OrderItem, Long>, métodos como findByOrder, findByShowtime, findByTicketStatus, findByShowtimeAndTicketStatus.
+	Feedback: Excelente. Los métodos específicos para buscar por orden, función (showtime) y estado del ticket son muy útiles para gestionar los detalles de cada compra.
+
+Controladores (Controller)
+PromotionController.java
+	Propósito: Gestionar las operaciones CRUD (Crear, Leer, Actualizar, Eliminar) para las promociones del sistema.
+	Componentes Internos Clave:
+		@RestController, @RequestMapping("/api/promotions"): Define este como un controlador REST que maneja las solicitudes para /api/promotions.
+		PromotionService promotionService: Dependencia inyectada para delegar la lógica de negocio de las promociones.
+		Endpoints CRUD: Métodos con @GetMapping, @PostMapping, @PutMapping, @DeleteMapping que mapean a las operaciones básicas.
+			@PreAuthorize("hasRole('ADMIN')"): Implementa seguridad a nivel de método, restringiendo la creación, actualización y eliminación de promociones solo a usuarios con rol ADMIN.
+			ResponseEntity: Utilizado para devolver respuestas HTTP estructuradas (códigos de estado, cuerpo).
+			@Valid: Activa la validación automática de los DTOs de entrada.
+OrderController.java
+	Propósito: Manejar la creación, consulta y gestión de órdenes (y sus ítems/tickets individuales), incluyendo la generación de documentos (facturas, QR de tickets).
+	Componentes Internos Clave:
+		@RestController, @RequestMapping("/api/orders"): Define este como un controlador REST que maneja las solicitudes para /api/orders.
+		OrderService orderService, OrderItemService orderItemService: Dependencias inyectadas para delegar la lógica de negocio de órdenes y sus ítems.
+		Endpoints de Gestión de Órdenes:
+			GET /: Obtener todas las órdenes (solo ADMIN).
+			GET /{id}: Obtener una orden por ID (propietario o ADMIN).
+			GET /user/{userId}: Obtener órdenes de un usuario específico (propio usuario o ADMIN).
+			POST /: Crear una nueva orden (USER).
+			PATCH /{id}/status: Actualizar el estado de una orden (ADMIN).
+		Endpoints de Gestión de Ítems de Orden (Tickets):
+			GET /{orderId}/items: Obtener ítems de una orden.
+			GET /items/{itemId}: Obtener un ítem de orden por ID.
+			PATCH /items/{itemId}/use: Marcar un ticket como usado (EMPLOYEE o ADMIN).
+		Endpoints de Documentos:
+			GET /{orderId}/invoice-pdf: Generar factura en PDF.
+			GET /items/{itemId}/qr-code: Generar QR para un ticket.
+			GET /items/{itemId}/ticket-pdf: Generar PDF de un ticket.
+		@PreAuthorize con @userSecurity:
+			Implementación robusta de seguridad a nivel de objeto, permitiendo que un usuario acceda a sus propias órdenes/tickets, además de los ADMINs.
+			hasOrderId, hasOrderItemId, hasUserId son métodos personalizados en el @Component("userSecurity") que verifican la propiedad.
+		ResponseEntity y manejo de errores: Respuestas HTTP detalladas para éxito, no encontrado, errores de validación o internos.
+
+Mapper
+PromotionMapper.java
+	Función: Mapea entre la entidad Promotion y su DTO PromotionDTO.
+	Componentes Clave:
+	@Mapper(componentModel = "spring"): Integra el mapper como un componente Spring.
+		toDto(Promotion promotion): Convierte entidad a DTO.
+		toEntity(PromotionDTO promotionDTO): Convierte DTO a entidad.
+		toDtoList, toEntityList: Métodos para mapear listas.
+OrderMapper.java
+	Función: Mapea entre la entidad Order, OrderDTO y CreateOrderDTO. Maneja las relaciones con User, PaymentMethod, Promotion y OrderItem.
+	Componentes Clave:
+	@Mapper(componentModel = "spring", uses = {UserMapper.class, PaymentMethodMapper.class, PromotionMapper.class, OrderItemMapper.class}): Integra como componente Spring y declara el uso de otros mappers para relaciones anidadas.
+	@PaymentMethodMapping y qualifiedBy = PaymentMethodMapping.class: Se usa para resolver la ambigüedad en el mapeo de PaymentMethod, indicando explícitamente qué método de qué mapper usar.
+		toDto(Order order): Convierte Order (entidad completa) a OrderDTO.
+		toEntity(CreateOrderDTO createOrderDTO, User user, PaymentMethod paymentMethod, Promotion promotion): Método clave para la creación. Recibe el CreateOrderDTO y las entidades relacionadas (User, PaymentMethod, Promotion) ya resueltas por el servicio, facilitando la construcción de la entidad Order sin que el mapper deba buscar en la DB. Ignora el ID y establece valores por defecto como orderDate y orderStatus.
+		toDtoList: Para listas de órdenes.
+OrderItemMapper.java
+	Función: Mapea entre la entidad OrderItem, OrderItemDTO y CreateOrderItemDTO. Maneja las relaciones con Order, Showtime y Seat.
+	Componentes Clave:
+	@Mapper(componentModel = "spring", uses = {ShowtimeMapper.class, SeatMapper.class}): Integra como componente Spring y declara el uso de mappers para Showtime y Seat.
+		toDto(OrderItem orderItem): Convierte OrderItem (entidad completa) a OrderItemDTO, extrayendo orderId para evitar recursión.
+		toEntity(CreateOrderItemDTO createOrderItemDTO, Order order, Showtime showtime, Seat seat): Método clave para la creación. Recibe el CreateOrderItemDTO y las entidades relacionadas (Order, Showtime, Seat) ya resueltas por el servicio. Ignora el ID y establece ticketStatus por defecto.
+		toDtoList: Para listas de ítems de orden.
+PaymentMethodMapping.java
+	Función: Es una anotación Qualifier personalizada para MapStruct.
+	Componentes Clave:
+	@Qualifier: Anotación de MapStruct que la marca como calificador.
+	@Target(ElementType.METHOD) y @Retention(RetentionPolicy.CLASS): Definición estándar para calificadores de método.
+		Propósito: Se usa para resolver la ambigüedad de mapeo en OrderMapper cuando hay múltiples métodos que podrían convertir PaymentMethod a PaymentMethodDto, asegurando que MapStruct elija el método correcto en 
+PaymentMethodMapper.java 
+	Función: Mapea entre la entidad PaymentMethod y su DTO PaymentMethodDto.
+	Componentes Clave:
+	@Mapper(componentModel = "spring"): Integra el mapper como un componente Spring.
+	@PaymentMethodMapping: Anotación que se añadió a toDto(PaymentMethod) para que MapStruct lo identifique específicamente cuando es referenciado por qualifiedBy.
+		toDto(PaymentMethod) y toEntity(PaymentMethodDto): Conversiones básicas.
+SeatMapper.java (Modificado/Asegurado)
+	Función: Mapea entre la entidad Seat y su DTO SeatDto.
+	Componentes Clave:
+	@Mapper(componentModel = "spring"): Integra el mapper como un componente Spring.
+		toDto(Seat) y toEntity(SeatDto): Conversiones básicas.
+
+DTO
+PromotionDTO.java
+	Función: Representa los datos de una promoción para visualización o transferencia.
+	Componentes: id, code, description, discountType, value, startDate, endDate, minAmount, maxUses, currentUses, isActive.
+	Estado: Nuevo DTO.
+OrderDTO.java
+	Función: Representa los detalles completos de una orden para visualización (ej. historial de compras).
+	Componentes: id, user (tu UserDto), orderDate, totalAmount, paymentMethod (tu PaymentMethodDto), orderStatus, invoiceNumber, invoicePdfUrl, qrCodeUrl, orderItems (OrderItemDTO list), promotion (PromotionDTO).
+	Estado: Ajustado para usar tus DTOs existentes (UserDto, PaymentMethodDto).
+OrderItemDTO.java
+	Función: Representa una entrada específica dentro de una orden (ej. un boleto de cine).
+	Componentes: id, orderId (solo el ID para evitar recursión), showtime (tu ShowtimeDto), seat (el nuevo SeatDto), price, ticketStatus, qrCodeTicketUrl, ticketPdfUrl.
+	Estado: Ajustado para usar tus DTOs existentes (ShowtimeDto) y el nuevo SeatDto.
+CreateOrderDTO.java
+	Función: Objeto de entrada para recibir los datos necesarios al crear una nueva orden desde el cliente.
+	Componentes: userId, paymentMethodId, items (lista de CreateOrderItemDTO), promotionCode (opcional). Incluye validaciones básicas.
+	Estado: Nuevo DTO.
+CreateOrderItemDTO.java
+	Función: Objeto de entrada para cada ítem individual dentro de una CreateOrderDTO.
+	Componentes: showtimeId, seatId, price. Incluye validaciones básicas.
+	Estado: Nuevo DTO.
+SeatDto.java
+	Función: Representa los datos de un asiento individual para visualización.
+	Componentes: id, seatNumber, isAvailable, theaterId, theaterName, seatRow, seatColumn.
+	Estado: Nuevo DTO (previamente inexistente).
+Servicios (Service)
+PromotionService.java
+	Función: Gestiona todas las operaciones relacionadas con las promociones.
+	Componentes Clave:
+		CRUD Básico: getAllPromotions, getPromotionById, createPromotion, updatePromotion, deletePromotion.
+		Lógica de Negocio: getActivePromotionByCode (busca promociones activas por código) y isValidPromotionForAmount (valida si una promoción aplica a un monto).
+OrderService.java
+	Función: Controla el ciclo de vida completo de las órdenes de compra.
+	Componentes Clave:
+		CRUD Básico: getAllOrders, getOrderById.
+		Lógica de Negocio Central: createOrder (creación completa de orden con validaciones y promociones), updateOrderStatus (cambia el estado de una orden).
+		Consultas Específicas: getOrdersByUserId (órdenes de un usuario).
+		Generación de Documentos: generateInvoicePdf (factura PDF), generateTicketQrCode (QR para ticket), generateTicketPdf (ticket PDF).
+OrderItemService.java
+	Función: Administra los ítems individuales dentro de una orden (que representan tickets de cine o productos de concesión).
+	Componentes Clave:
+		CRUD Básico: getAllOrderItems, getOrderItemById.
+		Lógica de Negocio: updateOrderItemStatus (actualiza el estado de un ticket/item), markTicketAsUsed (marca un ticket como usado).
+		Consultas Específicas: getOrderItemsByOrderId (ítems de una orden específica).
+
+Servicios Implicitos (Services.Impl)
+PromotionServiceImpl.java
+	Propósito: Gestiona la lógica de negocio para las promociones.
+	Componentes Internos:
+		PromotionRepository: Para interactuar con la base de datos de promociones.
+		PromotionMapper: Para convertir entre entidades Promotion y DTOs PromotionDTO.
+	Funcionalidades: CRUD básico (getAll, getById, create, update, delete), además de métodos específicos para validar y obtener promociones activas por código (getActivePromotionByCode, isValidPromotionForAmount). Implementa la lógica de verificación de fechas, usos máximos y monto mínimo para la aplicación de promociones.
+OrderServiceImpl.java
+	Propósito: Contiene la lógica central para la creación, gestión y procesamiento de órdenes de compra, incluyendo tickets y facturas.
+	Componentes Internos:
+		OrderRepository, OrderItemRepository, UserRepository, PaymentMethodRepository, ShowtimeRepository, SeatRepository, PromotionRepository: Para acceder a los datos de las entidades relacionadas con una orden.
+		OrderMapper, OrderItemMapper: Para mapear entre entidades y DTOs de órdenes y sus ítems.
+		PromotionService: Utiliza este servicio para delegar la validación y aplicación de descuentos de promociones.
+	Funcionalidades: CRUD para órdenes (getAll, getById), creación de órdenes (createOrder - la funcionalidad más compleja), actualización de estado de órdenes, obtención de órdenes por usuario.
+	Lógica Compleja: Maneja la validación de asientos y funciones, cálculo de total de la orden, aplicación de descuentos de promociones, incremento del contador de uso de promociones.
+	Generación de Documentos: Incluye métodos para generar códigos QR para tickets individuales (generateTicketQrCode) y PDFs para tickets (generateTicketPdf) y facturas (generateInvoicePdf), utilizando itext7 y zxing. (Nota: La persistencia de estos archivos en almacenamiento externo es un punto clave a implementar).
+OrderItemServiceImpl.java
+	Propósito: Gestiona la lógica específica para los ítems individuales dentro de una orden (los tickets).
+	Componentes Internos:
+		OrderItemRepository: Para interactuar con la base de datos de ítems de orden.
+		OrderRepository: Para obtener ítems asociados a una orden específica.
+		OrderItemMapper: Para convertir entre entidades OrderItem y DTOs OrderItemDTO.
+	Funcionalidades: CRUD básico para ítems de orden (getAll, getById), actualización del estado de un ticket (updateOrderItemStatus), obtención de ítems por ID de orden (getOrderItemsByOrderId), y un método específico para marcar un ticket como usado (markTicketAsUsed).

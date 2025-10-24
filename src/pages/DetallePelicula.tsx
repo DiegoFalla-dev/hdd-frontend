@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import SideModal from "../components/SideModal";
+// Usamos el modal de selección de cines que provee el Navbar mediante evento
 import { getMovies, type Pelicula } from "../services/moviesService";
+import authService from '../services/authService';
 import { getAllCinemas, getCinemaById } from "../services/cinemaService"; // Importar getCinemaById
 import type { Cinema } from "../types/Cinema";
 import { FiPlay } from "react-icons/fi";
@@ -35,7 +36,6 @@ const DetallePelicula: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [selectedCineName, setSelectedCineName] = useState<string | null>(null); // Cambiado a selectedCineName
   const [selectedCinemaData, setSelectedCinemaData] = useState<Cinema | null>(null); // Nuevo estado para los datos del cine
-  const [showCineModal, setShowCineModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
@@ -66,15 +66,19 @@ const DetallePelicula: React.FC = () => {
         setPelicula(foundMovie || null);
         setCinemas(cinemasData);
         
-        const savedCineId = localStorage.getItem("selectedCineId"); // Ahora guardamos el ID
-        if (savedCineId) {
-          const foundSavedCine = cinemasData.find(c => c.id.toString() === savedCineId);
-          if (foundSavedCine) {
-            setSelectedCineName(foundSavedCine.name);
-            setSelectedCinemaData(foundSavedCine); // Almacena los datos completos
+        // Leer el cine seleccionado desde localStorage (guardado por el Navbar como 'selectedCine')
+        const savedCine = localStorage.getItem('selectedCine');
+        if (savedCine) {
+          try {
+            const parsed = JSON.parse(savedCine) as Cinema;
+            setSelectedCineName(parsed.name);
+            setSelectedCinemaData(parsed);
+          } catch (err) {
+            console.error('Error parsing selectedCine from localStorage', err);
           }
         } else {
-          setShowCineModal(true);
+          // Abrir el modal del Navbar (no una copia) indicando que viene de DetallePelicula
+          window.dispatchEvent(new CustomEvent('openCinemaModal', { detail: { from: 'detalle' } }));
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -96,9 +100,9 @@ const DetallePelicula: React.FC = () => {
       if (selectedCineName && cinemas.length > 0) {
         const foundCine = cinemas.find(c => c.name === selectedCineName);
         if (foundCine) {
-          try {
+            try {
             // Aquí usamos getCinemaById para obtener los datos más recientes del cine desde el backend
-            const cinemaDetails = await getCinemaById(foundCine.id.toString()); 
+            const cinemaDetails = await getCinemaById(foundCine.id);
             setSelectedCinemaData(cinemaDetails);
           } catch (error) {
             console.error('Error fetching cinema details:', error);
@@ -111,15 +115,6 @@ const DetallePelicula: React.FC = () => {
     loadCinemaData();
   }, [selectedCineName, cinemas]); // Dependencias: cuando cambie el nombre del cine o la lista de cines
 
-  const handleCineSelection = (cineId: string) => {
-    const selectedCinema = cinemas.find(c => c.id.toString() === cineId);
-    if (selectedCinema) {
-      setSelectedCineName(selectedCinema.name);
-      setSelectedCinemaData(selectedCinema); // También guarda los datos completos aquí
-      localStorage.setItem("selectedCineId", selectedCinema.id.toString()); // Guarda el ID
-      setShowCineModal(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -335,7 +330,17 @@ const DetallePelicula: React.FC = () => {
                   }}
                   disabled={!isReadyToBuy || !selectedCinemaData}
                   onClick={() => {
-                    if (isReadyToBuy && selectedCinemaData) {
+                    if (!(isReadyToBuy && selectedCinemaData)) return;
+                    // validar sesión
+                    const user = authService.getCurrentUser();
+                    if (!user) {
+                      // abrir modal de perfil del Navbar (no una copia)
+                      window.dispatchEvent(new CustomEvent('openProfileModal'));
+                      return;
+                    }
+
+                    // Guardar selección y avanzar a confirmación
+                    try {
                       localStorage.setItem('movieSelection', JSON.stringify({
                         pelicula: pelicula,
                         selectedDay,
@@ -343,8 +348,11 @@ const DetallePelicula: React.FC = () => {
                         selectedFormat,
                         selectedCineId: selectedCinemaData.id // Guardar el ID del cine
                       }));
-                      window.location.href = `/boletos?pelicula=${pelicula.id}&day=${selectedDay}&time=${selectedTime}&format=${selectedFormat}&cineId=${selectedCinemaData.id}`;
+                    } catch (e) {
+                      console.error('Error saving movieSelection', e);
                     }
+
+                    window.location.href = `/confirmacion?pelicula=${pelicula.id}&day=${selectedDay}&time=${selectedTime}&format=${selectedFormat}&cineId=${selectedCinemaData.id}`;
                   }}
                 >
                   COMPRAR ENTRADAS
@@ -355,47 +363,7 @@ const DetallePelicula: React.FC = () => {
         </div>
       </div>
       
-      <SideModal 
-        isOpen={showCineModal}
-        onClose={() => setShowCineModal(false)}
-        title="Elige tu cine"
-      >
-        <div className="mb-4">
-          <h3 className="text-sm font-semibold mb-2" style={{ color: "#E3E1E2" }}>Selecciona tu cine favorito</h3>
-          <p className="text-xs mb-4" style={{ color: "#E3E1E2" }}>Ordenado alfabéticamente</p>
-        </div>
-
-        <div className="space-y-3">
-          {cinemas.map((cine) => (
-            <div 
-              key={cine.id}
-              onClick={() => handleCineSelection(cine.id.toString())}
-              className="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors"
-              style={{ 
-                backgroundColor: selectedCineName === cine.name ? "#393A3A" : "transparent",
-                border: `1px solid ${selectedCineName === cine.name ? "#E3E1E2" : "#393A3A"}` 
-              }}
-            >
-              <div>
-                <h4 className="font-medium" style={{ color: "#EFEFEE" }}>{cine.name}</h4>
-                <p className="text-xs" style={{ color: "#E3E1E2" }}>{cine.location}</p>
-              </div>
-              <div className="w-4 h-4 rounded-full border-2" style={{ 
-                borderColor: selectedCineName === cine.name ? "#EFEFEE" : "#E3E1E2",
-                backgroundColor: selectedCineName === cine.name ? "#EFEFEE" : "transparent"
-              }} />
-            </div>
-          ))}
-        </div>
-
-        <button 
-          onClick={() => setShowCineModal(false)}
-          className="w-full mt-6 py-3 px-4 font-semibold rounded-lg transition-colors"
-          style={{ backgroundColor: "#BB2228", color: "#EFEFEE" }}
-        >
-          APLICAR
-        </button>
-      </SideModal>
+      {/* El modal de selección de cines lo provee el Navbar; aquí no renderizamos una copia */}
       
       <Footer />
     </div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import './Navbar.css';
 import authService from '../services/authService';
 import SideModal from './SideModal'; // Asume que este componente exista
@@ -21,6 +22,8 @@ const Navbar: React.FC<NavbarProps> = () => {
   const [cinemas, setCinemas] = useState<Cinema[]>([]);
   const [selectedCinema, setSelectedCinema] = useState<Cinema | null>(null);
   const [loading, setLoading] = useState(false);
+  const [closeNavigate, setCloseNavigate] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Lógica para obtener el usuario actual
@@ -38,6 +41,28 @@ const Navbar: React.FC<NavbarProps> = () => {
     }
     
     return () => { window.removeEventListener('storage', onStorage); window.removeEventListener('auth:logout', onLogout); };
+  }, []);
+
+  useEffect(() => {
+    // Listener para abrir el modal desde otras páginas (DetallePelicula)
+    const handler = (e: Event) => {
+      // Si es CustomEvent, podemos leer detail
+      const ce = e as CustomEvent;
+      const from = ce?.detail?.from ?? null;
+      setCloseNavigate(from === 'detalle');
+      handleOpenModal();
+    };
+
+    window.addEventListener('openCinemaModal', handler as EventListener);
+    return () => window.removeEventListener('openCinemaModal', handler as EventListener);
+  }, []);
+
+  useEffect(() => {
+    const openProfile = () => {
+      setIsProfileOpen(true);
+    };
+    window.addEventListener('openProfileModal', openProfile as EventListener);
+    return () => window.removeEventListener('openProfileModal', openProfile as EventListener);
   }, []);
 
   useEffect(() => {
@@ -116,7 +141,12 @@ const Navbar: React.FC<NavbarProps> = () => {
       </SideModal>
       <SideModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          // Si se abrió desde DetallePelicula, al cerrar con la X navegamos a cartelera
+          if (closeNavigate) navigate('/cartelera');
+          setIsModalOpen(false);
+          setCloseNavigate(false);
+        }}
         title="Seleccionar Cine"
         subtitle="Selecciona tu cine favorito"
         orderText="Ordenado alfabéticamente"
