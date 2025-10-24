@@ -1,0 +1,69 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FiX } from 'react-icons/fi';
+
+const CarritoDulceria: React.FC = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        // Aquí irá la lógica para cargar productos de dulcería
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading concession products:', error);
+      }
+    };
+
+    loadInitialData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white">Cargando...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: "var(--cineplus-black)", color: "var(--cineplus-gray-light)" }} className="min-h-screen">
+      {/* Header */}
+      <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: "var(--cineplus-gray-dark)" }}>
+        <h1 className="text-xl font-bold">Dulcería</h1>
+        <button 
+          className="text-gray-400 hover:text-white"
+          onClick={() => navigate(-1)}
+        >
+          <FiX size={24} />
+        </button>
+      </div>
+
+      <div className="flex">
+        {/* Contenido principal */}
+        <div className="flex-1 p-8">
+          <div className="max-w-2xl">
+            <h2 className="text-2xl font-bold mb-6">Nuestros Productos</h2>
+            {/* Aquí irá el listado de productos */}
+          </div>
+        </div>
+
+        {/* Panel lateral derecho - Resumen */}
+        <div className="w-80 p-6 border-l" style={{ borderColor: "var(--cineplus-gray-dark)", background: "var(--cineplus-gray-dark)" }}>
+          <h3 className="text-lg font-bold mb-6">RESUMEN</h3>
+          
+          {/* Aquí irá el resumen del carrito */}
+          <button
+            className="w-full py-3 bg-white text-black font-bold rounded hover:bg-gray-200 transition-colors"
+            onClick={() => navigate('/carrito/total')}
+          >
+            CONTINUAR
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CarritoDulceria;

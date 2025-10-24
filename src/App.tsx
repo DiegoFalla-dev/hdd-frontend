@@ -6,6 +6,11 @@ import Cines from './pages/Cines'
 import Dulceria from './pages/Dulceria'
 import DetallePelicula from './pages/DetallePelicula'
 import Confirmacion from './pages/Confirmacion'
+import CarritoEntradas from './pages/CarritoEntradas'
+import AtencionCliente from './pages/AtencionCliente'
+import Butacas from './pages/Butacas'
+import CarritoDulceria from './pages/CarritoDulceria'
+import CarritoTotal from './pages/CarritoTotal'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 
@@ -28,9 +33,14 @@ function App() {
         <Route path="/cartelera" element={<Cartelera />} />
         <Route path="/cines" element={<Cines />} />
         <Route path="/detalle-pelicula" element={<DetallePelicula />} />
-  <Route path="/confirmacion" element={<Confirmacion />} />
+        <Route path="/confirmacion" element={<Confirmacion />} />
+        <Route path="/carrito/entradas" element={<CarritoEntradas />} />
+        <Route path="/carrito/dulceria" element={<CarritoDulceria />} />
+        <Route path="/carrito/total" element={<CarritoTotal />} />
+        <Route path="/butacas" element={<Butacas />} />
         <Route path="/promociones" element={<PlaceholderPage title="Promociones" />} />
         <Route path="/dulceria" element={<Dulceria />} />
+        <Route path="/atencion-cliente" element={<AtencionCliente />} />
       </Routes>
     </BrowserRouter>
   )

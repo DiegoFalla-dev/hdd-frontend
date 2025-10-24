@@ -35,6 +35,11 @@ export interface MovieSelection {
   selectedTime?: string | null;
   selectedFormat?: string | null;
   selectedCineId?: number | null;
+  showtimeId?: number | null;
+  theater?: {
+    id: number;
+    number: string;
+  } | null;
 }
 
 export function setMovieSelection(sel: MovieSelection) {

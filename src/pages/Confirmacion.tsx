@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { FiX } from 'react-icons/fi';
 import { getMovieSelection, getSelectedCine } from '../utils/storage';
 
 const Confirmacion: React.FC = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [selectedCine, setSelectedCine] = useState<string | null>(null);
   const [selection, setSelection] = useState<any | null>(null);
@@ -86,7 +87,7 @@ const Confirmacion: React.FC = () => {
             </div>
           </div>
 
-          <button className="w-full py-3 bg-white text-black font-bold rounded hover:bg-gray-200 transition-colors" onClick={() => window.location.href = '/carrito'}>
+          <button className="w-full py-3 bg-white text-black font-bold rounded hover:bg-gray-200 transition-colors" onClick={() => navigate('/carrito/entradas')}>
             CONTINUAR
           </button>
         </div>
