@@ -86,7 +86,7 @@ const Confirmacion: React.FC = () => {
             </div>
           </div>
 
-          <button className="w-full py-3 bg-white text-black font-bold rounded hover:bg-gray-200 transition-colors" onClick={() => window.location.href = '/carrito'}>
+          <button className="w-full py-3 bg-white text-black font-bold rounded hover:bg-gray-200 transition-colors" onClick={() => window.location.href = '/carrito-entradas'}>
             CONTINUAR
           </button>
         </div>
