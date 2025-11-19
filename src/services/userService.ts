@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://hdd-backend-bedl.onrender.com';
+import apiClient from './apiClient';
 
 export interface NameDto {
   firstName: string;
@@ -8,8 +6,8 @@ export interface NameDto {
 }
 
 export async function getUserName(id: number | string): Promise<NameDto> {
-  const url = `${API_BASE}/api/users/${id}/name`;
-  const res = await axios.get(url);
+  const url = `/api/users/${id}/name`;
+  const res = await apiClient.get(url);
   return res.data as NameDto;
 }
 

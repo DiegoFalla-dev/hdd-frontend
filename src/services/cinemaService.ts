@@ -1,15 +1,7 @@
-import axios from 'axios';
+import apiClient from './apiClient';
 import type { Cinema } from '../types/Cinema';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://hdd-backend-bedl.onrender.com';
-const BASE_URL = `${API_BASE}/api/cinemas`;
-
-const api = axios.create({
-    baseURL: BASE_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
+const api = apiClient; // use central api client
 
 export const getAllCinemas = async (): Promise<Cinema[]> => {
     try {
@@ -17,13 +9,14 @@ export const getAllCinemas = async (): Promise<Cinema[]> => {
         const response = await api.get('');
         console.log('Respuesta de la API de cines:', response.data);
         return response.data;
-    } catch (error) {
-        console.error('Error detallado al obtener cines:', error);
-        if (axios.isAxiosError(error)) {
-            console.error('Detalles de la respuesta:', error.response?.data);
-            console.error('URL de la solicitud:', error.config?.url);
+    } catch (err: unknown) {
+        console.error('Error detallado al obtener cines:', err);
+        const maybe = err as { response?: { data?: unknown }; config?: { url?: string } } | undefined;
+        if (maybe && maybe.response) {
+            console.error('Detalles de la respuesta:', maybe.response.data);
+            console.error('URL de la solicitud:', maybe.config?.url);
         }
-        throw error;
+        throw err;
     }
 };
 

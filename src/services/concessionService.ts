@@ -1,15 +1,7 @@
-import axios from 'axios';
+import apiClient from './apiClient';
 import type { ConcessionProduct, ProductCategory } from '../types/ConcessionProduct';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://hdd-backend-bedl.onrender.com';
-const BASE_URL = `${API_BASE}/api/concessions`;
-
-const api = axios.create({
-    baseURL: BASE_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
+const api = apiClient;
 
 export const getProductsByCinema = async (cinemaId: number): Promise<ConcessionProduct[]> => {
     try {
@@ -21,14 +13,15 @@ export const getProductsByCinema = async (cinemaId: number): Promise<ConcessionP
         });
         console.log('Products response:', response.data);
         return response.data;
-    } catch (error) {
-        console.error('Error fetching concession products:', error);
-        if (axios.isAxiosError(error)) {
-            console.error('Response data:', error.response?.data);
-            console.error('Request URL:', error.config?.url);
-            console.error('Request params:', error.config?.params);
+    } catch (err: unknown) {
+        console.error('Error fetching concession products:', err);
+        const maybe = err as { response?: { data?: unknown }; config?: { url?: string; params?: unknown } } | undefined;
+        if (maybe && maybe.response) {
+            console.error('Response data:', maybe.response.data);
+            console.error('Request URL:', maybe.config?.url);
+            console.error('Request params:', maybe.config?.params);
         }
-        throw error;
+        throw err;
     }
 };
 
