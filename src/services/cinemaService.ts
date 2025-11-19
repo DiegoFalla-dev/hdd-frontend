@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { Cinema } from '../types/Cinema';
 
-const BASE_URL = 'http://localhost:8080/api/cinemas';
+const BASE_URL = 'https://hdd-backend-bedl.onrender.com/api/cinemas';
 
 const api = axios.create({
     baseURL: BASE_URL,

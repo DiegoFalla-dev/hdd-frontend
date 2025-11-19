@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { ConcessionProduct, ProductCategory } from '../types/ConcessionProduct';
 
-const BASE_URL = 'http://localhost:8080/api/concessions';
+const BASE_URL = 'https://hdd-backend-bedl.onrender.com/api/concessions';
 
 const api = axios.create({
     baseURL: BASE_URL,

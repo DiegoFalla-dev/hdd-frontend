@@ -2,7 +2,7 @@
 
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://hdd-backend-bedl.onrender.com';
 
 export const STORAGE_TOKEN_KEY = 'token';
 export const STORAGE_USER_KEY = 'usuario';
