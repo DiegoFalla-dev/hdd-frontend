@@ -60,12 +60,12 @@ const Cines = () => {
   const filteredCinemas = cinemas.filter(cinema => {
     const cityMatch = selectedCity === "Todas las ciudades" || cinema.city === selectedCity;
     const formatMatch = selectedFormat === "Todos los formatos" || 
-      cinema.availableFormats.includes(selectedFormat);
+      (cinema.availableFormats || []).includes(selectedFormat);
     return cityMatch && formatMatch;
   });
 
   const uniqueCities = Array.from(new Set(cinemas.map(cinema => cinema.city)));
-  const uniqueFormats = Array.from(new Set(cinemas.flatMap(cinema => cinema.availableFormats)));
+  const uniqueFormats = Array.from(new Set(cinemas.flatMap(cinema => cinema.availableFormats || [])));
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--cinepal-gray-900)' }}>
@@ -134,11 +134,11 @@ const Cines = () => {
                   </p>
 
                 <div className="flex flex-wrap gap-2 mt-2 --cinepal-bg-100">
-                  {cinema.availableFormats.map((format, index) => (
-                    <span key={index} className="inline-flex items-center gap-1 bg-[var(--cinepal-bg-200)] rounded-full px-3 py-1 text-xs font-semibold text-[var(--cinepal-gray-700)] shadow">
-                      <FaFilm className="text-[var(--cinepal-primary-700)]" /> {format}
-                    </span>
-                  ))}
+                  {(cinema.availableFormats || []).map((format: string, index: number) => (
+                      <span key={index} className="inline-flex items-center gap-1 bg-[var(--cinepal-bg-200)] rounded-full px-3 py-1 text-xs font-semibold text-[var(--cinepal-gray-700)] shadow">
+                        <FaFilm className="text-[var(--cinepal-primary-700)]" /> {format}
+                      </span>
+                    ))}
                 </div>
               </div>
             </div>

@@ -13,6 +13,11 @@ export interface Cinema {
   address: string; // Asegúrate de tener esta propiedad para la dirección
   // ... otras propiedades que ya tengas
 
+  // Propiedades adicionales usadas por la UI
+  city?: string;
+  availableFormats?: string[];
+  image?: string;
+
   // Esta es la nueva propiedad para los horarios por película y fecha
   availableShowtimes?: {
     movieId: string; // El ID de la película
