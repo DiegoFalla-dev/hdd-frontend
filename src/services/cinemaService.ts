@@ -6,7 +6,7 @@ const api = apiClient; // use central api client
 export const getAllCinemas = async (): Promise<Cinema[]> => {
     try {
         console.log('Llamando a la API de cines...');
-        const response = await api.get('');
+        const response = await api.get('/api/cinemas');
         console.log('Respuesta de la API de cines:', response.data);
         return response.data;
     } catch (err: unknown) {
@@ -22,7 +22,7 @@ export const getAllCinemas = async (): Promise<Cinema[]> => {
 
 export const getCinemaById = async (id: number): Promise<Cinema> => {
     try {
-        const response = await api.get(`/${id}`);
+        const response = await api.get(`/api/cinemas/${id}`);
         return response.data;
     } catch (error) {
         console.error(`Error fetching cinema with id ${id}:`, error);

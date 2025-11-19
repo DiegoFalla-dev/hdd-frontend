@@ -6,7 +6,7 @@ const api = apiClient;
 export const getProductsByCinema = async (cinemaId: number): Promise<ConcessionProduct[]> => {
     try {
         console.log('Fetching products for cinema:', cinemaId);
-        const response = await api.get('', {
+        const response = await api.get('/api/concessions', {
             params: {
                 cinema: cinemaId
             }
@@ -30,7 +30,7 @@ export const getProductsByCinemaAndCategory = async (
     category: ProductCategory
 ): Promise<ConcessionProduct[]> => {
     try {
-        const response = await api.get(`?cinema=${cinemaId}&category=${category}`);
+        const response = await api.get(`/api/concessions?cinema=${cinemaId}&category=${category}`);
         return response.data;
     } catch (error) {
         console.error('Error fetching concession products by category:', error);
@@ -40,7 +40,7 @@ export const getProductsByCinemaAndCategory = async (
 
 export const getProductById = async (id: number): Promise<ConcessionProduct> => {
     try {
-        const response = await api.get(`/${id}`);
+        const response = await api.get(`/api/concessions/${id}`);
         return response.data;
     } catch (error) {
         console.error(`Error fetching concession product with id ${id}:`, error);
@@ -50,7 +50,7 @@ export const getProductById = async (id: number): Promise<ConcessionProduct> => 
 
 export const createProduct = async (product: Omit<ConcessionProduct, 'id'>): Promise<ConcessionProduct> => {
     try {
-        const response = await api.post('', product);
+        const response = await api.post('/api/concessions', product);
         return response.data;
     } catch (error) {
         console.error('Error creating concession product:', error);
@@ -60,7 +60,7 @@ export const createProduct = async (product: Omit<ConcessionProduct, 'id'>): Pro
 
 export const updateProduct = async (id: number, product: ConcessionProduct): Promise<ConcessionProduct> => {
     try {
-        const response = await api.put(`/${id}`, product);
+        const response = await api.put(`/api/concessions/${id}`, product);
         return response.data;
     } catch (error) {
         console.error(`Error updating concession product with id ${id}:`, error);
@@ -70,7 +70,7 @@ export const updateProduct = async (id: number, product: ConcessionProduct): Pro
 
 export const deleteProduct = async (id: number): Promise<void> => {
     try {
-        await api.delete(`/${id}`);
+        await api.delete(`/api/concessions/${id}`);
     } catch (error) {
         console.error(`Error deleting concession product with id ${id}:`, error);
         throw error;

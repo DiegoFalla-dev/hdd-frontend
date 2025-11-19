@@ -32,6 +32,8 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
+    const req = error?.config || {};
+    console.error('apiClient response error', { method: req.method, url: req.url, status });
     if (status === 401) {
       // Dispatch logout so UI can update
       try {
