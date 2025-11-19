@@ -1,7 +1,8 @@
 import axios from 'axios';
 import type { ConcessionProduct, ProductCategory } from '../types/ConcessionProduct';
 
-const BASE_URL = 'https://hdd-backend-bedl.onrender.com/api/concessions';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://hdd-backend-bedl.onrender.com';
+const BASE_URL = `${API_BASE}/api/concessions`;
 
 const api = axios.create({
     baseURL: BASE_URL,

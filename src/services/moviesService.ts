@@ -1,8 +1,10 @@
 import axios from 'axios';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://hdd-backend-bedl.onrender.com';
+
 // Crear una instancia de axios con configuración base
 const api = axios.create({
-    baseURL: 'https://hdd-backend-bedl.onrender.com', // Ajusta al puerto de tu backend Spring
+    baseURL: API_BASE,
     timeout: 5000,
     headers: {
         'Content-Type': 'application/json'
