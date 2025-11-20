@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 import authService from '../services/authService';
+import { confirmPurchase, getSessionId, clearReservationSession } from '../services/seatsApi';
 
 const CarritoTotal: React.FC = () => {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ const CarritoTotal: React.FC = () => {
   const [entradas, setEntradas] = useState<any[]>([]);
   const [seats, setSeats] = useState<any[]>([]);
   const [carritoProductos, setCarritoProductos] = useState<any[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     const ms = localStorage.getItem('movieSelection');
@@ -26,12 +28,21 @@ const CarritoTotal: React.FC = () => {
     const ent = localStorage.getItem('selectedEntradas');
     const s = localStorage.getItem('selectedSeats');
     const cp = localStorage.getItem('carritoProductos');
+    const sid = getSessionId();
+    
     setMovieSelection(ms ? JSON.parse(ms) : null);
     setSelectedCine(cine ? JSON.parse(cine) : null);
     setEntradas(ent ? JSON.parse(ent) : []);
     setSeats(s ? JSON.parse(s) : []);
     setCarritoProductos(cp ? JSON.parse(cp) : []);
-  }, []);
+    setSessionId(sid);
+
+    // Validar que hay sessionId activo
+    if (!sid) {
+      alert('No hay una reserva activa. Debes reservar tus asientos primero.');
+      navigate('/butacas');
+    }
+  }, [navigate]);
 
   const calcTotal = () => {
     const entradasTotal = entradas.reduce((acc: number, e: any) => acc + (e.precio || 0) * (e.cantidad || 0), 0);
@@ -122,58 +133,57 @@ const CarritoTotal: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateCard()) {
-      alert('Por favor revisa los datos de pago.');
+      alert('Por favor, completa correctamente los datos de pago');
+      return;
+    }
+
+    if (!sessionId) {
+      alert('No hay una reserva activa. Por favor, vuelve a seleccionar tus asientos.');
+      navigate('/butacas');
       return;
     }
 
     setIsProcessing(true);
-    // Simular procesamiento
-    setTimeout(async () => {
-      const purchaseId = `ORD-${Date.now()}`;
-      try {
-        await generateTicketPDF(purchaseId);
-      } catch (err) {
-        console.error('Error generando PDF', err);
-      }
-
-      // Construir objeto de compra
-      const compra = {
-        id: purchaseId,
-        date: new Date().toISOString(),
-        buyer: { dni, name: cardName },
-        movie: movieSelection,
-        cine: selectedCine,
-        entradas,
-        seats,
-        productos: carritoProductos,
-        total: calcTotal(),
-      };
-
-      // Adjuntar a usuario si está logueado, si no guardar como pendingPurchase
-      const user = authService.getCurrentUser();
-      if (user) {
-        const existing = (user as any).purchases || [];
-        const updated = { ...(user as any), purchases: [...existing, compra] };
-        localStorage.setItem('usuario', JSON.stringify(updated));
-      } else {
-        localStorage.setItem('pendingPurchase', JSON.stringify(compra));
-      }
-
-      setIsProcessing(false);
-      setSuccess(true);
-
-      // Limpiar carrito local
-      localStorage.removeItem('selectedEntradas');
+    
+    try {
+      // Generar purchaseNumber único
+      const purchaseNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      
+      // Confirmar compra en el backend (convierte TEMPORARILY_RESERVED → OCCUPIED)
+      await confirmPurchase({
+        sessionId,
+        purchaseNumber
+      });
+      
+      // Generar PDF del comprobante
+      await generateTicketPDF(purchaseNumber);
+      
+      // Limpiar sesión de reserva
+      clearReservationSession();
+      
+      // Limpiar localStorage
       localStorage.removeItem('selectedSeats');
       localStorage.removeItem('carritoProductos');
-
-      // Dar tiempo a mostrar éxito, luego redirigir a home y abrir modal de perfil/login
+      
+      setSuccess(true);
+      
       setTimeout(() => {
-        // Abrir modal de perfil para que el usuario vea la compra o inicie sesión
-        window.dispatchEvent(new CustomEvent('openProfileModal'));
         navigate('/');
-      }, 1200);
-    }, 1600);
+      }, 3000);
+      
+    } catch (error: any) {
+      console.error('Error al confirmar compra:', error);
+      alert(error.response?.data?.message || 'Error al procesar el pago. La sesión puede haber expirado.');
+      
+      // Si la sesión expiró, redirigir a butacas
+      if (error.response?.status === 404 || error.response?.status === 400) {
+        setTimeout(() => {
+          navigate('/butacas');
+        }, 2000);
+      }
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (

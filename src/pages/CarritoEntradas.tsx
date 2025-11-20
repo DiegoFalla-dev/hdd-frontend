@@ -319,9 +319,17 @@ const Carrito: React.FC = () => {
                   : 'bg-gray-600 text-gray-400 cursor-not-allowed'
               }`}
               onClick={() => {
-                if (entradas.length > 0) {
+                if (entradas.length === 0) {
+                  alert('Debes seleccionar al menos una entrada');
+                  return;
+                }
+                if (total > 0) {
+                  // Guardar entradas en localStorage
                   localStorage.setItem('selectedEntradas', JSON.stringify(entradas));
-                  window.location.href = '/butacas';
+                  // Pequeño delay para asegurar que se guarda
+                  setTimeout(() => {
+                    window.location.href = '/butacas';
+                  }, 100);
                 }
               }}
             >

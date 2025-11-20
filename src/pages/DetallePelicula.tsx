@@ -6,13 +6,13 @@ import Footer from "../components/Footer";
 import { getMovies, type Pelicula } from "../services/moviesService";
 import authService from '../services/authService';
 import { getAllCinemas, getCinemaById } from "../services/cinemaService"; // Importar getCinemaById
+import { getShowtimes, findMatchingShowtime, formatToFrontend } from "../services/showtimesApi";
 import type { Cinema } from "../types/Cinema";
 import { FiPlay } from "react-icons/fi";
 
 const getAvailableDates = () => {
   const dates = [];
   const today = new Date();
-  today.setHours(today.getHours() - 5); // GMT-5 Peru timezone
   
   for (let i = 0; i < 3; i++) {
     const date = new Date(today);
@@ -21,11 +21,15 @@ const getAvailableDates = () => {
     const dayName = date.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase();
     const dayNumber = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    
+    // Generar fullDate en formato YYYY-MM-DD sin conversión de zona horaria
+    const fullDate = `${year}-${month}-${dayNumber}`;
     
     dates.push({
       label: dayName,
       date: `${dayNumber}/${month}`,
-      fullDate: date.toISOString().split('T')[0]
+      fullDate: fullDate
     });
   }
   
@@ -41,14 +45,25 @@ const DetallePelicula: React.FC = () => {
   const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
   const [pelicula, setPelicula] = useState<Pelicula | null>(null);
   const [cinemas, setCinemas] = useState<Cinema[]>([]);
-  const availableFormats = ["2D", "3D", "IMAX"];
+  const [showtimes, setShowtimes] = useState<any[]>([]); // Estado para guardar funciones disponibles
+  const [loadingShowtimes, setLoadingShowtimes] = useState(false);
+  const [allShowtimesForFormats, setAllShowtimesForFormats] = useState<any[]>([]); // Funciones para extraer formatos disponibles
+  const [loadingFormats, setLoadingFormats] = useState(false); // Estado de carga de formatos
   const [loading, setLoading] = useState(true);
   
   const peliculaId = searchParams.get('pelicula');
   
   const availableDates = getAvailableDates();
-  const availableTimes = selectedDay && selectedFormat ? 
-    ["14:30", "17:00", "19:30", "22:00"] : [];
+  
+  // Extraer formatos disponibles dinámicamente desde las funciones reales del backend
+  const availableFormats = allShowtimesForFormats.length > 0
+    ? [...new Set(allShowtimesForFormats.map(st => formatToFrontend(st.format)))]
+    : [];
+  
+  // Extraer horarios únicos desde showtimes reales
+  const availableTimes = selectedDay && selectedFormat && showtimes.length > 0
+    ? [...new Set(showtimes.map(st => st.time.substring(0, 5)))].sort()
+    : [];
 
   const isReadyToBuy = selectedDay && selectedTime && selectedFormat;
 
@@ -93,6 +108,69 @@ const DetallePelicula: React.FC = () => {
       setLoading(false);
     }
   }, [peliculaId]);
+
+  // Cargar showtimes SIN filtro de formato para extraer los formatos disponibles
+  useEffect(() => {
+    const loadAvailableFormats = async () => {
+      if (!selectedDay || !selectedCinemaData || !pelicula) {
+        setAllShowtimesForFormats([]);
+        return;
+      }
+
+      setLoadingFormats(true);
+      try {
+        const showtimesData = await getShowtimes(
+          Number(pelicula.id),
+          selectedCinemaData.id,
+          selectedDay
+        );
+        setAllShowtimesForFormats(showtimesData);
+        
+        // Si el formato seleccionado ya no está disponible, resetear
+        if (selectedFormat) {
+          const availableFormatsFromData = [...new Set(showtimesData.map(st => formatToFrontend(st.format)))];
+          if (!availableFormatsFromData.includes(selectedFormat)) {
+            setSelectedFormat(null);
+            setSelectedTime(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading available formats:', error);
+        setAllShowtimesForFormats([]);
+      } finally {
+        setLoadingFormats(false);
+      }
+    };
+
+    loadAvailableFormats();
+  }, [selectedDay, selectedCinemaData, pelicula]);
+
+  // Cargar showtimes cuando cambien día, formato o cine
+  useEffect(() => {
+    const loadShowtimes = async () => {
+      if (!selectedDay || !selectedFormat || !selectedCinemaData || !pelicula) {
+        setShowtimes([]);
+        return;
+      }
+
+      setLoadingShowtimes(true);
+      try {
+        const showtimesData = await getShowtimes(
+          Number(pelicula.id),
+          selectedCinemaData.id,
+          selectedDay
+        );
+        setShowtimes(showtimesData);
+      } catch (error) {
+        console.error('Error loading showtimes:', error);
+        setShowtimes([]);
+      } finally {
+        setLoadingShowtimes(false);
+      }
+    };
+
+    loadShowtimes();
+  }, [selectedDay, selectedFormat, selectedCinemaData, pelicula]);
 
   // Nuevo useEffect para cargar los datos del cine cuando selectedCineName o cinemas cambien
   useEffect(() => {
@@ -239,10 +317,15 @@ const DetallePelicula: React.FC = () => {
                 <div className="flex gap-4 mb-4">
                   <div className="flex gap-2">
                     <span className="text-sm font-medium" style={{ color: "#E3E1E2" }}>Formatos:</span>
-                    {availableFormats.map((format) => (
+                    {loadingFormats ? (
+                      <span className="text-sm" style={{ color: "#E3E1E2" }}>Cargando formatos...</span>
+                    ) : availableFormats.length > 0 ? availableFormats.map((format) => (
                       <button
                         key={format}
-                        onClick={() => setSelectedFormat(format)}
+                        onClick={() => {
+                          setSelectedFormat(format);
+                          setSelectedTime(null); // Reset time cuando cambia formato
+                        }}
                         className="px-3 py-1 rounded text-sm transition-colors"
                         style={{
                           backgroundColor: selectedFormat === format ? "#393A3A" : "#141113",
@@ -251,7 +334,11 @@ const DetallePelicula: React.FC = () => {
                       >
                         {format}
                       </button>
-                    ))}
+                    )) : (
+                      <span className="text-sm" style={{ color: selectedDay ? "#FFC107" : "#E3E1E2" }}>
+                        {selectedDay ? "⚠️ No hay funciones disponibles para esta fecha en este cine" : "Selecciona un día primero"}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm" style={{ color: "#E3E1E2" }}>Idioma: Español</span>
@@ -296,30 +383,55 @@ const DetallePelicula: React.FC = () => {
                 </div>
                 
                 <div className="flex gap-2 mb-6 flex-wrap">
-                  {availableTimes.length > 0 ? availableTimes.map((time) => (
-                    <button 
-                      key={time}
-                      onClick={() => setSelectedTime(time)}
-                      className="px-4 py-2 rounded transition-colors"
-                      style={{
-                        backgroundColor: selectedTime === time ? "#BB2228" : "#393A3A",
-                        color: selectedTime === time ? "#EFEFEE" : "#E3E1E2"
-                      }}
-                    >
-                      {time}
-                    </button>
-                  )) : (
+                  {loadingShowtimes ? (
+                    <p className="text-sm" style={{ color: "#E3E1E2" }}>Cargando horarios...</p>
+                  ) : availableTimes.length > 0 ? availableTimes.map((time) => {
+                    // Buscar el showtime correspondiente para mostrar disponibilidad
+                    const showtime = findMatchingShowtime(showtimes, time, selectedFormat!);
+                    const available = showtime?.availableSeats ?? 0;
+                    const total = showtime?.totalSeats ?? 0;
+                    const percentAvailable = total > 0 ? (available / total) * 100 : 0;
+                    
+                    return (
+                      <button 
+                        key={time}
+                        onClick={() => setSelectedTime(time)}
+                        disabled={available === 0}
+                        className="px-4 py-2 rounded transition-colors relative"
+                        style={{
+                          backgroundColor: selectedTime === time ? "#BB2228" : (available === 0 ? "#2A2A2A" : "#393A3A"),
+                          color: selectedTime === time ? "#EFEFEE" : (available === 0 ? "#666" : "#E3E1E2"),
+                          cursor: available === 0 ? "not-allowed" : "pointer",
+                          opacity: available === 0 ? 0.5 : 1
+                        }}
+                      >
+                        <div className="flex flex-col items-center">
+                          <span className="font-semibold">{time}</span>
+                          {showtime && (
+                            <span className="text-xs mt-1" style={{ 
+                              color: percentAvailable > 50 ? "#4CAF50" : percentAvailable > 20 ? "#FFC107" : "#FF5722"
+                            }}>
+                              {available > 0 ? `${available} disponibles` : 'Agotado'}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  }) : (
                     <p className="text-sm" style={{ color: "#E3E1E2" }}>Selecciona día y formato para ver horarios</p>
                   )}
                 </div>
                 
-                <p className="text-sm mb-4" style={{ color: "#E3E1E2" }}>
-                  Selecciona hasta 3 cines para comparar sesiones y horarios
-                </p>
-                
-                <button className="w-full py-3 rounded mb-4 transition-colors" style={{ border: "1px solid #393A3A", color: "#EFEFEE", backgroundColor: "transparent" }}>
-                  Ver horarios en más cines
-                </button>
+                {availableTimes.length === 0 && selectedDay && selectedFormat && !loadingShowtimes && (
+                  <div className="mb-4 p-3 rounded" style={{ backgroundColor: "#393A3A", color: "#FFC107" }}>
+                    <p className="text-sm">
+                      ⚠️ No hay funciones disponibles para esta combinación de día y formato.
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: "#E3E1E2" }}>
+                      Intenta seleccionar otra fecha u otro formato.
+                    </p>
+                  </div>
+                )}
                 
                 <button 
                   className="w-full py-3 rounded font-bold transition-colors"
@@ -329,8 +441,9 @@ const DetallePelicula: React.FC = () => {
                     cursor: isReadyToBuy && selectedCinemaData ? "pointer" : "not-allowed"
                   }}
                   disabled={!isReadyToBuy || !selectedCinemaData}
-                  onClick={() => {
+                  onClick={async () => {
                     if (!(isReadyToBuy && selectedCinemaData)) return;
+                    
                     // validar sesión
                     const user = authService.getCurrentUser();
                     if (!user) {
@@ -339,20 +452,44 @@ const DetallePelicula: React.FC = () => {
                       return;
                     }
 
-                    // Guardar selección y avanzar a confirmación
+                    // Obtener el showtimeId real desde el backend
                     try {
+                      // Llamar al API de showtimes
+                      const showtimes = await getShowtimes(
+                        Number(pelicula.id),
+                        selectedCinemaData.id,
+                        selectedDay
+                      );
+
+                      // Buscar la función que coincida con el horario y formato seleccionados
+                      const selectedShowtime = findMatchingShowtime(
+                        showtimes,
+                        selectedTime!,
+                        selectedFormat!
+                      );
+
+                      if (!selectedShowtime) {
+                        alert('La función seleccionada no está disponible. Por favor, elige otro horario o formato.');
+                        return;
+                      }
+
+                      // Guardar selección con showtimeId REAL del backend
                       localStorage.setItem('movieSelection', JSON.stringify({
                         pelicula: pelicula,
                         selectedDay,
                         selectedTime,
                         selectedFormat,
-                        selectedCineId: selectedCinemaData.id // Guardar el ID del cine
+                        selectedCineId: selectedCinemaData.id,
+                        showtimeId: selectedShowtime.id // ✅ ID REAL del backend (número)
                       }));
-                    } catch (e) {
-                      console.error('Error saving movieSelection', e);
-                    }
 
-                    window.location.href = `/confirmacion?pelicula=${pelicula.id}&day=${selectedDay}&time=${selectedTime}&format=${selectedFormat}&cineId=${selectedCinemaData.id}`;
+                      // Navegar a confirmación
+                      window.location.href = `/confirmacion?pelicula=${pelicula.id}&day=${selectedDay}&time=${selectedTime}&format=${selectedFormat}&cineId=${selectedCinemaData.id}`;
+                      
+                    } catch (error) {
+                      console.error('Error al obtener funciones:', error);
+                      alert('No se pudieron cargar las funciones disponibles. Por favor, verifica tu conexión e intenta de nuevo.');
+                    }
                   }}
                 >
                   COMPRAR ENTRADAS

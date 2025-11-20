@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { FiX } from "react-icons/fi";
 import { getMovies, type Pelicula } from "../services/moviesService";
-// storage util is not required here because we read directly from localStorage
+import { useSeatReservation } from "../hooks/useSeatReservation";
+import SeatMap from "../components/SeatMap";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import authService from "../services/authService";
 
 interface Entrada {
   id: string;
@@ -11,46 +15,54 @@ interface Entrada {
   cantidad: number;
 }
 
-interface Seat {
-  id: string;
-  row: string;
-  number: number;
-  status: 'available' | 'occupied' | 'selected';
-}
-
-type SeatMatrixKey = 'small' | 'medium' | 'large' | 'xlarge';
-
-const SEAT_MATRICES: Record<SeatMatrixKey, { rows: number; cols: number }> = {
-  small: { rows: 6, cols: 8 },
-  medium: { rows: 8, cols: 10 },
-  large: { rows: 12, cols: 12 },
-  xlarge: { rows: 15, cols: 14 }
-};
-
-function getMovieShowtimes(_cine: string | null, _peliculaId: string | null) {
-  // Stubbed function: return a few example showtimes. In the real app this
-  // would come from backend or a shared data module. We keep a deterministic
-  // mapping so seatMatrix may change depending on time/format.
-  return [
-    { date: '2025-10-24', time: '18:00', format: '2D', seatMatrix: 'medium' as SeatMatrixKey },
-    { date: '2025-10-24', time: '20:00', format: '3D', seatMatrix: 'large' as SeatMatrixKey }
-  ];
-}
-
 const Butacas: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [selectedCine, setSelectedCine] = useState<string | null>(null);
   const [entradas, setEntradas] = useState<Entrada[]>([]);
   const [movieSelection, setMovieSelection] = useState<any>(null);
-  const [seats, setSeats] = useState<Seat[]>([]);
-  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
-  const [seatMatrix, setSeatMatrix] = useState<SeatMatrixKey>('medium');
   const [pelicula, setPelicula] = useState<Pelicula | null>(null);
   
   const peliculaId = searchParams.get('pelicula');
   const day = searchParams.get('day');
   const time = searchParams.get('time');
   const format = searchParams.get('format');
+
+  // Obtener showtimeId desde localStorage (guardado en DetallePelicula)
+  const savedShowtimeId = (() => {
+    try {
+      const ms = localStorage.getItem('movieSelection');
+      if (ms) {
+        const parsed = JSON.parse(ms);
+        // Obtener showtimeId (ID real del backend guardado en DetallePelicula)
+        if (parsed?.showtimeId) {
+          return Number(parsed.showtimeId);
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing movieSelection for showtimeId:', e);
+    }
+    // Si no hay showtimeId, no se puede continuar
+    console.error('❌ showtimeId no encontrado en localStorage. Redirigiendo...');
+    alert('Sesión inválida. Por favor, selecciona una película y horario nuevamente.');
+    window.location.href = '/cartelera';
+    return 1; // Fallback temporal (nunca debería llegar aquí)
+  })();
+
+  // Hook del nuevo sistema de reservas v2.0
+  const {
+    seats,
+    selectedSeats,
+    sessionId,
+    timeRemaining,
+    isReserving,
+    error,
+    loading,
+    selectSeat,
+    deselectSeat,
+    reserveSeats,
+    cancelReservation
+  } = useSeatReservation({ showtimeId: savedShowtimeId });
 
   useEffect(() => {
     const savedCine = localStorage.getItem("selectedCine");
@@ -75,41 +87,19 @@ const Butacas: React.FC = () => {
     }
   }, [peliculaId]);
 
-  useEffect(() => {
-    // Determinar matriz de asientos basada en el showtime
-    if ((movieSelection?.selectedCine || selectedCine) && peliculaId && day && time && format) {
-      const showtimes = getMovieShowtimes(movieSelection?.selectedCine || selectedCine, peliculaId);
-      const showtime = showtimes.find((s:any) => s.date === day && s.time === time && s.format === format);
-      if (showtime) {
-        setSeatMatrix(showtime.seatMatrix as SeatMatrixKey);
-      }
-    }
-  }, [selectedCine, peliculaId, day, time, format, movieSelection]);
-
-  useEffect(() => {
-    // Generar matriz de asientos
-    const matrix = SEAT_MATRICES[seatMatrix];
-    const newSeats: Seat[] = [];
-    const rows = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q'];
-    
-    for (let row = 0; row < matrix.rows; row++) {
-      for (let col = 1; col <= matrix.cols; col++) {
-        const seatId = `${rows[row]}${col}`;
-        const isOccupied = Math.random() < 0.3; // 30% ocupados aleatoriamente
-        
-        newSeats.push({
-          id: seatId,
-          row: rows[row],
-          number: col,
-          status: isOccupied ? 'occupied' : 'available'
-        });
-      }
-    }
-    
-    setSeats(newSeats);
-  }, [seatMatrix]);
-
   const totalEntradas = entradas.reduce((acc, e) => acc + e.cantidad, 0);
+
+  // Validación: verificar que hay entradas después de cargar (con delay)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!entradas || entradas.length === 0) {
+        alert('No hay entradas seleccionadas. Redirigiendo al carrito de entradas.');
+        window.location.href = '/carrito-entradas';
+      }
+    }, 500); // Dar tiempo a cargar desde localStorage
+    
+    return () => clearTimeout(timer);
+  }, []);
   const total = entradas.reduce((acc, e) => acc + e.precio * e.cantidad, 0);
 
   const formatDate = (dateStr: string) => {
@@ -121,42 +111,83 @@ const Butacas: React.FC = () => {
     return `${dayName}, ${dayMonth}`;
   };
 
-  const handleSeatClick = (seatId: string) => {
-    const seat = seats.find(s => s.id === seatId);
-    if (!seat || seat.status === 'occupied') return;
-
-    if (selectedSeats.includes(seatId)) {
-      // Deseleccionar asiento
-      setSelectedSeats(selectedSeats.filter(id => id !== seatId));
-      setSeats(seats.map(s => 
-        s.id === seatId ? { ...s, status: 'available' } : s
-      ));
-    } else if (selectedSeats.length < totalEntradas) {
-      // Seleccionar asiento
-      setSelectedSeats([...selectedSeats, seatId]);
-      setSeats(seats.map(s => 
-        s.id === seatId ? { ...s, status: 'selected' } : s
-      ));
+  // Manejar click en asiento (seleccionar/deseleccionar)
+  const handleSeatClick = (seatIdentifier: string) => {
+    if (selectedSeats.includes(seatIdentifier)) {
+      deselectSeat(seatIdentifier);
+    } else {
+      // Validar límite de entradas
+      if (selectedSeats.length >= totalEntradas) {
+        alert(`Solo puede seleccionar ${totalEntradas} asiento(s) según sus entradas`);
+        return;
+      }
+      selectSeat(seatIdentifier);
     }
   };
 
-  const getSeatColor = (status: string) => {
-    switch (status) {
-      case 'available': return 'bg-white border-gray-400';
-      case 'occupied': return 'bg-gray-600 border-gray-600 cursor-not-allowed';
-      case 'selected': return 'bg-blue-500 border-blue-500';
-      default: return 'bg-white border-gray-400';
+  // Reservar asientos (temporal - 1 minuto)
+  const handleReserveSeats = async () => {
+    if (selectedSeats.length === 0) {
+      alert('Debe seleccionar al menos un asiento');
+      return;
+    }
+
+    if (selectedSeats.length !== totalEntradas) {
+      alert(`Debe seleccionar exactamente ${totalEntradas} asiento(s)`);
+      return;
+    }
+
+    // Verificar si el usuario está logueado
+    const user = authService.getCurrentUser();
+    const userId = user?.id ? Number(user.id) : undefined;
+
+    try {
+      await reserveSeats(userId);
+      
+      // Guardar asientos seleccionados en localStorage para siguiente paso
+      localStorage.setItem('selectedSeats', JSON.stringify(selectedSeats));
+      
+      alert('¡Asientos reservados! Tienes 1 minuto para completar la compra.');
+    } catch (err) {
+      console.error('Error al reservar:', err);
     }
   };
 
-  const matrix = SEAT_MATRICES[seatMatrix];
-  const rows = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q'];
+  // Cancelar reserva manualmente
+  const handleCancelReservation = async () => {
+    if (window.confirm('¿Está seguro de cancelar la reserva?')) {
+      await cancelReservation();
+      alert('Reserva cancelada');
+    }
+  };
+
+  // Continuar a dulcería (si hay sessionId activo)
+  const handleContinue = () => {
+    if (!sessionId) {
+      alert('Debe reservar los asientos primero');
+      return;
+    }
+
+    if (selectedSeats.length !== totalEntradas) {
+      alert(`Debe seleccionar exactamente ${totalEntradas} asiento(s)`);
+      return;
+    }
+
+    // Navegar a dulcería
+    window.location.href = `/dulceria-carrito?pelicula=${peliculaId}&day=${day}&time=${time}&format=${format}`;
+  };
+
+  if (!entradas || entradas.length === 0) {
+    return null;
+  }
 
   return (
     <div style={{ background: "var(--cineplus-black)", color: "var(--cineplus-gray-light)" }} className="min-h-screen">
+      <Navbar />
+      
       {/* Header */}
       <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: "var(--cineplus-gray-dark)" }}>
-        <h1 className="text-xl font-bold">Entradas</h1>
+        <h1 className="text-xl font-bold">Selección de Asientos</h1>
         <button 
           className="text-gray-400 hover:text-white"
           onClick={() => window.history.back()}
@@ -165,84 +196,83 @@ const Butacas: React.FC = () => {
         </button>
       </div>
 
-      <div className="flex">
+      <div className="flex flex-col lg:flex-row">
         {/* Contenido principal - Selección de asientos */}
         <div className="flex-1 p-8">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold mb-8 text-center">SELECCIONA TU ASIENTO</h2>
+            <h2 className="text-3xl font-bold mb-8 text-center">SELECCIONA TUS ASIENTOS</h2>
             
-            {/* Pantalla */}
-            <div className="mb-8 text-center">
-              <div className="inline-block bg-gray-300 text-black px-8 py-2 rounded-full font-bold mb-4">
-                PANTALLA
-              </div>
-            </div>
-
-            {/* Matriz de asientos */}
-            <div className="mb-8 flex justify-center items-start gap-4">
-              {/* Etiquetas de filas */}
-              <div className="grid gap-1" style={{ 
-                gridTemplateRows: `repeat(${matrix.rows}, 1fr)`,
-                height: `${matrix.rows * 28}px`
-              }}>
-                {rows.slice(0, matrix.rows).map((row) => (
-                  <div key={row} className="w-6 h-7 flex items-center justify-center text-sm font-bold">
-                    {row}
-                  </div>
-                ))}
-              </div>
-              
-              {/* Matriz de asientos */}
-              <div className="grid gap-1" style={{ 
-                gridTemplateColumns: `repeat(${matrix.cols}, 1fr)`,
-                maxWidth: `${matrix.cols * 32}px`
-              }}>
-                {seats.map((seat) => (
-                  <button
-                    key={seat.id}
-                    onClick={() => handleSeatClick(seat.id)}
-                    className={`w-7 h-7 border-2 rounded text-xs font-bold transition-colors ${getSeatColor(seat.status)}`}
-                    disabled={seat.status === 'occupied'}
-                    title={`Asiento ${seat.id}`}
-                  >
-                    {seat.number}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Leyenda */}
-            <div className="flex justify-center gap-8 mb-8">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-white border-2 border-gray-400 rounded"></div>
-                <span className="text-sm">Disponible</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-gray-600 border-2 border-gray-600 rounded"></div>
-                <span className="text-sm">No disponible</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-blue-500 border-2 border-blue-500 rounded"></div>
-                <span className="text-sm">Seleccionado</span>
-              </div>
-            </div>
-
-            {/* Información de selección */}
-            {selectedSeats.length > 0 && (
-              <div className="text-center">
-                <p className="text-lg font-bold">
-                  Asientos seleccionados: {selectedSeats.join(', ')}
-                </p>
-                <p className="text-sm text-gray-400">
-                  {selectedSeats.length} de {totalEntradas} asientos seleccionados
-                </p>
+            {/* Mostrar errores */}
+            {error && (
+              <div className="mb-4 p-4 bg-red-900 border border-red-600 rounded text-white text-center">
+                {error}
               </div>
             )}
+            
+            {/* Componente SeatMap del nuevo sistema v2.0 */}
+            <SeatMap
+              seats={seats}
+              selectedSeats={selectedSeats}
+              onSeatClick={handleSeatClick}
+              sessionId={sessionId}
+              timeRemaining={timeRemaining}
+              loading={loading}
+            />
+
+            {/* Información de selección */}
+            <div className="text-center mt-6">
+              <p className="text-lg font-bold mb-2">
+                Asientos seleccionados: {selectedSeats.length > 0 ? selectedSeats.join(', ') : 'Ninguno'}
+              </p>
+              <p className="text-sm" style={{ color: '#E3E1E2' }}>
+                {selectedSeats.length} de {totalEntradas} asientos seleccionados
+              </p>
+              
+              {/* Botones de acción */}
+              <div className="flex gap-4 justify-center mt-6">
+                {!sessionId ? (
+                  <button
+                    onClick={handleReserveSeats}
+                    disabled={selectedSeats.length === 0 || selectedSeats.length !== totalEntradas || isReserving}
+                    className="px-8 py-3 rounded font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: selectedSeats.length === totalEntradas ? '#BB2228' : '#393A3A',
+                      color: '#EFEFEE'
+                    }}
+                  >
+                    {isReserving ? 'Reservando...' : 'Reservar Asientos (1 min)'}
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleCancelReservation}
+                      className="px-6 py-3 rounded font-bold transition-colors"
+                      style={{ backgroundColor: '#393A3A', color: '#EFEFEE' }}
+                    >
+                      Cancelar Reserva
+                    </button>
+                    <button
+                      onClick={handleContinue}
+                      className="px-8 py-3 rounded font-bold transition-colors"
+                      style={{ backgroundColor: '#BB2228', color: '#EFEFEE' }}
+                    >
+                      Continuar a Dulcería
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {sessionId && (
+                <p className="text-sm mt-4" style={{ color: '#fbbf24' }}>
+                  ⚠️ Los asientos se liberarán automáticamente si no completas la compra
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Panel lateral derecho - Resumen */}
-        <div className="w-80 p-6 border-l" style={{ borderColor: "var(--cineplus-gray-dark)", background: "var(--cineplus-gray-dark)" }}>
+        <div className="w-full lg:w-80 p-6 border-t lg:border-t-0 lg:border-l" style={{ borderColor: "var(--cineplus-gray-dark)", background: "var(--cineplus-gray-dark)" }}>
           <h3 className="text-lg font-bold mb-6">RESUMEN</h3>
           
           {/* Información de la película */}
@@ -267,7 +297,7 @@ const Butacas: React.FC = () => {
           <div className="mb-6">
             <h4 className="font-semibold mb-3">Cine, día y horario</h4>
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 bg-gray-600 rounded flex-shrink-0 mt-1"></div>
+              <div className="w-6 h-6 bg-gray-600 rounded shrink-0 mt-1"></div>
               <div>
                 <h5 className="font-medium text-sm">{movieSelection?.selectedCine || selectedCine}</h5>
                 <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>Sala 6</p>
@@ -329,12 +359,14 @@ const Butacas: React.FC = () => {
                 <span className="font-bold">S/ {total.toFixed(2)}</span>
               </div>
               <span className="font-bold">
-                CONTINUAR
+                TOTAL
               </span>
             </div>
           </div>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 };
