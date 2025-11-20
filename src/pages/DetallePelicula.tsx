@@ -180,7 +180,7 @@ const DetallePelicula: React.FC = () => {
         if (foundCine) {
             try {
             // Aquí usamos getCinemaById para obtener los datos más recientes del cine desde el backend
-            const cinemaDetails = await getCinemaById(foundCine.id);
+            const cinemaDetails = await getCinemaById(foundCine.id); 
             setSelectedCinemaData(cinemaDetails);
           } catch (error) {
             console.error('Error fetching cinema details:', error);

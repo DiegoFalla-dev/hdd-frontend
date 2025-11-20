@@ -2,7 +2,7 @@
 
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://hdd-backend-bedl.onrender.com';
 
 export const STORAGE_TOKEN_KEY = 'token';
 export const STORAGE_USER_KEY = 'usuario';
@@ -66,6 +66,12 @@ async function login(payload: LoginRequest): Promise<JwtResponse> {
     });
     localStorage.setItem(STORAGE_USER_KEY, storedUser);
     window.dispatchEvent(new Event('auth:login'));
+    // Set default Authorization header for subsequent requests
+    try {
+      if (data.token) axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+    } catch (e) {
+      // ignore in non-browser environments
+    }
   }
 
   return data;
@@ -91,6 +97,12 @@ function logout() {
   localStorage.removeItem(STORAGE_TOKEN_KEY);
   localStorage.removeItem(STORAGE_USER_KEY);
   window.dispatchEvent(new Event('auth:logout'));
+  // Remove default Authorization header
+  try {
+    delete axios.defaults.headers.common['Authorization'];
+  } catch (e) {
+    // ignore
+  }
 }
 
 function getToken(): string | null {
@@ -107,6 +119,16 @@ function getCurrentUser(): JwtResponse | null {
     return null;
   }
   return null;
+}
+
+// On module load, if a token is present in localStorage, set the axios default header
+try {
+  if (typeof window !== 'undefined') {
+    const existingToken = localStorage.getItem(STORAGE_TOKEN_KEY);
+    if (existingToken) axios.defaults.headers.common['Authorization'] = `Bearer ${existingToken}`;
+  }
+} catch (e) {
+  // ignore (e.g., during SSR/build)
 }
 
 export default {

@@ -1,34 +1,28 @@
-import axios from 'axios';
+import apiClient from './apiClient';
 import type { Cinema } from '../types/Cinema';
 
-const BASE_URL = 'http://localhost:8080/api/cinemas';
-
-const api = axios.create({
-    baseURL: BASE_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
+const api = apiClient; // use central api client
 
 export const getAllCinemas = async (): Promise<Cinema[]> => {
     try {
         console.log('Llamando a la API de cines...');
-        const response = await api.get('');
+        const response = await api.get('/api/cinemas');
         console.log('Respuesta de la API de cines:', response.data);
         return response.data;
-    } catch (error) {
-        console.error('Error detallado al obtener cines:', error);
-        if (axios.isAxiosError(error)) {
-            console.error('Detalles de la respuesta:', error.response?.data);
-            console.error('URL de la solicitud:', error.config?.url);
+    } catch (err: unknown) {
+        console.error('Error detallado al obtener cines:', err);
+        const maybe = err as { response?: { data?: unknown }; config?: { url?: string } } | undefined;
+        if (maybe && maybe.response) {
+            console.error('Detalles de la respuesta:', maybe.response.data);
+            console.error('URL de la solicitud:', maybe.config?.url);
         }
-        throw error;
+        throw err;
     }
 };
 
 export const getCinemaById = async (id: number): Promise<Cinema> => {
     try {
-        const response = await api.get(`/${id}`);
+        const response = await api.get(`/api/cinemas/${id}`);
         return response.data;
     } catch (error) {
         console.error(`Error fetching cinema with id ${id}:`, error);

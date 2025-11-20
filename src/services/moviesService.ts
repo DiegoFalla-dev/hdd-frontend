@@ -1,13 +1,4 @@
-import axios from 'axios';
-
-// Crear una instancia de axios con configuración base
-const api = axios.create({
-    baseURL: 'http://localhost:8080', // Ajusta al puerto de tu backend Spring
-    timeout: 5000,
-    headers: {
-        'Content-Type': 'application/json'
-    }
-});
+import apiClient from './apiClient';
 
 // Interfaz para la respuesta del backend (MovieDto)
 interface MovieDTO {
@@ -92,7 +83,7 @@ function transformMovieData(backendMovie: MovieDTO): Pelicula {
 
 export async function getMovies(): Promise<Pelicula[]> {
     try {
-        const response = await api.get<MovieDTO[]>('/api/movies');
+        const response = await apiClient.get<MovieDTO[]>('/api/movies');
         
         if (Array.isArray(response.data)) {
             return response.data.map(transformMovieData);
@@ -100,12 +91,13 @@ export async function getMovies(): Promise<Pelicula[]> {
         
         console.warn('Unexpected API response format, using fallback data');
         return FALLBACK_MOVIES;
-    } catch (err) {
-        if (axios.isAxiosError(err)) {
+    } catch (err: unknown) {
+        const maybe = err as { response?: { status?: number; statusText?: string }; config?: { url?: string } } | undefined;
+        if (maybe && maybe.response) {
             console.error('API Error:', {
-                status: err.response?.status,
-                statusText: err.response?.statusText,
-                url: err.config?.url
+                status: maybe.response.status,
+                statusText: maybe.response.statusText,
+                url: maybe.config?.url
             });
         } else {
             console.error('Unknown error fetching movies:', err);

@@ -1,21 +1,55 @@
 import axios from 'axios';
+import authService, { STORAGE_TOKEN_KEY } from './authService';
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://hdd-backend-bedl.onrender.com';
 
-const api = axios.create({
-  baseURL,
-  withCredentials: true,
+const apiClient = axios.create({
+  baseURL: API_BASE,
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
-    Accept: 'application/json'
-  }
+  },
 });
 
-export function getAuthHeaders(token?: string) {
-  if (!token) return {};
-  return {
-    Authorization: `Bearer ${token}`
-  };
-}
+// Request interceptor: attach Authorization header from localStorage
+apiClient.interceptors.request.use(
+  (config) => {
+    try {
+      const token = localStorage.getItem(STORAGE_TOKEN_KEY);
+      if (token && config && config.headers) {
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }
+    } catch (e) {
+      // ignore
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-export default api;
+// Response interceptor: handle 401 globally
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    const req = error?.config || {};
+    console.error('apiClient response error', { method: req.method, url: req.url, status });
+    if (status === 401) {
+      // Dispatch logout so UI can update
+      try {
+        authService.logout();
+      } catch (e) {
+        // fallback: remove token and dispatch event
+        try {
+          localStorage.removeItem(STORAGE_TOKEN_KEY);
+          window.dispatchEvent(new Event('auth:logout'));
+        } catch (err) {
+          // ignore
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default apiClient;
