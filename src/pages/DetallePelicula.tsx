@@ -98,6 +98,23 @@ const DetallePelicula: React.FC = () => {
     fetchData();
   }, [peliculaId, allMovies]);
 
+  // Listen for login events to reload preferred cinema selection
+  useEffect(() => {
+    const onLogin = () => {
+      const savedCine = localStorage.getItem('selectedCine');
+      if (savedCine) {
+        try {
+          const parsed = JSON.parse(savedCine) as Cinema;
+          setSelectedCineName(parsed.name);
+        } catch (err) {
+          console.error('Error parsing selectedCine after login', err);
+        }
+      }
+    };
+    window.addEventListener('auth:login', onLogin);
+    return () => window.removeEventListener('auth:login', onLogin);
+  }, [cinemas]);
+
   // Nuevo useEffect para cargar los datos del cine cuando selectedCineName o cinemas cambien
   useEffect(() => {
     const loadCinemaData = async () => {

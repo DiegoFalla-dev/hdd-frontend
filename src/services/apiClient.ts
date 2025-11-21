@@ -22,12 +22,18 @@ async function refreshAccessToken(): Promise<string | null> {
   if (!refreshPromise) {
     refreshPromise = (async () => {
       try {
-        const resp = await axios.post(API_BASE_URL + '/auth/refresh', {
-          refreshToken: getRefreshToken(),
+        // Backend expects the refresh token as a raw string body and returns a JwtResponseDto
+        const rawRefresh = getRefreshToken();
+        if (!rawRefresh) return null;
+        const resp = await axios.post(API_BASE_URL + '/auth/refresh', rawRefresh, {
+          headers: { 'Content-Type': 'text/plain' },
         });
-        const data = resp.data as { accessToken: string; refreshToken?: string };
-        setAuthTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
-        return data.accessToken;
+        const data = resp.data as { token?: string; refreshToken?: string };
+        // In this backend the new access token comes in `token`
+        const newAccess = data.token || (data as any).accessToken || null;
+        setAuthTokens({ accessToken: newAccess, refreshToken: data.refreshToken || rawRefresh });
+        if (import.meta.env.MODE !== 'production') console.debug('[apiClient] refresh response data:', data);
+        return newAccess;
       } catch {
         console.warn('Refresh token failed, clearing tokens');
         clearAuthTokens();

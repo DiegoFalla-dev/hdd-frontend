@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
@@ -12,14 +12,35 @@ const Register: React.FC = () => {
     lastName: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    favoriteCinema: ''
   });
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cinemas, setCinemas] = useState<{ id: number; name: string }[]>([]);
+  const [loadingCinemas, setLoadingCinemas] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
   };
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const resp = await fetch('/api/cinemas');
+        if (!mounted) return;
+        const data = await resp.json();
+        setCinemas(Array.isArray(data) ? data : []);
+      } catch {
+        // ignore
+      } finally {
+        if (mounted) setLoadingCinemas(false);
+      }
+    };
+    load();
+    return () => { mounted = false; };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,9 +51,12 @@ const Register: React.FC = () => {
     }
     setLoading(true);
     try {
-      await register({ ...form });
+      // include favoriteCinema if present in localStorage (selection from cine modal) or empty
+      const selectedCine = localStorage.getItem('selectedCine');
+      const favoriteCinema = selectedCine ? JSON.parse(selectedCine).id ?? JSON.parse(selectedCine).name ?? '' : '';
+      await register({ ...form, favoriteCinema });
       navigate('/login');
-    } catch (err) {
+    } catch {
       setError('Error al registrar');
     } finally {
       setLoading(false);
@@ -68,6 +92,15 @@ const Register: React.FC = () => {
             <label className="block mb-1 text-sm">Confirmar Contraseña</label>
             <input type="password" name="confirmPassword" value={form.confirmPassword} onChange={onChange} required className="w-full px-3 py-2 rounded bg-neutral-800 focus:outline-none" />
           </div>
+            <div>
+              <label className="block mb-1 text-sm">Cine Favorito (opcional)</label>
+              <select name="favoriteCinema" value={form.favoriteCinema || ''} onChange={(e) => setForm(f => ({ ...f, favoriteCinema: e.target.value }))} className="w-full px-3 py-2 rounded bg-neutral-800 focus:outline-none">
+                <option value="">Selecciona un cine (opcional)</option>
+                {loadingCinemas ? <option> Cargando... </option> : cinemas.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
           <button type="submit" disabled={loading} className="w-full py-2 rounded bg-red-700 hover:bg-red-600 transition disabled:opacity-50">
             {loading ? 'Registrando...' : 'Registrarme'}
           </button>

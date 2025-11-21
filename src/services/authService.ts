@@ -80,6 +80,13 @@ async function login(payload: LoginRequest): Promise<JwtResponse> {
       favoriteCinema: dataRaw.favoriteCinema ?? null,
     });
     localStorage.setItem(STORAGE_USER_KEY, storedUser);
+    // If backend provided a favorite cinema, set it as the selectedCine in localStorage
+    const favCinema = (dataRaw as any).favoriteCinema || (dataRaw as any).favCine || null;
+    if (favCinema) {
+      try {
+        localStorage.setItem('selectedCine', JSON.stringify({ name: favCinema }));
+      } catch (_) {}
+    }
     window.dispatchEvent(new Event('auth:login'));
   } else {
     // In dev, log the response shape to help debugging missing token
@@ -91,18 +98,11 @@ async function login(payload: LoginRequest): Promise<JwtResponse> {
 
 async function register(payload: RegisterRequest) {
   const url = `/auth/register`;
-  // ANTES: const { confirmPassword: _confirmPassword, ...bodyToSend } = payload;
-  // AHORA: Enviamos todo el payload, ya que el backend espera confirmPassword
-  const bodyToSend = { ...payload } as RegisterRequest; 
-  
+  const bodyToSend = { ...payload } as RegisterRequest;
   if (!bodyToSend.roles || bodyToSend.roles.length === 0) bodyToSend.roles = ['USER'];
-  try {
-    return (await api.post(url, bodyToSend)).data;
-  } catch (_err: unknown) { 
-    // Si tu backend tiene /signup como alternativa
-    const alt = `/auth/signup`;
-    return (await api.post(alt, bodyToSend)).data; // Asegúrate de que esta alternativa también espera confirmPassword
-  }
+  // Only call the single canonical endpoint. If it fails, propagate the error to the caller.
+  const resp = await api.post(url, bodyToSend);
+  return resp.data;
 }
 
 function logout() {
