@@ -13,6 +13,7 @@ export interface OrderPreview {
   ticketsSubtotal: number;
   concessionsSubtotal: number;
   discountTotal: number;
+  taxTotal?: number;
   grandTotal: number;
   promotion?: Promotion;
 }

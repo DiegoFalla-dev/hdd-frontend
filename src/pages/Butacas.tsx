@@ -30,34 +30,30 @@ interface LocalSeatUI {
   status: 'available' | 'occupied' | 'selected';
 }
 
-type SeatMatrixKey = 'small' | 'medium' | 'large' | 'xlarge';
-
-const SEAT_MATRICES: Record<SeatMatrixKey, { rows: number; cols: number }> = {
-  small: { rows: 6, cols: 8 },
-  medium: { rows: 8, cols: 10 },
-  large: { rows: 12, cols: 12 },
-  xlarge: { rows: 15, cols: 14 }
-};
-
-// Eliminado getMovieShowtimes: ahora derivamos showtime real vía hook useShowtimes
-
 const Butacas: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const { peliculaId: peliculaIdParam, showtimeId: showtimeIdParam } = useParams();
+  const peliculaId = peliculaIdParam || searchParams.get('peliculaId') || searchParams.get('movieId') || undefined;
+  const [pelicula, setPelicula] = useState<Pelicula | null>(null);
   const [entradas, setEntradas] = useState<Entrada[]>([]);
+  const [seatMatrix, setSeatMatrix] = useState<'small' | 'medium' | 'large'>('medium');
   const [seats, setSeats] = useState<LocalSeatUI[]>([]);
-  const seatSelectionStore = useSeatSelectionStore();
-  const setCurrentShowtime = useSeatSelectionStore(s => s.setCurrentShowtime);
-  const purgeExpired = useSeatSelectionStore(s => s.purgeExpired);
-  const clearShowtimeFn = useSeatSelectionStore(s => s.clearShowtime);
-  const showtimeSelection = useShowtimeSelectionStore(s => s.selection);
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
   const [expiredHandled, setExpiredHandled] = useState(false);
-  const [seatMatrix, setSeatMatrix] = useState<SeatMatrixKey>('medium');
-  const [pelicula, setPelicula] = useState<Pelicula | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const showtimeSelection = useShowtimeSelectionStore(s => s.selection);
+  const seatSelectionStore = useSeatSelectionStore();
   const toast = useToast();
-  
-  const { showtimeId: showtimeIdParam } = useParams();
-  const peliculaId = showtimeSelection?.movieId ? String(showtimeSelection.movieId) : searchParams.get('pelicula');
+  const purgeExpired = useSeatSelectionStore(s => s.purgeExpired);
+  const clearShowtimeFn = useSeatSelectionStore(s => s.clearShowtime);
+
+  const SEAT_MATRICES = {
+    small: { rows: 6, cols: 6 },
+    medium: { rows: 8, cols: 10 },
+    large: { rows: 12, cols: 16 }
+  } as const;
   const day = showtimeSelection?.date || searchParams.get('day');
   const time = showtimeSelection?.time || searchParams.get('time');
   const format = showtimeSelection?.format || searchParams.get('format');
@@ -101,10 +97,14 @@ const Butacas: React.FC = () => {
 
   useEffect(() => {
     if (showtimeId) {
-      setCurrentShowtime(showtimeId);
+      try {
+        // If the showtime selection store exposes a setter, call it (safe optional call)
+        (useShowtimeSelectionStore as any).getState()?.setCurrentShowtime?.(showtimeId);
+      } catch {}
       purgeExpired();
     }
-  }, [showtimeId, setCurrentShowtime, purgeExpired]);
+    // purgeExpired is stable from the store selector
+  }, [showtimeId, purgeExpired]);
 
   // Si no hay asientos persistidos en el backend, generarlos una vez
   useEffect(() => {
@@ -159,12 +159,16 @@ const Butacas: React.FC = () => {
     const rows = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q'];
     const occupiedSet = new Set(occupiedCodes || []);
     if (remoteSeats && remoteSeats.length) {
-      setSeats(remoteSeats.map(s => ({
-        id: String(s.id),
-        row: s.row,
-        number: s.number,
-        status: occupiedSet.has(String(s.id)) || s.status !== 'AVAILABLE' ? 'occupied' : 'available'
-      })));
+      setSeats(remoteSeats.map(s => {
+        // prefer backend-provided code (e.g. 'F7'), otherwise build from row+number
+        const code = (s as any).code || `${s.row}${s.number}`;
+        return {
+          id: String(code),
+          row: s.row,
+          number: s.number,
+          status: occupiedSet.has(String(code)) || (s.status && s.status !== 'AVAILABLE') ? 'occupied' : 'available'
+        };
+      }));
     } else {
       const matrix = SEAT_MATRICES[seatMatrix];
       const newSeats: LocalSeatUI[] = [];
@@ -202,6 +206,22 @@ const Butacas: React.FC = () => {
   };
 
   const selectedSeatCodes = showtimeId ? (seatSelectionStore.selections[showtimeId]?.seatCodes || []) : [];
+
+  // derive unit price for display: prefer explicit showtime selection price, then matching showtime from query
+  const unitPrice = Number(showtimeSelection?.price ?? matchingShowtime?.price ?? 0);
+  const seatsCountForTotal = totalEntradas || selectedSeatCodes.length || 0;
+  // prefer client-side 'entradas' (selected ticket types/prices) when available, otherwise fall back to showtime price
+  const seatsTotal = total > 0 ? total : unitPrice * seatsCountForTotal;
+
+  // Concessions and totals (read-only summary)
+  const concessions = useCartStore(s => s.concessions);
+  const TAX_RATE = 0.18;
+  const ticketsSubtotal = total > 0 ? total : seatsTotal;
+  const concessionsSubtotal = Array.isArray(concessions) ? concessions.reduce((acc, c) => acc + (((c as any).precio ?? (c as any).price ?? 0) * ((c as any).cantidad ?? (c as any).quantity ?? 1)), 0) : 0;
+  const igvTotal = Number(((ticketsSubtotal + concessionsSubtotal) * TAX_RATE).toFixed(2));
+  const grandTotal = Number((ticketsSubtotal + concessionsSubtotal + igvTotal).toFixed(2));
+
+
 
   const handleSeatClick = (seatId: string) => {
     const seat = seats.find(s => s.id === seatId);
@@ -397,39 +417,137 @@ const Butacas: React.FC = () => {
             </div>
           </div>
 
-          {/* Lista de entradas */}
-          {entradas.length > 0 && (
-            <div className="mb-6">
-              <h4 className="font-semibold mb-3">Entradas</h4>
-              <div className="space-y-3">
+          {/* Lista de entradas (vista detallada, no editable) */}
+          <div className="mb-6">
+            <h4 className="font-semibold mb-3">Entradas</h4>
+            {entradas && entradas.length > 0 ? (
+              <div className="space-y-2">
                 {entradas.map((entrada) => (
-                  <div key={entrada.id} className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-white rounded"></div>
+                  <div key={entrada.id} className="flex items-center justify-between">
                     <div>
-                      <div className="text-sm font-medium">{entrada.cantidad} - {entrada.nombre}</div>
-                      <div className="text-xs" style={{ color: "var(--cineplus-gray)" }}>S/ {entrada.precio.toFixed(2)}</div>
+                      <div className="text-sm font-medium">{entrada.nombre}</div>
+                      <div className="text-xs" style={{ color: "var(--cineplus-gray)" }}>Cantidad: {entrada.cantidad}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm">S/ {entrada.precio.toFixed(2)}</div>
+                      <div className="text-xs" style={{ color: "var(--cineplus-gray)" }}>Total: S/ {(entrada.precio * entrada.cantidad).toFixed(2)}</div>
                     </div>
                   </div>
                 ))}
+                <div className="mt-2 text-xs text-gray-400">Asientos seleccionados: {selectedSeatCodes.length ? selectedSeatCodes.join(', ') : '—'}</div>
               </div>
-              
-              {/* Cargo por servicio */}
-              <div className="mt-4 pt-4 border-t border-gray-600">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border border-gray-400 rounded-full"></div>
-                  <div>
-                    <div className="text-sm font-medium">Cargo por servicio online</div>
-                    <div className="text-xs" style={{ color: "var(--cineplus-gray)" }}>Incluye el cargo por servicio online</div>
-                  </div>
+            ) : (
+              <div className="text-sm text-gray-400">No hay entradas seleccionadas.</div>
+            )}
+
+            {/* Dulcería (vista detallada, no editable) */}
+            <div className="mt-4 pt-4 border-t border-gray-600">
+              <h4 className="font-semibold mb-2">Dulcería</h4>
+              {concessions && concessions.length ? (
+                <div className="space-y-2">
+                  {concessions.map((c: any) => (
+                    <div key={c.id ?? c.productId ?? `${c.name}-${c.quantity}`} className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-medium">{c.nombre ?? c.name ?? 'Artículo'}</div>
+                        <div className="text-xs" style={{ color: "var(--cineplus-gray)" }}>Cantidad: { (c.cantidad ?? c.quantity ?? 1) }</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm">S/ {( (c.precio ?? c.price ?? 0) ).toFixed(2)}</div>
+                        <div className="text-xs" style={{ color: "var(--cineplus-gray)" }}>Total: S/ {(((c.precio ?? c.price ?? 0) * (c.cantidad ?? c.quantity ?? 1))).toFixed(2)}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+              ) : (
+                <div className="text-sm text-gray-400">Sin artículos en la dulcería.</div>
+              )}
+
+              {/* Totales (no editable) */}
+              <div className="mt-4 pt-4 border-t border-gray-700">
+                <div className="flex justify-between text-sm"><span>Entradas</span><span>S/ {ticketsSubtotal.toFixed(2)}</span></div>
+                <div className="flex justify-between text-sm"><span>Dulcería</span><span>S/ {concessionsSubtotal.toFixed(2)}</span></div>
+                <div className="flex justify-between text-sm"><span>IGV ({Math.round(TAX_RATE*100)}%)</span><span>S/ {igvTotal.toFixed(2)}</span></div>
+                <div className="flex justify-between font-bold text-lg mt-2"><span>Total</span><span>S/ {grandTotal.toFixed(2)}</span></div>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Total y botón continuar */}
           <div className="mt-auto">
+            {/* CONFIRMAR ASIENTOS - reserva/confirmación */}
+            {showtimeId && selectedSeatCodes.length === totalEntradas && (
+              <button
+                className={`mt-0 w-full py-2 rounded text-sm font-semibold transition-colors ${confirmed ? 'bg-green-500 text-white' : 'border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-black'}`}
+                disabled={isProcessing || confirmed}
+                onClick={async () => {
+                  if (!showtimeId) return;
+                  setIsProcessing(true);
+                  const sel = seatSelectionStore.selections[showtimeId];
+                  if (!sel) { setIsProcessing(false); return; }
+                  const reserved = new Set(sel.reservedCodes || []);
+                  const missing = sel.seatCodes.filter((c: string) => !reserved.has(c));
+                  if (missing.length) {
+                    try {
+                      const res = await seatService.reserveSeatsTemporarily(showtimeId, sel.seatCodes);
+                      if (res.sessionId) {
+                        seatSelectionStore.attachSession(showtimeId, res.sessionId, res.expiresInMs);
+                      }
+                      seatSelectionStore.applyReservationResult(showtimeId, res.failedCodes);
+                      if (res.failedCodes && res.failedCodes.length) {
+                        toast.error(`No se pudieron reservar: ${res.failedCodes.join(', ')}`);
+                        setIsProcessing(false);
+                        return;
+                      }
+                    } catch (e) {
+                      toast.error('Error reservando asientos. Intenta nuevamente');
+                      setIsProcessing(false);
+                      return;
+                    }
+                  }
+                  try {
+                    await seatService.confirmSeats(showtimeId, sel.seatCodes);
+                    setConfirmed(true);
+                    toast.success('Asientos confirmados.');
+                    const movieTitleVar = pelicula ? ((pelicula as unknown) as { title?: string; titulo?: string }).title || ((pelicula as unknown) as { titulo?: string }).titulo : undefined;
+                    const pendingConfirmed = {
+                      showtimeId,
+                      movieId: pelicula?.id,
+                      movieTitle: movieTitleVar,
+                      cinemaId: showtimeSelection?.cinemaId,
+                      cinemaName: showtimeSelection?.cinemaName,
+                      date: day,
+                      time,
+                      format,
+                      seats: sel.seatCodes,
+                      entradas: JSON.parse(localStorage.getItem('selectedEntradas') || '[]'),
+                      concessions: useCartStore.getState().concessions,
+                      // include reservation session id so payment & backend know the temporary reservation
+                      sessionId: sel.sessionId || seatSelectionStore.selections[showtimeId]?.sessionId,
+                      pricePerSeat: unitPrice || undefined
+                    };
+                    try { localStorage.setItem('pendingOrder', JSON.stringify(pendingConfirmed)); } catch (e) { console.warn('Could not persist pendingOrder', e); }
+                    // debug: log pendingConfirmed so we can inspect sessionId presence
+                    try { console.debug('pendingConfirmed persisted', pendingConfirmed); } catch {}
+                    if (pendingConfirmed.showtimeId && pendingConfirmed.seats && pendingConfirmed.seats.length) {
+                      setTicketGroup(pendingConfirmed.showtimeId, pendingConfirmed.seats, pendingConfirmed.pricePerSeat || 0);
+                    }
+                    seatSelectionStore.clearShowtime(showtimeId);
+                    // small pause to show green feedback
+                    await new Promise(r => setTimeout(r, 300));
+                    navigate('/dulceria-carrito');
+                  } catch (e) {
+                    toast.error('Error confirmando asientos. Reintenta');
+                    setIsProcessing(false);
+                  }
+                }}
+              >
+                CONFIRMAR ASIENTOS
+              </button>
+            )}
+
+            {/* CONTINUAR: muestra el subtotal derivado del precio del showtime por asiento */}
             <div 
-              className={`p-4 rounded flex items-center justify-between ${
+              className={`mt-4 p-4 rounded flex items-center justify-between ${
                 selectedSeatCodes.length === totalEntradas
                   ? 'bg-white text-black cursor-pointer' 
                   : 'bg-gray-600 text-gray-400 cursor-not-allowed'
@@ -450,9 +568,13 @@ const Butacas: React.FC = () => {
                     seats: selectedSeatCodes,
                     entradas: JSON.parse(localStorage.getItem('selectedEntradas') || '[]'),
                     concessions: useCartStore.getState().concessions,
-                    pricePerSeat: showtimeSelection?.price || undefined
+                    // persist reservation session if available (from temporary reserve)
+                    sessionId: showtimeId ? seatSelectionStore.selections[showtimeId]?.sessionId : undefined,
+                    pricePerSeat: unitPrice || undefined
                   };
                   try { localStorage.setItem('pendingOrder', JSON.stringify(pending)); } catch (e) { console.warn('Could not persist pendingOrder', e); }
+                  // debug: log pending object to help trace missing sessionId issues
+                  try { console.debug('pending persisted (CONTINUAR)', pending); } catch {}
                   // also populate cart ticket group for payment summary
                   if (pending.showtimeId && pending.seats && pending.seats.length) {
                     setTicketGroup(pending.showtimeId, pending.seats, pending.pricePerSeat || 0);
@@ -465,76 +587,12 @@ const Butacas: React.FC = () => {
                 <div className={`w-4 h-4 rounded ${
                   selectedSeatCodes.length === totalEntradas ? 'bg-black' : 'bg-gray-400'
                 }`}></div>
-                <span className="font-bold">S/ {total.toFixed(2)}</span>
+                <span className="font-bold">S/ {seatsTotal.toFixed(2)}</span>
               </div>
               <span className="font-bold">
                 CONTINUAR
               </span>
             </div>
-              {/* Botón confirmar asientos (persistencia final) */}
-              {showtimeId && selectedSeatCodes.length === totalEntradas && (
-                <button
-                  className="mt-4 w-full border border-blue-500 text-blue-500 py-2 rounded hover:bg-blue-500 hover:text-black transition-colors text-sm font-semibold"
-                  onClick={async () => {
-                    const sel = seatSelectionStore.selections[showtimeId];
-                    if (!sel) return;
-                    // Asegurar que todos estén reservados: reservar faltantes
-                    const reserved = new Set(sel.reservedCodes || []);
-                    const missing = sel.seatCodes.filter(c => !reserved.has(c));
-                    if (missing.length) {
-                      try {
-                        const res = await seatService.reserveSeatsTemporarily(showtimeId, sel.seatCodes);
-                        if (res.sessionId) {
-                          seatSelectionStore.attachSession(showtimeId, res.sessionId, res.expiresInMs);
-                        }
-                        seatSelectionStore.applyReservationResult(showtimeId, res.failedCodes);
-                        if (res.failedCodes.length) {
-                          toast.error(`No se pudieron reservar: ${res.failedCodes.join(', ')}`);
-                          return;
-                        }
-                      } catch {
-                        toast.error('Error reservando asientos. Intenta nuevamente');
-                        return;
-                      }
-                    }
-                    // Confirmar
-                    try {
-                      await seatService.confirmSeats(showtimeId, sel.seatCodes);
-                      toast.success('Asientos confirmados.');
-                      // Guardar selección confirmada y pasar a siguiente etapa
-                      // Persistencia futura: almacenar sessionId y confirmación; evitar confirmedSeats localStorage
-                      // Opcional: limpiar selección temporal
-                      // Build pending order from confirmed seats
-                      const movieTitleVar = pelicula ? ((pelicula as unknown) as { title?: string; titulo?: string }).title || ((pelicula as unknown) as { titulo?: string }).titulo : undefined;
-                      const pendingConfirmed = {
-                        showtimeId,
-                        movieId: pelicula?.id,
-                        movieTitle: movieTitleVar,
-                        cinemaId: showtimeSelection?.cinemaId,
-                        cinemaName: showtimeSelection?.cinemaName,
-                        date: day,
-                        time,
-                        format,
-                        seats: sel.seatCodes,
-                        entradas: JSON.parse(localStorage.getItem('selectedEntradas') || '[]'),
-                        concessions: useCartStore.getState().concessions,
-                        pricePerSeat: showtimeSelection?.price || undefined
-                      };
-                      try { localStorage.setItem('pendingOrder', JSON.stringify(pendingConfirmed)); } catch (e) { console.warn('Could not persist pendingOrder', e); }
-                      // populate cart ticket group
-                      if (pendingConfirmed.showtimeId && pendingConfirmed.seats && pendingConfirmed.seats.length) {
-                        setTicketGroup(pendingConfirmed.showtimeId, pendingConfirmed.seats, pendingConfirmed.pricePerSeat || 0);
-                      }
-                      seatSelectionStore.clearShowtime(showtimeId);
-                      navigate('/dulceria-carrito');
-                    } catch {
-                      toast.error('Error confirmando asientos. Reintenta');
-                    }
-                  }}
-                >
-                  CONFIRMAR ASIENTOS
-                </button>
-              )}
           </div>
         </div>
       </div>

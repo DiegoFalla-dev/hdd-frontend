@@ -29,13 +29,16 @@ export interface TemporarySeatReservationResponse {
 
 export async function reserveSeatsTemporarily(showtimeId: number, seatCodes: string[]): Promise<TemporarySeatReservationResponse> {
   try {
+    console.debug('reserveSeatsTemporarily request', { showtimeId, seatCodes });
     const resp = await api.post<TemporarySeatReservationResponse>(`/showtimes/${showtimeId}/seats/reserve`, seatCodes);
+    console.debug('reserveSeatsTemporarily response', { status: resp.status, data: resp.data });
     // Compatibilidad: si backend antiguo devuelve solo lista fallidos (array), adaptamos
     if (Array.isArray(resp.data)) {
       return { failedCodes: resp.data } as TemporarySeatReservationResponse;
     }
     return resp.data || { failedCodes: [] };
   } catch (e: any) {
+    console.debug('reserveSeatsTemporarily error', { error: e?.response?.data ?? e?.message ?? e });
     if (e?.response?.status === 409) {
       if (Array.isArray(e.response.data)) {
         return { failedCodes: e.response.data };

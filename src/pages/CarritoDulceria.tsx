@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FiX, FiPlus, FiMinus } from "react-icons/fi";
 import { useShowtimeSelectionStore } from "../store/showtimeSelectionStore";
 import { getProductsByCinema } from "../services/concessionService";
+import { useToast } from '../components/ToastProvider';
 import { useSeatSelectionStore } from "../store/seatSelectionStore";
 import { useCartStore } from "../store/cartStore";
 import seatService from '../services/seatService';
@@ -46,6 +47,7 @@ const CarritoDulceria: React.FC = () => {
   const setTicketGroup = useCartStore(s => s.setTicketGroup);
   
   // legacy query params (not used currently)
+  const toast = useToast();
   
   const totalEntradas = entradas.reduce((acc, e) => acc + e.precio * e.cantidad, 0);
   const totalProductos = cartConcessions.reduce((acc, c) => acc + c.unitPrice * c.quantity, 0);
@@ -107,7 +109,7 @@ const CarritoDulceria: React.FC = () => {
         // If there was a pendingOrder, try to enrich its concessions with fetched product data
         if (pendingRaw) {
           try {
-            if (pendingRaw.concessions && Array.isArray(pendingRaw.concessions) && pendingRaw.concessions.length) {
+              if (pendingRaw.concessions && Array.isArray(pendingRaw.concessions) && pendingRaw.concessions.length) {
               const prodMap = new Map<number, ConcessionProduct>();
               data.forEach(p => prodMap.set(p.id, p));
 
@@ -134,7 +136,7 @@ const CarritoDulceria: React.FC = () => {
                 };
               });
               pendingRaw.concessions = enriched;
-              try { localStorage.setItem('pendingOrder', JSON.stringify(pendingRaw)); } catch (e) { /* ignore */ }
+              try { localStorage.setItem('pendingOrder', JSON.stringify(pendingRaw)); toast.info('Concesiones enriquecidas y guardadas en el pedido'); } catch (e) { /* ignore */ }
             }
           } catch (e) {
             // ignore enrichment errors, keep using pendingRaw as-is
