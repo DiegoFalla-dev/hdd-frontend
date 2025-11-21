@@ -11,6 +11,9 @@ import { useSeatOccupancySocket } from "../hooks/useSeatOccupancySocket";
 import seatService from "../services/seatService";
 import type { TemporarySeatReservationResponse } from "../services/seatService";
 import { useToast } from "../components/ToastProvider";
+import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { useCartStore } from '../store/cartStore';
 // storage util is not required here because we read directly from localStorage (pending cart refactor)
 
 interface Entrada {
@@ -43,6 +46,9 @@ const Butacas: React.FC = () => {
   const [entradas, setEntradas] = useState<Entrada[]>([]);
   const [seats, setSeats] = useState<LocalSeatUI[]>([]);
   const seatSelectionStore = useSeatSelectionStore();
+  const setCurrentShowtime = useSeatSelectionStore(s => s.setCurrentShowtime);
+  const purgeExpired = useSeatSelectionStore(s => s.purgeExpired);
+  const clearShowtimeFn = useSeatSelectionStore(s => s.clearShowtime);
   const showtimeSelection = useShowtimeSelectionStore(s => s.selection);
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
   const [expiredHandled, setExpiredHandled] = useState(false);
@@ -89,19 +95,43 @@ const Butacas: React.FC = () => {
   const { data: remoteSeats, isLoading: seatsLoading } = useSeats(showtimeId || undefined);
   const { data: occupiedCodes } = useOccupiedSeats(showtimeId || undefined);
   useSeatOccupancySocket(showtimeId || undefined);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const setTicketGroup = useCartStore(s => s.setTicketGroup);
 
   useEffect(() => {
     if (showtimeId) {
-      seatSelectionStore.setCurrentShowtime(showtimeId);
-      seatSelectionStore.purgeExpired();
+      setCurrentShowtime(showtimeId);
+      purgeExpired();
     }
-  }, [showtimeId]);
+  }, [showtimeId, setCurrentShowtime, purgeExpired]);
+
+  // Si no hay asientos persistidos en el backend, generarlos una vez
+  useEffect(() => {
+    if (!showtimeId) return;
+    // Si ya cargamos y no hay remoteSeats, pedir generación en backend
+    if (!seatsLoading && (!remoteSeats || remoteSeats.length === 0)) {
+      // Evitar generar repetidamente: solo si no existe un flag en localStorage
+      const key = `seats:generated:${showtimeId}`;
+      if (localStorage.getItem(key)) return;
+      seatService.generateSeatsForShowtime(showtimeId)
+        .then(() => {
+          localStorage.setItem(key, '1');
+          // invalidar queries para recargar asientos y ocupados
+          queryClient.invalidateQueries({ queryKey: ['showtime', showtimeId, 'seats'] });
+          queryClient.invalidateQueries({ queryKey: ['showtime', showtimeId, 'occupiedSeats'] });
+        })
+        .catch(() => {
+          // no hacer nada crítico; se mostrará la matriz local
+        });
+    }
+  }, [showtimeId, remoteSeats, seatsLoading, queryClient]);
 
   // Countdown expiración
   useEffect(() => {
     if (!showtimeId) return;
     const interval = setInterval(() => {
-      const sel = seatSelectionStore.selections[showtimeId];
+      const sel = useSeatSelectionStore.getState().selections[showtimeId];
       if (!sel?.expiresAt) {
         setRemainingMs(null);
         return;
@@ -114,12 +144,14 @@ const Butacas: React.FC = () => {
         if (reserved.length) {
           seatService.releaseTemporarySeats(showtimeId, reserved).catch(()=>{});
         }
-        seatSelectionStore.clearShowtime(showtimeId);
+        clearShowtimeFn(showtimeId);
         toast.warning('Tiempo de reserva expirado. Asientos liberados.');
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [showtimeId, expiredHandled, seatSelectionStore]);
+  // Avoid including the whole store object in deps (would retrigger on any store change)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showtimeId, expiredHandled, toast]);
 
   // Si hay asientos remotos, mapearlos al UI local; si no, usar la matriz generada aleatoria como fallback temporal
   useEffect(() => {
@@ -404,8 +436,28 @@ const Butacas: React.FC = () => {
               }`}
               onClick={() => {
                 if (selectedSeatCodes.length === totalEntradas) {
-                  // Avanzar sin escribir selectedSeats en localStorage (se gestionará luego via confirmación real)
-                  window.location.href = '/dulceria-carrito';
+                  // Guardar pedido pendiente localmente para ser confirmado en la dulcería
+                  const movieTitleVar = pelicula ? ((pelicula as unknown) as { title?: string; titulo?: string }).title || ((pelicula as unknown) as { titulo?: string }).titulo : undefined;
+                  const pending = {
+                    showtimeId,
+                    movieId: pelicula?.id,
+                    movieTitle: movieTitleVar,
+                    cinemaId: showtimeSelection?.cinemaId,
+                    cinemaName: showtimeSelection?.cinemaName,
+                    date: day,
+                    time,
+                    format,
+                    seats: selectedSeatCodes,
+                    entradas: JSON.parse(localStorage.getItem('selectedEntradas') || '[]'),
+                    concessions: useCartStore.getState().concessions,
+                    pricePerSeat: showtimeSelection?.price || undefined
+                  };
+                  try { localStorage.setItem('pendingOrder', JSON.stringify(pending)); } catch (e) { console.warn('Could not persist pendingOrder', e); }
+                  // also populate cart ticket group for payment summary
+                  if (pending.showtimeId && pending.seats && pending.seats.length) {
+                    setTicketGroup(pending.showtimeId, pending.seats, pending.pricePerSeat || 0);
+                  }
+                  navigate('/dulceria-carrito');
                 }
               }}
             >
@@ -452,8 +504,29 @@ const Butacas: React.FC = () => {
                       // Guardar selección confirmada y pasar a siguiente etapa
                       // Persistencia futura: almacenar sessionId y confirmación; evitar confirmedSeats localStorage
                       // Opcional: limpiar selección temporal
+                      // Build pending order from confirmed seats
+                      const movieTitleVar = pelicula ? ((pelicula as unknown) as { title?: string; titulo?: string }).title || ((pelicula as unknown) as { titulo?: string }).titulo : undefined;
+                      const pendingConfirmed = {
+                        showtimeId,
+                        movieId: pelicula?.id,
+                        movieTitle: movieTitleVar,
+                        cinemaId: showtimeSelection?.cinemaId,
+                        cinemaName: showtimeSelection?.cinemaName,
+                        date: day,
+                        time,
+                        format,
+                        seats: sel.seatCodes,
+                        entradas: JSON.parse(localStorage.getItem('selectedEntradas') || '[]'),
+                        concessions: useCartStore.getState().concessions,
+                        pricePerSeat: showtimeSelection?.price || undefined
+                      };
+                      try { localStorage.setItem('pendingOrder', JSON.stringify(pendingConfirmed)); } catch (e) { console.warn('Could not persist pendingOrder', e); }
+                      // populate cart ticket group
+                      if (pendingConfirmed.showtimeId && pendingConfirmed.seats && pendingConfirmed.seats.length) {
+                        setTicketGroup(pendingConfirmed.showtimeId, pendingConfirmed.seats, pendingConfirmed.pricePerSeat || 0);
+                      }
                       seatSelectionStore.clearShowtime(showtimeId);
-                      window.location.href = '/dulceria-carrito';
+                      navigate('/dulceria-carrito');
                     } catch {
                       toast.error('Error confirmando asientos. Reintenta');
                     }

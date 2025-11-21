@@ -5,6 +5,7 @@ import { useShowtimeSelectionStore } from "../store/showtimeSelectionStore";
 import { getProductsByCinema } from "../services/concessionService";
 import { useSeatSelectionStore } from "../store/seatSelectionStore";
 import { useCartStore } from "../store/cartStore";
+import seatService from '../services/seatService';
 import type { ConcessionProduct } from "../types/ConcessionProduct";
 
 interface Entrada {
@@ -41,6 +42,8 @@ const CarritoDulceria: React.FC = () => {
   const cartConcessions = useCartStore(s => s.concessions);
   const addConcession = useCartStore(s => s.addConcession);
   const updateConcession = useCartStore(s => s.updateConcession);
+  const clearCart = useCartStore(s => s.clearCart);
+  const setTicketGroup = useCartStore(s => s.setTicketGroup);
   
   // legacy query params (not used currently)
   
@@ -53,10 +56,29 @@ const CarritoDulceria: React.FC = () => {
     // Entradas: legacy aún en local hasta modelar tipos; mantener si existen
     const savedEntradas = localStorage.getItem("selectedEntradas");
     if (savedEntradas) setEntradas(JSON.parse(savedEntradas));
-    // Asientos confirmados: usar seatSelectionStore si showtimeId presente
-    if (selection?.showtimeId) {
-      const sel = seatSelectionStore.selections[selection.showtimeId];
-      if (sel?.reservedCodes) setSelectedSeats(sel.reservedCodes);
+    // Cargar pendingOrder si existe (flujo simplificado local)
+    const raw = localStorage.getItem('pendingOrder');
+    if (raw) {
+      try {
+        const pending = JSON.parse(raw);
+        if (pending) {
+          setSelectedSeats(pending.seats || []);
+          const savedEntradas = pending.entradas || JSON.parse(localStorage.getItem('selectedEntradas') || '[]');
+          if (savedEntradas) setEntradas(savedEntradas);
+          // Asegurar que el carrito de pago tenga el grupo de tickets
+          if (pending.showtimeId && pending.seats && pending.seats.length) {
+            setTicketGroup(pending.showtimeId, pending.seats, pending.pricePerSeat || 0);
+          }
+        }
+      } catch (e) {
+        console.error('Invalid pendingOrder in localStorage', e);
+      }
+    } else {
+      // fallback: Asientos confirmados: usar seatSelectionStore si showtimeId presente
+      if (selection?.showtimeId) {
+        const sel = seatSelectionStore.selections[selection.showtimeId];
+        if (sel?.reservedCodes) setSelectedSeats(sel.reservedCodes);
+      }
     }
 
     // Load concession products for the selected cinema
@@ -333,19 +355,47 @@ const CarritoDulceria: React.FC = () => {
 
           {/* Total y botón continuar */}
           <div className="mt-auto">
-            <div 
-              className="p-4 rounded flex items-center justify-between bg-white text-black cursor-pointer"
-              onClick={() => {
-                navigate('/pago');
-              }}
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-black rounded"></div>
-                <span className="font-bold">S/ {totalGeneral.toFixed(2)}</span>
+            <div className="space-y-3">
+              <div className="p-4 rounded bg-white text-black">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-black rounded"></div>
+                    <span className="font-bold">S/ {totalGeneral.toFixed(2)}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      className="px-4 py-2 bg-green-600 text-white rounded font-semibold"
+                      onClick={() => {
+                        // Proceed to payment
+                        navigate('/pago');
+                      }}
+                    >PAGAR</button>
+                    <button
+                      className="px-4 py-2 border border-gray-600 text-gray-200 rounded font-semibold"
+                      onClick={async () => {
+                        // Cancel pending order: release seats, clear selection and cart, remove pendingOrder
+                        const raw = localStorage.getItem('pendingOrder');
+                        if (raw) {
+                          try {
+                            const pending = JSON.parse(raw);
+                            if (pending?.showtimeId && pending?.seats && pending.seats.length) {
+                              try {
+                                await seatService.releaseTemporarySeats(pending.showtimeId, pending.seats);
+                              } catch (e) {
+                                // ignore release errors
+                              }
+                              seatSelectionStore.clearShowtime(pending.showtimeId);
+                            }
+                          } catch {}
+                        }
+                        clearCart();
+                        localStorage.removeItem('pendingOrder');
+                        navigate(selection?.movieId ? `/detalle-pelicula?pelicula=${selection.movieId}` : '/');
+                      }}
+                    >CANCELAR</button>
+                  </div>
+                </div>
               </div>
-              <span className="font-bold">
-                CONTINUAR
-              </span>
             </div>
           </div>
         </div>

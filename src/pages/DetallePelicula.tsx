@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 // Usamos el modal de selección de cines que provee el Navbar mediante evento
@@ -48,6 +48,7 @@ const DetallePelicula: React.FC = () => {
   const [loading, setLoading] = useState(true);
   
   const peliculaId = searchParams.get('pelicula');
+  const navigate = useNavigate();
   
   const availableDates = getAvailableDates();
   const showtimesQuery = useShowtimes({ movieId: pelicula?.id, cinemaId: selectedCinemaData?.id, date: selectedDay || '' });
@@ -395,8 +396,8 @@ const DetallePelicula: React.FC = () => {
                       format: selectedFormat!,
                       price: matchedShowtime.price
                     });
-                    // Navegar a selección de butacas con showtimeId + params informativos
-                    window.location.href = `/butacas/${matchedShowtime.id}?pelicula=${pelicula.id}&day=${selectedDay}&time=${selectedTime}&format=${selectedFormat}&cineId=${selectedCinemaData.id}`;
+                    // Navegar a la página de selección de entradas (CarritoEntradas)
+                    navigate('/carrito-entradas');
                   }}
                 >
                   COMPRAR ENTRADAS

@@ -15,6 +15,10 @@ export async function getOccupiedSeatCodes(showtimeId: number): Promise<string[]
   return resp.data || [];
 }
 
+export async function generateSeatsForShowtime(showtimeId: number): Promise<void> {
+  await api.post<void>(`/showtimes/${showtimeId}/seats/generate`);
+}
+
 // Reserva temporal de asientos. Devuelve lista de identificadores que FALLARON (conflict)
 // Propuesta de respuesta de reserva temporal enriquecida para sessionId
 export interface TemporarySeatReservationResponse {
@@ -63,4 +67,5 @@ export default {
   releaseTemporarySeats,
   confirmSeats,
   getSeatsByShowtime,
+  generateSeatsForShowtime,
 };
