@@ -58,14 +58,41 @@ const DetallePelicula: React.FC = () => {
     backendShowtimes.forEach(s => { if (s.format) formats.add(s.format); });
     return Array.from(formats);
   }, [backendShowtimes]);
+  // If backend doesn't return showtime formats yet, fall back to movie-level formats
+  const formatsToShow = useMemo(() => {
+    if (availableFormats && availableFormats.length > 0) return availableFormats;
+    // Prefer cinema-enabled formats when available
+    if (selectedCinemaData?.availableFormats && selectedCinemaData.availableFormats.length > 0) return selectedCinemaData.availableFormats;
+    return pelicula?.formats && pelicula.formats.length ? pelicula.formats : [];
+  }, [availableFormats, pelicula]);
   const availableTimes = useMemo(() => {
     if (!selectedDay || !selectedFormat) return [];
     return backendShowtimes
-      .filter(s => s.format === selectedFormat)
-      .map(s => new Date(s.startTime).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }));
+      .filter(s => {
+        if (!s.startTime) return false;
+        const showDate = new Date(s.startTime).toISOString().split('T')[0];
+        return showDate === selectedDay && s.format === selectedFormat;
+      })
+      .map(s => new Date(s.startTime).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }))
+      .sort((a, b) => {
+        // sort times by HH:MM
+        const toMinutes = (t: string) => {
+          const parts = t.split(':').map(p => parseInt(p, 10));
+          return parts[0] * 60 + (parts[1] || 0);
+        };
+        return toMinutes(a) - toMinutes(b);
+      });
   }, [selectedDay, selectedFormat, backendShowtimes]);
 
   const isReadyToBuy = selectedDay && selectedTime && selectedFormat;
+
+  // Debugging: log showtime query params and results to help diagnose missing times
+  useEffect(() => {
+    try {
+      console.debug('[DetallePelicula] showtime params', { movieId: pelicula?.id, cinemaId: selectedCinemaData?.id, date: selectedDay, format: selectedFormat });
+      console.debug('[DetallePelicula] backendShowtimes', backendShowtimes);
+    } catch (e) { /* noop */ }
+  }, [pelicula?.id, selectedCinemaData?.id, selectedDay, selectedFormat, backendShowtimes]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -196,9 +223,9 @@ const DetallePelicula: React.FC = () => {
               
               <div>
                 <h3 className="font-bold mb-2">FORMATOS DISPONIBLES</h3>
-                {availableFormats.length === 0 ? (
+                {formatsToShow.length === 0 ? (
                   <span className="px-3 py-1 rounded" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>N/D</span>
-                ) : availableFormats.map(f => (
+                ) : formatsToShow.map(f => (
                   <span key={f} className="px-3 py-1 rounded mr-2" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>{f}</span>
                 ))}
               </div>
@@ -266,7 +293,7 @@ const DetallePelicula: React.FC = () => {
                 <div className="flex gap-4 mb-4">
                   <div className="flex gap-2">
                     <span className="text-sm font-medium" style={{ color: "#E3E1E2" }}>Formatos:</span>
-                    {availableFormats.map((format) => (
+                      {formatsToShow.map((format) => (
                       <button
                         key={format}
                         onClick={() => setSelectedFormat(format)}
@@ -278,7 +305,7 @@ const DetallePelicula: React.FC = () => {
                       >
                         {format}
                       </button>
-                    ))}
+                      ))}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm" style={{ color: "#E3E1E2" }}>Idioma: Español</span>
@@ -344,7 +371,23 @@ const DetallePelicula: React.FC = () => {
                       {time}
                     </button>
                   )) : (
-                    <p className="text-sm" style={{ color: "#E3E1E2" }}>Selecciona día y formato para ver horarios</p>
+                    <div>
+                      <p className="text-sm" style={{ color: "#E3E1E2" }}>Selecciona día y formato para ver horarios</p>
+                      {selectedDay && selectedFormat && (
+                        (() => {
+                          const matchDateCount = backendShowtimes.filter(s => s.startTime && new Date(s.startTime).toISOString().split('T')[0] === selectedDay).length;
+                          const matchFormatCount = backendShowtimes.filter(s => s.format === selectedFormat).length;
+                          return (
+                            <div className="mt-2 p-2 bg-gray-800 rounded text-xs text-yellow-200">
+                              <div>No hay funciones encontradas para la combinación seleccionada.</div>
+                              <div>showtimes recibidos: {backendShowtimes.length}</div>
+                              <div>coincidencias por fecha ({selectedDay}): {matchDateCount}</div>
+                              <div>coincidencias por formato ({selectedFormat}): {matchFormatCount}</div>
+                            </div>
+                          );
+                        })()
+                      )}
+                    </div>
                   )}
                 </div>
                 

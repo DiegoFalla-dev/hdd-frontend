@@ -56,36 +56,25 @@ const CarritoDulceria: React.FC = () => {
     // Entradas: legacy aún en local hasta modelar tipos; mantener si existen
     const savedEntradas = localStorage.getItem("selectedEntradas");
     if (savedEntradas) setEntradas(JSON.parse(savedEntradas));
-    // Cargar pendingOrder si existe (flujo simplificado local)
+
+    // Try to read pendingOrder early so we can enrich it after loading products
     const raw = localStorage.getItem('pendingOrder');
+    let pendingRaw: any = null;
     if (raw) {
       try {
-        const pending = JSON.parse(raw);
-        if (pending) {
-          setSelectedSeats(pending.seats || []);
-          const savedEntradas = pending.entradas || JSON.parse(localStorage.getItem('selectedEntradas') || '[]');
-          if (savedEntradas) setEntradas(savedEntradas);
-          // Asegurar que el carrito de pago tenga el grupo de tickets
-          if (pending.showtimeId && pending.seats && pending.seats.length) {
-            setTicketGroup(pending.showtimeId, pending.seats, pending.pricePerSeat || 0);
-          }
-        }
+        pendingRaw = JSON.parse(raw);
       } catch (e) {
         console.error('Invalid pendingOrder in localStorage', e);
-      }
-    } else {
-      // fallback: Asientos confirmados: usar seatSelectionStore si showtimeId presente
-      if (selection?.showtimeId) {
-        const sel = seatSelectionStore.selections[selection.showtimeId];
-        if (sel?.reservedCodes) setSelectedSeats(sel.reservedCodes);
+        pendingRaw = null;
       }
     }
 
-    // Load concession products for the selected cinema
+    // Load concession products for the selected cinema and then enrich pendingOrder if present
     (async () => {
       try {
+        let data: ConcessionProduct[] = [];
         if (cineId) {
-          const data = await getProductsByCinema(cineId);
+          data = await getProductsByCinema(cineId);
           // Map ConcessionProduct to our ProductoDulceria grouping
           const grouped = {
             combos: [] as ProductoDulceria[],
@@ -111,10 +100,77 @@ const CarritoDulceria: React.FC = () => {
           });
 
           setProductos(grouped);
+        } else {
+          setProductos({ combos: [], canchita: [], bebidas: [], snacks: [] });
         }
+
+        // If there was a pendingOrder, try to enrich its concessions with fetched product data
+        if (pendingRaw) {
+          try {
+            if (pendingRaw.concessions && Array.isArray(pendingRaw.concessions) && pendingRaw.concessions.length) {
+              const prodMap = new Map<number, ConcessionProduct>();
+              data.forEach(p => prodMap.set(p.id, p));
+
+              const enriched = pendingRaw.concessions.map((c: any) => {
+                const prod = prodMap.get(Number(c.productId));
+                if (prod) {
+                  return {
+                    productId: prod.id,
+                    name: prod.name,
+                    unitPrice: prod.price,
+                    description: prod.description,
+                    imageUrl: prod.imageUrl,
+                    quantity: c.quantity
+                  };
+                }
+                // fallback to minimal
+                return {
+                  productId: c.productId,
+                  name: c.name || 'Producto',
+                  unitPrice: c.unitPrice || c.price || 0,
+                  description: c.description || '',
+                  imageUrl: '',
+                  quantity: c.quantity
+                };
+              });
+              pendingRaw.concessions = enriched;
+              try { localStorage.setItem('pendingOrder', JSON.stringify(pendingRaw)); } catch (e) { /* ignore */ }
+            }
+          } catch (e) {
+            // ignore enrichment errors, keep using pendingRaw as-is
+            console.warn('Could not enrich pendingOrder concessions', e);
+          }
+
+          // Hydrate UI state from pending
+          setSelectedSeats(pendingRaw.seats || []);
+          const savedEntradasFromPending = pendingRaw.entradas || JSON.parse(localStorage.getItem('selectedEntradas') || '[]');
+          if (savedEntradasFromPending) setEntradas(savedEntradasFromPending);
+          // Asegurar que el carrito de pago tenga el grupo de tickets
+          if (pendingRaw.showtimeId && pendingRaw.seats && pendingRaw.seats.length) {
+            setTicketGroup(pendingRaw.showtimeId, pendingRaw.seats, pendingRaw.pricePerSeat || 0);
+          }
+        } else {
+          // fallback: Asientos confirmados: usar seatSelectionStore si showtimeId presente
+          if (selection?.showtimeId) {
+            const sel = seatSelectionStore.selections[selection.showtimeId];
+            if (sel?.reservedCodes) setSelectedSeats(sel.reservedCodes);
+          }
+        }
+
       } catch (err) {
-        console.error('Error cargando productos de dulcería:', err);
+        console.error('Error cargando productos de dulcería o enriqueciendo pendingOrder:', err);
         setProductos({ combos: [], canchita: [], bebidas: [], snacks: [] });
+        // If enrichment failed but there is pendingRaw, fallback to minimal hydration
+        if (pendingRaw) {
+          try {
+            setSelectedSeats(pendingRaw.seats || []);
+            const savedEntradasFromPending = pendingRaw.entradas || JSON.parse(localStorage.getItem('selectedEntradas') || '[]');
+            if (savedEntradasFromPending) setEntradas(savedEntradasFromPending);
+            if (pendingRaw.showtimeId && pendingRaw.seats && pendingRaw.seats.length) {
+              setTicketGroup(pendingRaw.showtimeId, pendingRaw.seats, pendingRaw.pricePerSeat || 0);
+            }
+          } catch (e) { /* swallow */ }
+        }
       }
     })();
   }, []);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore } from '../store/cartStore';
 import { useToast } from '../components/ToastProvider';
@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useOrderPreview } from '../hooks/useOrderPreview';
 import { useOrderConfirm } from '../hooks/useOrderConfirm';
 import { usePromotionValidation } from '../hooks/usePromotionValidation';
+import { getProductById } from '../services/concessionService';
 // OrderConfirmation type not used here
 
 const CarritoTotal: React.FC = () => {
@@ -20,6 +21,9 @@ const CarritoTotal: React.FC = () => {
   const [success, setSuccess] = useState(false);
 
   const cartSnapshot = useCartStore(s => s.cartSnapshot());
+  const setTicketGroup = useCartStore(s => s.setTicketGroup);
+  const addConcession = useCartStore(s => s.addConcession);
+  const clearCart = useCartStore(s => s.clearCart);
   const toast = useToast();
   const seatSelectionStore = useSeatSelectionStore();
   const queryClient = useQueryClient();
@@ -42,6 +46,55 @@ const CarritoTotal: React.FC = () => {
     }, [cartSnapshot]);
   const previewLoading = orderPreviewQuery.isLoading;
   const previewError = orderPreviewQuery.isError;
+
+  // If a pendingOrder exists in localStorage, hydrate the cartStore so preview can calculate totals
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('pendingOrder');
+      if (!raw) return;
+      const pending = JSON.parse(raw);
+      if (!pending) return;
+      // If cart already has ticketGroups, assume hydrated
+      if ((cartSnapshot.ticketGroups || []).length > 0 || (cartSnapshot.concessions || []).length > 0) return;
+      // Clear any previous cart
+      clearCart();
+      if (pending.showtimeId && pending.seats && pending.seats.length) {
+        setTicketGroup(pending.showtimeId, pending.seats, pending.pricePerSeat || 0);
+      }
+      if (pending.concessions && Array.isArray(pending.concessions) && pending.concessions.length) {
+        // pending.concessions may be stored as cartStore items or raw (productId, quantity)
+        // Enrich concessions by fetching product details from backend when missing
+        (async () => {
+          try {
+            const uniqIds = Array.from(new Set(pending.concessions.map((c: any) => c.productId).filter(Boolean)));
+            const productFetches = uniqIds.map((id: number) => getProductById(id).then(p => ({ id, product: p })).catch(err => ({ id, product: null })));
+            const fetched = await Promise.all(productFetches);
+            const map = new Map<number, any>();
+            fetched.forEach((r: any) => { if (r && r.id) map.set(r.id, r.product); });
+
+            pending.concessions.forEach((c: any) => {
+              if (c.productId && c.quantity) {
+                const prod = map.get(c.productId) || null;
+                const item = prod ?
+                  { id: prod.id, name: prod.name || c.name || 'Producto', price: prod.price || c.unitPrice || c.price || 0, description: prod.description || c.description || '', imageUrl: prod.imageUrl || '' }
+                  : { id: c.productId, name: c.name || 'Producto', price: c.unitPrice || c.price || 0, description: c.description || '', imageUrl: '' };
+                addConcession(item, c.quantity);
+              }
+            });
+          } catch (err) {
+            // Fallback: add minimal concessions
+            pending.concessions.forEach((c: any) => {
+              if (c.productId && c.quantity) {
+                addConcession({ id: c.productId, name: c.name || 'Producto', price: c.unitPrice || c.price || 0, description: c.description || '', imageUrl: '' }, c.quantity);
+              }
+            });
+          }
+        })();
+      }
+    } catch (e) {
+      console.warn('Could not hydrate cart from pendingOrder', e);
+    }
+  }, []);
 
   const validateCard = () => {
     // Validación menos estricta:

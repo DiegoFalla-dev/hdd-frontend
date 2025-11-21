@@ -17,7 +17,21 @@ export function useOrderPreview(enabled: boolean = true) {
 
   return useQuery<OrderPreview>({
     queryKey: ['orderPreview', payload],
-    queryFn: () => orderService.previewOrder(payload),
+    queryFn: async () => {
+      try {
+        return await orderService.previewOrder(payload);
+      } catch (err: any) {
+        // Fallback: compute preview locally from cart snapshot if backend preview not available (e.g., 405)
+        const localPreview: Partial<OrderPreview> = {
+          ticketsSubtotal: snapshot.ticketsSubtotal,
+          concessionsSubtotal: snapshot.concessionsSubtotal,
+          discountTotal: snapshot.discountTotal,
+          grandTotal: snapshot.grandTotal,
+          promotion: snapshot.promotion,
+        };
+        return localPreview as OrderPreview;
+      }
+    },
     enabled: enabled && hasTickets,
     staleTime: 5_000,
   });
