@@ -5,9 +5,10 @@ import Footer from '../components/Footer';
 import SideModal from '../components/SideModal';
 import type { ConcessionProduct, ProductCategory } from '../types/ConcessionProduct';
 import type { Cinema } from '../types/Cinema';
-import { getProductsByCinema } from '../services/concessionService';
-import { getAllCinemas } from '../services/cinemaService';
-import axios from 'axios';
+import { useConcessions } from '../hooks/useConcessions';
+import { useCinemas } from '../hooks/useCinemas';
+import { useShowtimeSelectionStore } from '../store/showtimeSelectionStore';
+import { useCartStore } from '../store/cartStore';
 
 type ProductsByCategory = {
   COMBOS: ConcessionProduct[];
@@ -18,77 +19,31 @@ type ProductsByCategory = {
 
 export default function Dulceria() {
   const navigate = useNavigate();
+  const selection = useShowtimeSelectionStore(s => s.selection);
   const [selectedCine, setSelectedCine] = useState<Cinema | null>(null);
   const [productos, setProductos] = useState<ProductsByCategory | null>(null);
-  const [loadingProductos, setLoadingProductos] = useState(false);
   const [activeCategory, setActiveCategory] = useState<ProductCategory>('COMBOS');
   const [showCineModal, setShowCineModal] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [cines, setCines] = useState<Cinema[]>([]);
-  const [loadingCines, setLoadingCines] = useState(true);
+  // error state removed (not used)
+  const { data: cines = [], isLoading: loadingCines } = useCinemas();
+  const { data: concessionProducts = [], isLoading: loadingProductos } = useConcessions(selectedCine?.id);
 
-  const loadProductos = useCallback(async (cinema: Cinema) => {
-    if (!cinema?.id) {
-      console.warn('No se proporcionó un ID de cine válido');
+  // Agrupar productos por categoría cuando llegan
+  useEffect(() => {
+    if (!concessionProducts || concessionProducts.length === 0) {
+      setProductos(null);
       return;
     }
-
-    console.log('Cargando productos para cine:', cinema.name, 'ID:', cinema.id);
-    setLoadingProductos(true);
-    setError(null);
-    setProductos(null);
-    
-    try {
-      // Obtenemos los productos asociados al cine específico a través de cinema_product
-      const products = await getProductsByCinema(cinema.id);
-      console.log('Productos recibidos:', products);
-      
-      const productsByCategory: ProductsByCategory = {
-        COMBOS: [],
-        CANCHITA: [],
-        BEBIDAS: [],
-        SNACKS: []
-      };
-
-      // Verificamos que los productos recibidos son válidos
-      if (!Array.isArray(products)) {
-        throw new Error('La respuesta del servidor no es un array válido');
-      }
-
-      // Organizamos los productos por categoría
-      products.forEach(product => {
-        const category = product.category;
-        if (productsByCategory[category]) {
-          productsByCategory[category].push(product);
-        } else {
-          console.warn('Categoría no reconocida:', category);
-        }
-      });
-
-      setProductos(productsByCategory);
-      setError(null);
-    } catch (err) {
-      console.error('Error al cargar productos:', err);
-      if (err instanceof Error) {
-        console.error('Detalles del error:', err.message);
-        if (axios.isAxiosError(err)) {
-          console.error('Detalles de la respuesta:', err.response?.data);
-          console.error('URL de la solicitud:', err.config?.url);
-          console.error('Parámetros:', err.config?.params);
-        }
-      }
-      setProductos(null);
-      setError('Error al cargar los productos. Por favor, intenta de nuevo más tarde.');
-    } finally {
-      setLoadingProductos(false);
-    }
-  }, []);
+    const grouped: ProductsByCategory = { COMBOS: [], CANCHITA: [], BEBIDAS: [], SNACKS: [] };
+    concessionProducts.forEach(p => {
+      if (grouped[p.category]) grouped[p.category].push(p); else console.warn('Categoría no reconocida:', p.category);
+    });
+    setProductos(grouped);
+  }, [concessionProducts]);
 
   const handleCineSelection = useCallback((cinema: Cinema) => {
-    console.log('Seleccionando cine:', cinema.name, 'con ID:', cinema.id);
     setSelectedCine(cinema);
-    // Guardamos la información completa del cine en localStorage
-    localStorage.setItem("selectedCine", JSON.stringify(cinema));
+    // Ya no persistimos en localStorage (flujo migrado). Una futura acción podría actualizar store global de cines.
   }, []);
 
   const handleApply = () => {
@@ -101,106 +56,33 @@ export default function Dulceria() {
 
   // Efecto para inicializar la carga de cines y productos
   useEffect(() => {
-    const initializeCines = async () => {
-      console.log('Iniciando carga de cines...');
-      try {
-        setLoadingCines(true);
-        const data = await getAllCinemas();
-        console.log('Cines recibidos:', data);
-        
-        if (!Array.isArray(data) || data.length === 0) {
-          console.log('No se recibieron cines');
-          setError('No hay cines disponibles');
-          setShowCineModal(true);
-          return;
-        }
+    if (!cines || cines.length === 0) return;
+    // Preferir cine del showtime selection (flujo de compra) si existe
+    if (selection?.cinemaId) {
+      const found = cines.find(c => c.id === selection.cinemaId);
+      if (found) { setSelectedCine(found); return; }
+    }
+    // Si no hay selección previa mostrar modal
+    setShowCineModal(true);
+  }, [cines, selection]);
 
-        setCines(data);
-        
-        // Intentar recuperar el cine guardado
-        let selectedCinema = null;
-        const savedCineStr = localStorage.getItem("selectedCine");
-        
-        if (savedCineStr) {
-          try {
-            const savedCine = JSON.parse(savedCineStr);
-            // Verificar que el cine guardado existe en la lista actual
-            selectedCinema = data.find(c => c.id === savedCine.id || c.name === savedCine.name || c.name === savedCine);
-          } catch (e) {
-            console.error('Error parsing saved cinema:', e);
-            // Si falla el parsing, intentar como string directo
-            selectedCinema = data.find(c => c.name === savedCineStr);
-          }
-        }
+  // Eliminado listener a localStorage; migración a store.
 
-        // Si no hay cine guardado o no se encontró en la lista, mostrar modal
-        if (!selectedCinema) {
-          setShowCineModal(true);
-          return;
-        }
-
-        console.log('Cine seleccionado:', selectedCinema);
-        setSelectedCine(selectedCinema);
-        
-        // Cargar los productos del cine seleccionado
-        await loadProductos(selectedCinema);
-        
-      } catch (err) {
-        console.error('Error detallado al cargar cines:', err);
-        if (err instanceof Error) {
-          console.error('Mensaje de error:', err.message);
-          if (axios.isAxiosError(err)) {
-            console.error('Detalles de la respuesta:', err.response?.data);
-          }
-        }
-        setError('Error al cargar la lista de cines');
-      } finally {
-        setLoadingCines(false);
-      }
-    };
-
-    initializeCines();
-  }, [loadProductos]);
-
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const savedCineStr = localStorage.getItem("selectedCine");
-      if (savedCineStr && cines.length > 0) {
-        try {
-          const savedCine = JSON.parse(savedCineStr);
-          const cinema = cines.find(c => c.id === savedCine.id || c.name === savedCine.name || c.name === savedCine);
-          if (cinema) {
-            setSelectedCine(cinema);
-            loadProductos(cinema);
-          }
-        } catch (e) {
-          console.error('Error parsing saved cinema:', e);
-          const cinema = cines.find(c => c.name === savedCineStr);
-          if (cinema) {
-            setSelectedCine(cinema);
-            loadProductos(cinema);
-          }
-        }
-      }
-    };
-
-    // Ejecutar inmediatamente para sincronizar con localStorage
-    handleStorageChange();
-    
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [loadProductos, cines]);
-
+  const addConcession = useCartStore(s => s.addConcession);
   const handleAddToCart = (producto: ConcessionProduct) => {
-    console.log('Agregado al carrito:', producto);
+    addConcession(producto, 1);
   };
 
-  const categories = [
-    { key: 'COMBOS' as ProductCategory, label: 'Combos', icon: '🍿' },
-    { key: 'CANCHITA' as ProductCategory, label: 'Canchita', icon: '🍿' },
-    { key: 'BEBIDAS' as ProductCategory, label: 'Bebidas', icon: '🥤' },
-    { key: 'SNACKS' as ProductCategory, label: 'Snacks', icon: '🌭' }
-  ];
+  const categoryIcons: Record<ProductCategory, string> = {
+    COMBOS: '🍿',
+    CANCHITA: '🍿',
+    BEBIDAS: '🥤',
+    SNACKS: '🌭'
+  };
+
+  const categories = (productos ? Object.keys(productos) : ['COMBOS','CANCHITA','BEBIDAS','SNACKS'])
+    .filter((c): c is ProductCategory => ['COMBOS','CANCHITA','BEBIDAS','SNACKS'].includes(c))
+    .map(key => ({ key, label: key.charAt(0) + key.slice(1).toLowerCase(), icon: categoryIcons[key] }));
 
   return (
     <div style={{ background: "#141113", color: "#EFEFEE" }} className="min-h-screen pt-16">
@@ -222,11 +104,7 @@ onClick={() => setShowCineModal(true)}
           )}
         </div>
 
-        {error && (
-          <div className="border px-4 py-3 rounded relative mb-6" style={{ backgroundColor: "#BB2228", borderColor: "#5C1214", color: "#EFEFEE" }} role="alert">
-            <span className="block sm:inline">{error}</span>
-          </div>
-        )}
+        {/* error banner removed (not used) */}
 
         {!productos || loadingProductos ? (
           <>

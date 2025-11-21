@@ -4,35 +4,15 @@ import { ChevronRight, ChevronLeft } from "react-feather";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import "./HeroBanner.css";
+import type { Movie } from '../types/Movie';
+import { useAllMovies } from '../hooks/useMovies';
 
 const HeroBanner: React.FC = () => {
-  const banners = [
-    {
-      id: 1,
-      img: "https://static.cinepolis.com/img/front/11/202591893036993-prin.png",
-      alt: "Tony, Shelly y la lámpara mágica",
-    },
-    {
-      id: 2,
-      img: "https://static.cinepolis.com/img/front/11/202591892855333-prin.jpg",
-      alt: "Camina o muere",
-    },
-    {
-      id: 3,
-      img: "https://static.cinepolis.com/img/front/11/202591892614663-prin.jpg",
-      alt: "Patas",
-    },
-    {
-      id: 4,
-      img: "https://static.cinepolis.com/img/front/11/2025918142614944-prin.png",
-      alt: "El gran viaje de tu vida",
-    },
-    {
-      id: 5,
-      img: "https://static.cinepolis.com/img/front/11/2025822105333944-prin.jpg",
-      alt: "Otro viernes de locos",
-    },
-  ];
+  const { data: allMovies = [], isLoading } = useAllMovies();
+  const movies: Movie[] = React.useMemo(() => {
+    const featured = allMovies.filter(m => m.status === 'NOW_PLAYING').slice(0, 5);
+    return featured.length > 0 ? featured : allMovies.slice(0, 5);
+  }, [allMovies]);
 
   const NextArrow = ({ onClick }: any) => (
     <button
@@ -66,17 +46,22 @@ const HeroBanner: React.FC = () => {
 
   return (
     <section className="relative w-full max-h-[600px] overflow-hidden">
-      <Slider {...settings}>
-        {banners.map((banner) => (
-          <figure key={banner.id} className="relative w-full">
-            <img
-              src={banner.img}
-              alt={banner.alt}
-              className="w-full h-[600px] object-cover"
-            />
-          </figure>
-        ))}
-      </Slider>
+      {isLoading ? (
+        <div className="w-full h-[600px] flex items-center justify-center text-white">Cargando...</div>
+      ) : (
+        <Slider {...settings}>
+          {movies.map((m) => (
+            <figure key={m.id} className="relative w-full">
+              <img
+                src={m.posterUrl || m.trailerUrl || '/placeholder-banner.jpg'}
+                alt={m.title}
+                className="w-full h-[600px] object-cover"
+              />
+              <figcaption className="absolute bottom-4 left-4 text-white text-2xl font-bold drop-shadow-md">{m.title}</figcaption>
+            </figure>
+          ))}
+        </Slider>
+      )}
     </section>
   );
 };

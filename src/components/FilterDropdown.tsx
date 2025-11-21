@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'react-feather';
 
+interface FilterOptionObject { label: string; [key: string]: any }
+
 interface FilterDropdownProps {
-	options: string[];
+	options: Array<string | FilterOptionObject>;
 	selectedOption: string;
 	onSelect: (option: string) => void;
 	placeholder: string;
@@ -24,16 +26,19 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({ options, selectedOption
 
 			{isOpen && (
 				<div className="mt-2 absolute left-0 right-0 bg-transparent z-10">
-					{options.map((option) => (
-						<button
-							key={option}
-							onClick={() => { onSelect(option); setIsOpen(false); }}
-							className="w-full text-left px-6 py-2 text-sm"
-							style={{ color: selectedOption === option ? 'var(--cineplus-gray-light)' : 'var(--cineplus-gray)', backgroundColor: selectedOption === option ? 'var(--cineplus-gray-dark)' : 'transparent' }}
-						>
-							{option}
-						</button>
-					))}
+					{options.map((option) => {
+						const label = typeof option === 'string' ? option : option.label;
+						return (
+							<button
+								key={label}
+								onClick={() => { onSelect(label); setIsOpen(false); }}
+								className="w-full text-left px-6 py-2 text-sm"
+								style={{ color: selectedOption === label ? 'var(--cineplus-gray-light)' : 'var(--cineplus-gray)', backgroundColor: selectedOption === label ? 'var(--cineplus-gray-dark)' : 'transparent' }}
+							>
+								{label}
+							</button>
+						);
+					})}
 				</div>
 			)}
 		</div>

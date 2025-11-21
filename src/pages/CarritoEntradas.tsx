@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { FiX, FiMinus, FiPlus } from "react-icons/fi";
 import { getMovies, type Pelicula } from "../services/moviesService";
-import { getMovieSelection, getSelectedCine } from "../utils/storage";
+import { useShowtimeSelectionStore } from "../store/showtimeSelectionStore";
+import { useShowtimes } from "../hooks/useShowtimes";
 
 interface Entrada {
   id: string;
@@ -12,39 +13,28 @@ interface Entrada {
 }
 
 const Carrito: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const [selectedCine, setSelectedCine] = useState<string | null>(null);
+  const navigate = useNavigate();
   const [entradas, setEntradas] = useState<Entrada[]>([]);
-  const [movieSelection, setMovieSelection] = useState<any>(null);
   const [pelicula, setPelicula] = useState<Pelicula | null>(null);
-  
-  const peliculaId = searchParams.get('pelicula');
-  const day = searchParams.get('day');
-  const time = searchParams.get('time');
-  const format = searchParams.get('format');
+  const selection = useShowtimeSelectionStore(s => s.selection);
+  const peliculaId = selection?.movieId ? String(selection.movieId) : null;
+  const day = selection?.date;
+  const time = selection?.time;
+  const format = selection?.format;
+  const cinemaId = selection?.cinemaId;
+  const showtimesQuery = useShowtimes({ movieId: selection?.movieId, cinemaId, date: day });
+  const showtimeId = selection?.showtimeId || showtimesQuery.data?.find(st => {
+    const localTime = new Date(st.startTime).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
+    const localDate = new Date(st.startTime).toISOString().split('T')[0];
+    return localTime === time && localDate === day && st.format === format;
+  })?.id;
 
   useEffect(() => {
-    const sel = getMovieSelection();
-    const cine = getSelectedCine();
-
-    if (sel) {
-      setMovieSelection(sel);
-      if (sel.pelicula) setPelicula(sel.pelicula);
-    }
-
-    if (cine) {
-      // getSelectedCine returns the Cinema object
-      setSelectedCine((cine as any).name || null);
-    }
-
-    // If we don't have a pelicula from storage, try to fetch by query param
-    if (!sel?.pelicula && peliculaId) {
+    if (peliculaId) {
       getMovies().then(movies => {
-        const found = movies.find(m => m.id === peliculaId);
+        const found = movies.find(m => String(m.id) === peliculaId);
         if (found) setPelicula(found);
-      }).catch(() => {
-        // ignore - fallback handled by service
-      });
+      }).catch(()=>{});
     }
   }, [peliculaId]);
 
@@ -232,18 +222,18 @@ const Carrito: React.FC = () => {
           <h3 className="text-lg font-bold mb-6">RESUMEN</h3>
           
           {/* Información de la película */}
-          {(movieSelection?.pelicula || pelicula) && (
+          {pelicula && (
             <div className="mb-6">
               <h4 className="font-semibold mb-3">Película</h4>
               <div className="flex gap-3">
                 <img 
-                  src={(movieSelection?.pelicula || pelicula)?.imagenCard} 
-                  alt={(movieSelection?.pelicula || pelicula)?.titulo}
+                  src={pelicula.imagenCard} 
+                  alt={pelicula.titulo ?? pelicula.title}
                   className="w-12 h-16 object-cover rounded"
                 />
                 <div>
-                  <h5 className="font-medium text-sm">{(movieSelection?.pelicula || pelicula)?.titulo.toUpperCase()}</h5>
-                  <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>{movieSelection?.selectedFormat || format} - Doblada</p>
+                  <h5 className="font-medium text-sm">{(pelicula.titulo ?? pelicula.title ?? '').toUpperCase()}</h5>
+                  <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>{format} - Doblada</p>
                 </div>
               </div>
             </div>
@@ -255,10 +245,10 @@ const Carrito: React.FC = () => {
             <div className="flex items-start gap-3">
               <div className="w-6 h-6 bg-gray-600 rounded flex-shrink-0 mt-1"></div>
               <div>
-                <h5 className="font-medium text-sm">{movieSelection?.selectedCine || selectedCine}</h5>
+                <h5 className="font-medium text-sm">{selection?.cinemaName}</h5>
                 <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>Sala 6</p>
                 <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>
-                  {formatDate((movieSelection?.selectedDay || day) || '')} - {movieSelection?.selectedTime || time}
+                  {formatDate(day || '')} - {time}
                 </p>
               </div>
             </div>
@@ -319,9 +309,10 @@ const Carrito: React.FC = () => {
                   : 'bg-gray-600 text-gray-400 cursor-not-allowed'
               }`}
               onClick={() => {
-                if (entradas.length > 0) {
-                  localStorage.setItem('selectedEntradas', JSON.stringify(entradas));
-                  window.location.href = '/butacas';
+                if (entradas.length > 0 && showtimeId) {
+                  // Codificar entradas como query param para evitar localStorage
+                  const encoded = entradas.map(e => `${encodeURIComponent(e.id)}:${e.cantidad}`).join('|');
+                  navigate(`/butacas/${showtimeId}?entradas=${encoded}`);
                 }
               }}
             >

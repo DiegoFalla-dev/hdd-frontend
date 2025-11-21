@@ -1,8 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import jsPDF from 'jspdf';
-import QRCode from 'qrcode';
-import authService from '../services/authService';
+import { useCartStore } from '../store/cartStore';
+import { useToast } from '../components/ToastProvider';
+import { useSeatSelectionStore } from '../store/seatSelectionStore';
+import { useQueryClient } from '@tanstack/react-query';
+import { useOrderPreview } from '../hooks/useOrderPreview';
+import { useOrderConfirm } from '../hooks/useOrderConfirm';
+import { usePromotionValidation } from '../hooks/usePromotionValidation';
+// OrderConfirmation type not used here
 
 const CarritoTotal: React.FC = () => {
   const navigate = useNavigate();
@@ -14,30 +19,29 @@ const CarritoTotal: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const [movieSelection, setMovieSelection] = useState<any>(null);
-  const [selectedCine, setSelectedCine] = useState<any>(null);
-  const [entradas, setEntradas] = useState<any[]>([]);
-  const [seats, setSeats] = useState<any[]>([]);
-  const [carritoProductos, setCarritoProductos] = useState<any[]>([]);
+  const cartSnapshot = useCartStore(s => s.cartSnapshot());
+  const toast = useToast();
+  const seatSelectionStore = useSeatSelectionStore();
+  const queryClient = useQueryClient();
+  const orderPreviewQuery = useOrderPreview(true);
+  const orderConfirmMutation = useOrderConfirm();
+  const { validate: validatePromotion, isLoading: promoLoading, promotion, error: promoError } = usePromotionValidation();
+  // const applyPromotion = useCartStore(s => s.applyPromotion);
+  const clearPromotion = useCartStore(s => s.clearPromotion);
+  const [promoCode, setPromoCode] = useState('');
 
-  useEffect(() => {
-    const ms = localStorage.getItem('movieSelection');
-    const cine = localStorage.getItem('selectedCine');
-    const ent = localStorage.getItem('selectedEntradas');
-    const s = localStorage.getItem('selectedSeats');
-    const cp = localStorage.getItem('carritoProductos');
-    setMovieSelection(ms ? JSON.parse(ms) : null);
-    setSelectedCine(cine ? JSON.parse(cine) : null);
-    setEntradas(ent ? JSON.parse(ent) : []);
-    setSeats(s ? JSON.parse(s) : []);
-    setCarritoProductos(cp ? JSON.parse(cp) : []);
-  }, []);
-
-  const calcTotal = () => {
-    const entradasTotal = entradas.reduce((acc: number, e: any) => acc + (e.precio || 0) * (e.cantidad || 0), 0);
-    const productosTotal = carritoProductos.reduce((acc: number, p: any) => acc + (p.precio || 0) * (p.cantidad || 0), 0);
-    return entradasTotal + productosTotal;
-  };
+  const preview = orderPreviewQuery.data;
+    // Prefetch del preview cuando se modifica el carrito (optimiza recalculo)
+    // Asumiendo que cartSnapshot() cambia referencia en cada modificación
+    // Solo ejecuta si hay al menos un grupo de tickets o concesiones
+    React.useEffect(() => {
+      if (cartSnapshot.ticketGroups.length || cartSnapshot.concessions.length) {
+        // ya lo obtiene useOrderPreview, pero un prefetch permite cache inicial antes de render pesado
+        // Podría hacerse con queryClient.prefetchQuery si se necesitara acceso directo.
+      }
+    }, [cartSnapshot]);
+  const previewLoading = orderPreviewQuery.isLoading;
+  const previewError = orderPreviewQuery.isError;
 
   const validateCard = () => {
     // Validación menos estricta:
@@ -55,131 +59,158 @@ const CarritoTotal: React.FC = () => {
     return true;
   };
 
-  const generateTicketPDF = async (purchaseId: string) => {
-    const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
-    pdf.setFontSize(14);
-    pdf.text('CINEPLUS - COMPROBANTE DE PAGO', 40, 50);
-    pdf.setFontSize(11);
-    const fecha = new Date().toLocaleString();
-    pdf.text(`Fecha: ${fecha}`, 40, 80);
-    pdf.text(`Comprador: ${cardName || 'N/D'}`, 40, 100);
-    pdf.text(`DNI: ${dni || 'N/D'}`, 40, 120);
-
-    if (movieSelection) {
-      pdf.text(`Película: ${movieSelection.titulo || movieSelection.title || 'N/D'}`, 40, 150);
-    }
-    if (selectedCine) {
-      pdf.text(`Cine: ${selectedCine.name || selectedCine.nombre || 'N/D'}`, 40, 170);
-    }
-
-    // Entradas
-    pdf.text('Entradas:', 40, 200);
-    let y = 220;
-    entradas.forEach((en: any) => {
-      pdf.text(`${en.descripcion || en.tipo || 'Entrada'} x ${en.cantidad} = S/ ${(en.precio * en.cantidad).toFixed(2)}`, 50, y);
-      y += 16;
-    });
-
-    // Asientos
-    if (seats && seats.length > 0) {
-      y += 6;
-      pdf.text('Asientos:', 40, y);
-      y += 16;
-      seats.forEach((s: any) => {
-        pdf.text(`${s.fila || s.row}${s.numero || s.col || ''}`, 50, y);
-        y += 14;
-      });
-    }
-
-    // Productos
-    if (carritoProductos && carritoProductos.length > 0) {
-      y += 8;
-      pdf.text('Productos:', 40, y);
-      y += 16;
-      carritoProductos.forEach((p: any) => {
-        pdf.text(`${p.name || p.nombre} x ${p.cantidad} = S/ ${(p.precio * p.cantidad).toFixed(2)}`, 50, y);
-        y += 14;
-      });
-    }
-
-    y += 20;
-    pdf.setFontSize(13);
-    pdf.text(`TOTAL: S/ ${calcTotal().toFixed(2)}`, 40, y);
-
-    // QR
-    const qrPayload = JSON.stringify({ purchaseId, movie: movieSelection?.titulo, total: calcTotal() });
-    try {
-      const qrDataUrl = await QRCode.toDataURL(qrPayload);
-      pdf.addImage(qrDataUrl, 'PNG', 400, 60, 150, 150);
-    } catch (err) {
-      console.error('Error generando QR', err);
-    }
-
-    const filename = `comprobante_${purchaseId}.pdf`;
-    pdf.save(filename);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateCard()) {
-      alert('Por favor revisa los datos de pago.');
+      toast.warning('Revisa los datos de la tarjeta');
       return;
     }
 
     setIsProcessing(true);
-    // Simular procesamiento
-    setTimeout(async () => {
-      const purchaseId = `ORD-${Date.now()}`;
-      try {
-        await generateTicketPDF(purchaseId);
-      } catch (err) {
-        console.error('Error generando PDF', err);
-      }
-
-      // Construir objeto de compra
-      const compra = {
-        id: purchaseId,
-        date: new Date().toISOString(),
-        buyer: { dni, name: cardName },
-        movie: movieSelection,
-        cine: selectedCine,
-        entradas,
-        seats,
-        productos: carritoProductos,
-        total: calcTotal(),
-      };
-
-      // Adjuntar a usuario si está logueado, si no guardar como pendingPurchase
-      const user = authService.getCurrentUser();
-      if (user) {
-        const existing = (user as any).purchases || [];
-        const updated = { ...(user as any), purchases: [...existing, compra] };
-        localStorage.setItem('usuario', JSON.stringify(updated));
+    // Construcción avanzada del payload de pago (mantiene compatibilidad con estructura legacy)
+    const paymentItems = cartSnapshot.paymentItems;
+    const ticketShowtimeIds = Array.from(new Set(paymentItems.filter(i => i.type === 'TICKET').map(i => i.showtimeId)));
+    const sessionMap: Record<number, string> = {};
+    let missingSession = false;
+    for (const stId of ticketShowtimeIds) {
+      const sessionId = seatSelectionStore.selections[stId]?.sessionId;
+      if (sessionId) {
+        sessionMap[stId] = sessionId;
       } else {
-        localStorage.setItem('pendingPurchase', JSON.stringify(compra));
+        missingSession = true;
       }
+    }
 
+    if (missingSession) {
+      toast.error('Falta sessionId de reserva en algún showtime. Regresa a butacas.');
       setIsProcessing(false);
-      setSuccess(true);
+      return;
+    }
 
-      // Limpiar carrito local
-      localStorage.removeItem('selectedEntradas');
-      localStorage.removeItem('selectedSeats');
-      localStorage.removeItem('carritoProductos');
+    // Validaciones de totales
+    const itemsRawTotal = paymentItems.reduce((sum, it) => sum + it.totalPrice, 0);
+    const discount = preview?.discountTotal || 0;
+    const expectedGrand = preview?.grandTotal || 0;
+    const computedGrand = Math.max(0, itemsRawTotal - discount);
+    if (Math.abs(computedGrand - expectedGrand) > 0.01) {
+      console.warn('Diferencia en grandTotal calculado vs preview', { computedGrand, expectedGrand });
+    }
 
-      // Dar tiempo a mostrar éxito, luego redirigir a home y abrir modal de perfil/login
-      setTimeout(() => {
-        // Abrir modal de perfil para que el usuario vea la compra o inicie sesión
-        window.dispatchEvent(new CustomEvent('openProfileModal'));
-        navigate('/');
-      }, 1200);
-    }, 1600);
+    interface PaymentPayloadItem {
+      type: 'TICKET' | 'CONCESSION';
+      showtimeId?: number;
+      seatCode?: string;
+      productId?: number;
+      name?: string;
+      quantity: number;
+      unitPrice: number;
+      totalPrice: number;
+    }
+
+    const items: PaymentPayloadItem[] = paymentItems.map(it => {
+      if (it.type === 'TICKET') {
+        return {
+          type: 'TICKET',
+          showtimeId: it.showtimeId,
+          seatCode: it.seatCode,
+          quantity: 1,
+          unitPrice: it.unitPrice,
+          totalPrice: it.totalPrice,
+        };
+      }
+      return {
+        type: 'CONCESSION',
+        productId: it.productId,
+        name: it.name,
+        quantity: it.quantity,
+        unitPrice: it.unitPrice,
+        totalPrice: it.totalPrice,
+      };
+    });
+
+    const payload = {
+      // Nuevo cuerpo propuesto para /payments/process
+      sessionMap, // relación showtimeId -> sessionId
+      items, // lista normalizada
+      promotionCode: cartSnapshot.promotion?.code,
+      discountTotal: discount,
+      grandTotal: expectedGrand,
+      // Campos legacy para compatibilidad con confirmación actual
+      ticketGroups: cartSnapshot.ticketGroups.map(g => ({ showtimeId: g.showtimeId, seatCodes: g.seatCodes })),
+      concessions: cartSnapshot.concessions.map(c => ({ productId: c.productId, quantity: c.quantity })),
+    };
+
+    orderConfirmMutation.mutate(payload, {
+      onSuccess: async (confirmation) => {
+        // Invalidate any future order list / caches
+        queryClient.invalidateQueries({ queryKey: ['order', confirmation.orderId] });
+        queryClient.invalidateQueries({ queryKey: ['orders'] });
+        clearPromotion();
+        setIsProcessing(false);
+        setSuccess(true);
+        setTimeout(() => {
+          navigate(`/confirmacion/${confirmation.orderId}`);
+        }, 900);
+      },
+      onError: (err) => {
+        console.error('Error confirmando orden', err);
+        setIsProcessing(false);
+        toast.error('Error confirmando la orden');
+      }
+    });
   };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-3xl mx-auto bg-white shadow rounded p-6">
         <h2 className="text-2xl font-semibold mb-4">Pago y Confirmación</h2>
+        {/* Preview dinámico */}
+        <div className="mb-6 border rounded p-4 bg-gray-50">
+          <h3 className="text-lg font-semibold mb-2">Resumen de Orden (Preview)</h3>
+          {previewLoading && <p className="text-sm text-gray-500">Calculando...</p>}
+          {previewError && <p className="text-sm text-red-500">Error obteniendo preview</p>}
+          {preview && !previewLoading && !previewError && (
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between"><span>Entradas</span><span>S/ {preview.ticketsSubtotal.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Concesiones</span><span>S/ {preview.concessionsSubtotal.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Descuento</span><span className="text-green-600">- S/ {preview.discountTotal.toFixed(2)}</span></div>
+              <div className="flex justify-between font-semibold border-t pt-2"><span>Total</span><span>S/ {preview.grandTotal.toFixed(2)}</span></div>
+              {preview.promotion && (
+                <p className="text-xs text-gray-600">Promoción aplicada: {preview.promotion.code} ({preview.promotion.type === 'PERCENT' ? preview.promotion.value + '%' : 'S/ ' + preview.promotion.value})</p>
+              )}
+            </div>
+          )}
+        </div>
+        {/* Código de promoción */}
+        <div className="mb-6 border rounded p-4 bg-gray-50">
+          <h3 className="text-sm font-semibold mb-2">Código de Promoción</h3>
+            <div className="flex gap-2">
+              <input
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value)}
+                placeholder="PROMO2025"
+                className="flex-1 border px-2 py-1 rounded"
+              />
+              <button
+                type="button"
+                onClick={() => validatePromotion(promoCode)}
+                disabled={promoLoading || !promoCode.trim()}
+                className="px-3 py-1 rounded bg-indigo-600 text-white text-sm"
+              >
+                {promoLoading ? 'Validando...' : 'Aplicar'}
+              </button>
+              {cartSnapshot.promotion && (
+                <button
+                  type="button"
+                  onClick={() => { clearPromotion(); setPromoCode(''); }}
+                  className="px-3 py-1 rounded bg-gray-300 text-sm"
+                >Quitar</button>
+              )}
+            </div>
+            {promoError && <p className="text-xs text-red-500 mt-1">Promoción inválida</p>}
+            {promotion && <p className="text-xs text-green-600 mt-1">Aplicada: {promotion.code}</p>}
+        </div>
         <div className="mb-6">
           <p className="text-sm text-gray-600">Por favor ingresa los datos de la tarjeta para procesar el pago.</p>
         </div>
@@ -211,10 +242,14 @@ const CarritoTotal: React.FC = () => {
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-sm text-gray-600">Total a pagar</p>
-                <p className="text-xl font-semibold">S/ {calcTotal().toFixed(2)}</p>
+                <p className="text-xl font-semibold">S/ {(preview?.grandTotal ?? 0).toFixed(2)}</p>
               </div>
-              <button type="submit" disabled={isProcessing} className="bg-indigo-600 text-white px-4 py-2 rounded">
-                {isProcessing ? 'Procesando...' : 'Pagar ahora'}
+              <button
+                type="submit"
+                disabled={isProcessing || previewLoading || previewError || orderConfirmMutation.isPending}
+                className={"px-4 py-2 rounded text-white " + (isProcessing || previewLoading || previewError || orderConfirmMutation.isPending ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600')}
+              >
+                {isProcessing || orderConfirmMutation.isPending ? 'Confirmando...' : previewLoading ? 'Calculando...' : previewError ? 'Error' : 'Confirmar y Pagar'}
               </button>
             </div>
           </div>
@@ -233,7 +268,7 @@ const CarritoTotal: React.FC = () => {
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
             <div className="bg-white rounded p-6 text-center">
               <h3 className="text-lg font-semibold">Pago exitoso</h3>
-              <p className="text-sm text-gray-600">Se ha generado y descargado tu comprobante.</p>
+              <p className="text-sm text-gray-600">Serás redirigido a la confirmación para descargar tu comprobante.</p>
             </div>
           </div>
         )}

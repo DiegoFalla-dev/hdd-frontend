@@ -1,43 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import MovieCard from '../components/MovieCard';
 import FilterDropdown from '../components/FilterDropdown';
-import { getMovies } from '../services/moviesService';
+import { useAllMovies } from '../hooks/useMovies';
+import type { Movie, MovieStatus } from '../types/Movie';
 
-const TABS = ['En cartelera', 'Pre-venta', 'Próximos estrenos'];
+const TABS: { label: string; status: MovieStatus }[] = [
+  { label: 'En cartelera', status: 'NOW_PLAYING' },
+  { label: 'Pre-venta', status: 'PRESALE' },
+  { label: 'Próximos estrenos', status: 'UPCOMING' }
+];
 
-import type { Pelicula } from '../services/moviesService';
-
-function getPeliculasByTab(tabIdx: number, source: Pelicula[] = []) {
-  if (tabIdx === 0) {
-    return source.slice(0, 23);
-  } else if (tabIdx === 1) {
-    return source.slice(23, 32);
-  } else if (tabIdx === 2) {
-    return source.slice(32, 47);
-  } else {
-    return [];
-  }
+function filterByStatus(status: MovieStatus, source: Movie[]): Movie[] {
+  return source.filter(m => m.status === status);
 }
 
 const Cartelera: React.FC = () => {
-  const [moviesData, setMoviesData] = useState<Pelicula[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('En cartelera');
+  const { data: moviesData = [], isLoading } = useAllMovies();
+  const [selectedCategory, setSelectedCategory] = useState(TABS[0].label);
   const [visibleMovies, setVisibleMovies] = useState(6);
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const m = await getMovies();
-      if (!mounted) return;
-      setMoviesData(m as Pelicula[]);
-    })();
-    return () => { mounted = false; };
-  }, []);
-
-  const activeTabIndex = TABS.indexOf(selectedCategory);
-  const allMovies = getPeliculasByTab(activeTabIndex, moviesData);
+  const activeTabIndex = TABS.findIndex(t => t.label === selectedCategory);
+  const allMovies = activeTabIndex >= 0 ? filterByStatus(TABS[activeTabIndex].status, moviesData) : [];
   const movies = allMovies.slice(0, visibleMovies);
   const hasMoreMovies = visibleMovies < allMovies.length;
 
@@ -80,10 +65,18 @@ const Cartelera: React.FC = () => {
 
             {/* Grid de películas */}
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {movies.map((pelicula, index) => (
+              {isLoading ? (
+                <div className="col-span-full text-center">Cargando...</div>
+              ) : movies.map((pelicula, index) => (
                 <div key={pelicula.id ?? index} className="transform hover:scale-105 transition-transform duration-300">
                   <MovieCard
-                    pelicula={pelicula}
+                    pelicula={{
+                      id: String(pelicula.id),
+                      titulo: pelicula.title,
+                      imagenCard: pelicula.posterUrl,
+                      genero: pelicula.genre,
+                      status: pelicula.status === 'NOW_PLAYING' ? 'CARTELERA' : pelicula.status === 'PRESALE' ? 'PREVENTA' : 'PROXIMO'
+                    }}
                     showEstrenoLabel={activeTabIndex === 0 && index < 6}
                     showPreventaLabel={activeTabIndex === 1}
                   />
@@ -101,7 +94,7 @@ const Cartelera: React.FC = () => {
                   <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
                     <img src="https://i.imgur.com/K9o09F6.png" alt="Logo" />
                   </div>
-                  <span>Ver más Películas</span>
+                  <span>Ver más películas</span>
                 </button>
               </div>
             )}

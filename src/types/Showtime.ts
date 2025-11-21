@@ -1,0 +1,13 @@
+export interface Showtime {
+  id: number;
+  movieId: number;
+  cinemaId: number;
+  theaterId: number;
+  startTime: string; // ISO
+  format?: string; // 2D, 3D, IMAX
+  language?: string; // Doblada/Subtitulada
+  availableSeats?: number;
+  totalSeats?: number;
+  theaterName?: string;
+  price?: number;
+}

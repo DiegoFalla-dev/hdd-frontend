@@ -1,41 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import type { Cinema } from '../types/Cinema';
-import { getAllCinemas } from '../services/cinemaService';
+// Cinema type import removed (not used directly)
+import { useCinemas } from '../hooks/useCinemas';
 import Footer from '../components/Footer';
 import { FaMapMarkerAlt, FaFilm, FaBuilding } from 'react-icons/fa';
 
 const Cines = () => {
-  const [cinemas, setCinemas] = useState<Cinema[]>([]);
+  const { data: cinemas = [], isLoading, isError } = useCinemas();
   const [selectedCity, setSelectedCity] = useState("Todas las ciudades");
   const [selectedFormat, setSelectedFormat] = useState("Todos los formatos");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const fetchCinemas = async () => {
-      try {
-        const data = await getAllCinemas();
-        setCinemas(data);
-        setLoading(false);
-      } catch (err: unknown) {
-        setError('Error al cargar los cines');
-        console.error('Error fetching cinemas:', err);
-        setLoading(false);
-      }
-    };
-
-    fetchCinemas();
-  }, []);
 
   const handleCineClick = (cineName: string) => {
     localStorage.setItem("selectedCine", cineName);
     navigate(`/cartelera?cine=${cineName}`);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="bg-black min-h-screen">
         <Navbar />
@@ -46,12 +28,12 @@ const Cines = () => {
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="bg-black min-h-screen">
         <Navbar />
         <div className="container mx-auto p-8 pt-20 text-white">
-          {error}
+          <p>Error cargando cines.</p>
         </div>
       </div>
     );
@@ -60,12 +42,12 @@ const Cines = () => {
   const filteredCinemas = cinemas.filter(cinema => {
     const cityMatch = selectedCity === "Todas las ciudades" || cinema.city === selectedCity;
     const formatMatch = selectedFormat === "Todos los formatos" || 
-      cinema.availableFormats.includes(selectedFormat);
+      (cinema.availableFormats?.includes(selectedFormat) ?? false);
     return cityMatch && formatMatch;
   });
 
   const uniqueCities = Array.from(new Set(cinemas.map(cinema => cinema.city)));
-  const uniqueFormats = Array.from(new Set(cinemas.flatMap(cinema => cinema.availableFormats)));
+  const uniqueFormats = Array.from(new Set(cinemas.flatMap(cinema => cinema.availableFormats || [])));
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--cinepal-gray-900)' }}>
@@ -134,7 +116,7 @@ const Cines = () => {
                   </p>
 
                 <div className="flex flex-wrap gap-2 mt-2 --cinepal-bg-100">
-                  {cinema.availableFormats.map((format, index) => (
+                  {cinema.availableFormats?.map((format, index) => (
                     <span key={index} className="inline-flex items-center gap-1 bg-[var(--cinepal-bg-200)] rounded-full px-3 py-1 text-xs font-semibold text-[var(--cinepal-gray-700)] shadow">
                       <FaFilm className="text-[var(--cinepal-primary-700)]" /> {format}
                     </span>

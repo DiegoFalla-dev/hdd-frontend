@@ -7,6 +7,7 @@ interface Pelicula {
 	titulo: string;
 	genero?: string;
 	imagenCard?: string;
+	status?: string;
 }
 
 interface MovieCardProps {

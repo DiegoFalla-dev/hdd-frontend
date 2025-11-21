@@ -7,6 +7,7 @@ import SideModal from './SideModal'; // Asume que este componente exista
 import ProfilePanel from './ProfilePanel';
 import { FaUser, FaMapMarkerAlt, FaChevronDown } from 'react-icons/fa';
 import { getAllCinemas } from '../services/cinemaService'; // Asume que este servicio existe
+import { prefetchOnCinemaSelection } from '../lib/prefetch';
 import type { Cinema } from '../types/Cinema'; // Asume que este tipo existe
 
 type NavbarProps = {
@@ -91,13 +92,14 @@ const Navbar: React.FC<NavbarProps> = () => {
     setSelectedCinema(cinema);
   };
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (selectedCinema) {
       localStorage.setItem('selectedCine', JSON.stringify(selectedCinema));
+      // Prefetch concesiones para experiencia inmediata en Dulcería
+      try { await prefetchOnCinemaSelection(selectedCinema.id); } catch {}
     }
     setIsModalOpen(false);
-    // Recargar la página para aplicar el cambio del cine seleccionado
-    window.location.reload(); 
+    window.location.reload();
   };
 
   const location = useLocation();

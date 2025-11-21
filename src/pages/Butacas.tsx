@@ -1,8 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useParams } from "react-router-dom";
 import { FiX } from "react-icons/fi";
 import { getMovies, type Pelicula } from "../services/moviesService";
-// storage util is not required here because we read directly from localStorage
+import { useSeats } from "../hooks/useSeats";
+import { useShowtimes } from "../hooks/useShowtimes";
+import { useSeatSelectionStore } from "../store/seatSelectionStore";
+import { useShowtimeSelectionStore } from "../store/showtimeSelectionStore";
+import { useOccupiedSeats } from "../hooks/useOccupiedSeats";
+import { useSeatOccupancySocket } from "../hooks/useSeatOccupancySocket";
+import seatService from "../services/seatService";
+import type { TemporarySeatReservationResponse } from "../services/seatService";
+import { useToast } from "../components/ToastProvider";
+// storage util is not required here because we read directly from localStorage (pending cart refactor)
 
 interface Entrada {
   id: string;
@@ -11,7 +20,7 @@ interface Entrada {
   cantidad: number;
 }
 
-interface Seat {
+interface LocalSeatUI {
   id: string;
   row: string;
   number: number;
@@ -27,89 +36,128 @@ const SEAT_MATRICES: Record<SeatMatrixKey, { rows: number; cols: number }> = {
   xlarge: { rows: 15, cols: 14 }
 };
 
-function getMovieShowtimes(_cine: string | null, _peliculaId: string | null) {
-  // Stubbed function: return a few example showtimes. In the real app this
-  // would come from backend or a shared data module. We keep a deterministic
-  // mapping so seatMatrix may change depending on time/format.
-  return [
-    { date: '2025-10-24', time: '18:00', format: '2D', seatMatrix: 'medium' as SeatMatrixKey },
-    { date: '2025-10-24', time: '20:00', format: '3D', seatMatrix: 'large' as SeatMatrixKey }
-  ];
-}
+// Eliminado getMovieShowtimes: ahora derivamos showtime real vía hook useShowtimes
 
 const Butacas: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const [selectedCine, setSelectedCine] = useState<string | null>(null);
   const [entradas, setEntradas] = useState<Entrada[]>([]);
-  const [movieSelection, setMovieSelection] = useState<any>(null);
-  const [seats, setSeats] = useState<Seat[]>([]);
-  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+  const [seats, setSeats] = useState<LocalSeatUI[]>([]);
+  const seatSelectionStore = useSeatSelectionStore();
+  const showtimeSelection = useShowtimeSelectionStore(s => s.selection);
+  const [remainingMs, setRemainingMs] = useState<number | null>(null);
+  const [expiredHandled, setExpiredHandled] = useState(false);
   const [seatMatrix, setSeatMatrix] = useState<SeatMatrixKey>('medium');
   const [pelicula, setPelicula] = useState<Pelicula | null>(null);
+  const toast = useToast();
   
-  const peliculaId = searchParams.get('pelicula');
-  const day = searchParams.get('day');
-  const time = searchParams.get('time');
-  const format = searchParams.get('format');
+  const { showtimeId: showtimeIdParam } = useParams();
+  const peliculaId = showtimeSelection?.movieId ? String(showtimeSelection.movieId) : searchParams.get('pelicula');
+  const day = showtimeSelection?.date || searchParams.get('day');
+  const time = showtimeSelection?.time || searchParams.get('time');
+  const format = showtimeSelection?.format || searchParams.get('format');
 
   useEffect(() => {
-    const savedCine = localStorage.getItem("selectedCine");
-    const savedSelection = localStorage.getItem("movieSelection");
     const savedEntradas = localStorage.getItem("selectedEntradas");
-    
-    if (savedCine) {
-      try { setSelectedCine(JSON.parse(savedCine).name || savedCine); } catch { setSelectedCine(savedCine); }
-    }
-    if (savedSelection) setMovieSelection(JSON.parse(savedSelection));
     if (savedEntradas) setEntradas(JSON.parse(savedEntradas));
-
-    // If movieSelection contains pelicula, use it; otherwise try to fetch
-    const sel = savedSelection ? JSON.parse(savedSelection) : null;
-    if (sel?.pelicula) {
-      setPelicula(sel.pelicula);
-    } else if (peliculaId) {
+    if (peliculaId) {
       getMovies().then(m => {
-        const f = m.find(x => x.id === peliculaId);
+        const f = m.find(x => String(x.id) === peliculaId);
         if (f) setPelicula(f);
-      }).catch(() => {});
+      }).catch(()=>{});
     }
   }, [peliculaId]);
 
   useEffect(() => {
-    // Determinar matriz de asientos basada en el showtime
-    if ((movieSelection?.selectedCine || selectedCine) && peliculaId && day && time && format) {
-      const showtimes = getMovieShowtimes(movieSelection?.selectedCine || selectedCine, peliculaId);
-      const showtime = showtimes.find((s:any) => s.date === day && s.time === time && s.format === format);
-      if (showtime) {
-        setSeatMatrix(showtime.seatMatrix as SeatMatrixKey);
-      }
-    }
-  }, [selectedCine, peliculaId, day, time, format, movieSelection]);
+    // Ajuste simple de tamaño según formato (placeholder hasta backend envíe layout)
+    if (format?.includes('IMAX')) setSeatMatrix('large');
+    else if (format === '3D') setSeatMatrix('large');
+    else setSeatMatrix('medium');
+  }, [format]);
+
+  // Derivar showtimeId desde query params + seleccion almacenada
+  // Derivar cinemaId (en movieSelection puede ser objeto o name); se asume movieSelection.selectedCineData.id si existe
+  const cinemaId = showtimeSelection?.cinemaId;
+  const showtimesQuery = useShowtimes({ movieId: pelicula ? Number(pelicula.id) : undefined, cinemaId, date: day || undefined });
+  // Priorizar showtimeId proveniente de la ruta; si no existe, intentar derivarlo de query params (fallback legacy)
+  const matchingShowtime = showtimesQuery.data?.find(st => {
+    const localTime = new Date(st.startTime).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+    const localDate = new Date(st.startTime).toISOString().split('T')[0];
+    return localTime === time && st.format === format && localDate === day;
+  });
+  const derivedShowtimeId = matchingShowtime?.id;
+  const showtimeId = showtimeIdParam ? Number(showtimeIdParam) : (showtimeSelection?.showtimeId || derivedShowtimeId);
+  const { data: remoteSeats, isLoading: seatsLoading } = useSeats(showtimeId || undefined);
+  const { data: occupiedCodes } = useOccupiedSeats(showtimeId || undefined);
+  useSeatOccupancySocket(showtimeId || undefined);
 
   useEffect(() => {
-    // Generar matriz de asientos
-    const matrix = SEAT_MATRICES[seatMatrix];
-    const newSeats: Seat[] = [];
-    const rows = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q'];
-    
-    for (let row = 0; row < matrix.rows; row++) {
-      for (let col = 1; col <= matrix.cols; col++) {
-        const seatId = `${rows[row]}${col}`;
-        const isOccupied = Math.random() < 0.3; // 30% ocupados aleatoriamente
-        
-        newSeats.push({
-          id: seatId,
-          row: rows[row],
-          number: col,
-          status: isOccupied ? 'occupied' : 'available'
-        });
-      }
+    if (showtimeId) {
+      seatSelectionStore.setCurrentShowtime(showtimeId);
+      seatSelectionStore.purgeExpired();
     }
-    
-    setSeats(newSeats);
-  }, [seatMatrix]);
+  }, [showtimeId]);
 
-  const totalEntradas = entradas.reduce((acc, e) => acc + e.cantidad, 0);
+  // Countdown expiración
+  useEffect(() => {
+    if (!showtimeId) return;
+    const interval = setInterval(() => {
+      const sel = seatSelectionStore.selections[showtimeId];
+      if (!sel?.expiresAt) {
+        setRemainingMs(null);
+        return;
+      }
+      const diff = sel.expiresAt - Date.now();
+      setRemainingMs(diff > 0 ? diff : 0);
+      if (diff <= 0 && !expiredHandled) {
+        setExpiredHandled(true);
+        const reserved = sel.reservedCodes || [];
+        if (reserved.length) {
+          seatService.releaseTemporarySeats(showtimeId, reserved).catch(()=>{});
+        }
+        seatSelectionStore.clearShowtime(showtimeId);
+        toast.warning('Tiempo de reserva expirado. Asientos liberados.');
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [showtimeId, expiredHandled, seatSelectionStore]);
+
+  // Si hay asientos remotos, mapearlos al UI local; si no, usar la matriz generada aleatoria como fallback temporal
+  useEffect(() => {
+    // Construir matriz base (remota futura o fallback local) y overlay ocupados reales
+    const rows = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q'];
+    const occupiedSet = new Set(occupiedCodes || []);
+    if (remoteSeats && remoteSeats.length) {
+      setSeats(remoteSeats.map(s => ({
+        id: String(s.id),
+        row: s.row,
+        number: s.number,
+        status: occupiedSet.has(String(s.id)) || s.status !== 'AVAILABLE' ? 'occupied' : 'available'
+      })));
+    } else {
+      const matrix = SEAT_MATRICES[seatMatrix];
+      const newSeats: LocalSeatUI[] = [];
+      for (let r = 0; r < matrix.rows; r++) {
+        for (let c = 1; c <= matrix.cols; c++) {
+          const seatId = `${rows[r]}${c}`;
+          newSeats.push({
+            id: seatId,
+            row: rows[r],
+            number: c,
+            status: occupiedSet.has(seatId) ? 'occupied' : 'available'
+          });
+        }
+      }
+      setSeats(newSeats);
+    }
+  }, [remoteSeats, seatMatrix, occupiedCodes]);
+
+  // Soporte para cantidad de entradas proveniente de query param 'entradas' (id:qty|id:qty)
+  const entradasParam = searchParams.get('entradas');
+  const parsedEntradasFromParam = entradasParam ? entradasParam.split('|').map(pair => {
+    const [id, qty] = pair.split(':');
+    return { id, cantidad: Number(qty) || 0 };
+  }) : [];
+  const totalEntradas = parsedEntradasFromParam.reduce((acc, e) => acc + e.cantidad, 0) || entradas.reduce((acc, e) => acc + e.cantidad, 0);
   const total = entradas.reduce((acc, e) => acc + e.precio * e.cantidad, 0);
 
   const formatDate = (dateStr: string) => {
@@ -121,22 +169,51 @@ const Butacas: React.FC = () => {
     return `${dayName}, ${dayMonth}`;
   };
 
+  const selectedSeatCodes = showtimeId ? (seatSelectionStore.selections[showtimeId]?.seatCodes || []) : [];
+
   const handleSeatClick = (seatId: string) => {
     const seat = seats.find(s => s.id === seatId);
-    if (!seat || seat.status === 'occupied') return;
-
-    if (selectedSeats.includes(seatId)) {
-      // Deseleccionar asiento
-      setSelectedSeats(selectedSeats.filter(id => id !== seatId));
-      setSeats(seats.map(s => 
-        s.id === seatId ? { ...s, status: 'available' } : s
-      ));
-    } else if (selectedSeats.length < totalEntradas) {
-      // Seleccionar asiento
-      setSelectedSeats([...selectedSeats, seatId]);
-      setSeats(seats.map(s => 
-        s.id === seatId ? { ...s, status: 'selected' } : s
-      ));
+    if (!seat || seat.status === 'occupied' || !showtimeId) return;
+    seatSelectionStore.toggleSeatCode(showtimeId, seatId, totalEntradas);
+    // reflect UI status update
+    const updatedSelected = showtimeId ? seatSelectionStore.selections[showtimeId]?.seatCodes || [] : [];
+    setSeats(seats.map(s => {
+      if (s.id === seatId) {
+        const isSelected = updatedSelected.includes(seatId);
+        return { ...s, status: isSelected ? 'selected' : 'available' };
+      }
+      if (s.status === 'selected' && !updatedSelected.includes(s.id)) {
+        return { ...s, status: 'available' };
+      }
+      return s;
+    }));
+    // Intentar reserva temporal tras cada cambio (optimización futura: sólo on add)
+    if (updatedSelected.length) {
+      seatService.reserveSeatsTemporarily(showtimeId, updatedSelected)
+        .then((res: TemporarySeatReservationResponse) => {
+          const failed = res.failedCodes || [];
+          if (res.sessionId) {
+            seatSelectionStore.attachSession(showtimeId, res.sessionId, res.expiresInMs);
+          }
+          if (failed.length) {
+            seatSelectionStore.applyReservationResult(showtimeId, failed);
+            const failedSet = new Set(failed);
+            const kept = updatedSelected.filter(c => !failedSet.has(c));
+            setSeats(seats.map(s => {
+              if (failedSet.has(s.id)) {
+                return { ...s, status: 'occupied' };
+              }
+              const isSelected = kept.includes(s.id);
+              return { ...s, status: isSelected ? 'selected' : s.status };
+            }));
+            toast.error(`Asientos ocupados: ${failed.join(', ')}`);
+          } else {
+            seatSelectionStore.applyReservationResult(showtimeId, []);
+          }
+        })
+        .catch(() => {
+          // en futuro: toast de error
+        });
     }
   };
 
@@ -228,14 +305,24 @@ const Butacas: React.FC = () => {
             </div>
 
             {/* Información de selección */}
-            {selectedSeats.length > 0 && (
+            {selectedSeatCodes.length > 0 && (
               <div className="text-center">
                 <p className="text-lg font-bold">
-                  Asientos seleccionados: {selectedSeats.join(', ')}
+                  Asientos seleccionados: {selectedSeatCodes.join(', ')}
                 </p>
                 <p className="text-sm text-gray-400">
-                  {selectedSeats.length} de {totalEntradas} asientos seleccionados
+                  {selectedSeatCodes.length} de {totalEntradas} asientos seleccionados {seatsLoading ? '(cargando asientos...)' : ''}
                 </p>
+                {showtimeId && seatSelectionStore.selections[showtimeId]?.failedCodes?.length ? (
+                  <p className="text-xs text-red-400">
+                    Fallidos: {seatSelectionStore.selections[showtimeId].failedCodes?.join(', ')}
+                  </p>
+                ) : null}
+                {remainingMs != null && remainingMs > 0 && (
+                  <p className="text-xs text-yellow-400 mt-1">
+                    Tiempo restante: {Math.floor(remainingMs/1000)}s
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -246,18 +333,18 @@ const Butacas: React.FC = () => {
           <h3 className="text-lg font-bold mb-6">RESUMEN</h3>
           
           {/* Información de la película */}
-          {(movieSelection?.pelicula || pelicula) && (
+          {pelicula && (
             <div className="mb-6">
               <h4 className="font-semibold mb-3">Película</h4>
               <div className="flex gap-3">
                 <img 
-                  src={(movieSelection?.pelicula || pelicula)?.imagenCard} 
-                  alt={(movieSelection?.pelicula || pelicula)?.titulo}
+                  src={pelicula.imagenCard} 
+                  alt={pelicula.titulo}
                   className="w-12 h-16 object-cover rounded"
                 />
                 <div>
-                  <h5 className="font-medium text-sm">{(movieSelection?.pelicula || pelicula)?.titulo.toUpperCase()}</h5>
-                  <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>{movieSelection?.selectedFormat || format} - Doblada</p>
+                  <h5 className="font-medium text-sm">{(pelicula.titulo ?? pelicula.title ?? '').toUpperCase()}</h5>
+                  <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>{format} - Doblada</p>
                 </div>
               </div>
             </div>
@@ -269,10 +356,10 @@ const Butacas: React.FC = () => {
             <div className="flex items-start gap-3">
               <div className="w-6 h-6 bg-gray-600 rounded flex-shrink-0 mt-1"></div>
               <div>
-                <h5 className="font-medium text-sm">{movieSelection?.selectedCine || selectedCine}</h5>
+                <h5 className="font-medium text-sm">{showtimeSelection?.cinemaName}</h5>
                 <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>Sala 6</p>
                 <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>
-                  {formatDate((movieSelection?.selectedDay || day) || '')} - {movieSelection?.selectedTime || time}
+                  {formatDate(day || '')} - {time}
                 </p>
               </div>
             </div>
@@ -311,20 +398,20 @@ const Butacas: React.FC = () => {
           <div className="mt-auto">
             <div 
               className={`p-4 rounded flex items-center justify-between ${
-                selectedSeats.length === totalEntradas
+                selectedSeatCodes.length === totalEntradas
                   ? 'bg-white text-black cursor-pointer' 
                   : 'bg-gray-600 text-gray-400 cursor-not-allowed'
               }`}
               onClick={() => {
-                if (selectedSeats.length === totalEntradas) {
-                  localStorage.setItem('selectedSeats', JSON.stringify(selectedSeats));
+                if (selectedSeatCodes.length === totalEntradas) {
+                  // Avanzar sin escribir selectedSeats en localStorage (se gestionará luego via confirmación real)
                   window.location.href = '/dulceria-carrito';
                 }
               }}
             >
               <div className="flex items-center gap-2">
                 <div className={`w-4 h-4 rounded ${
-                  selectedSeats.length === totalEntradas ? 'bg-black' : 'bg-gray-400'
+                  selectedSeatCodes.length === totalEntradas ? 'bg-black' : 'bg-gray-400'
                 }`}></div>
                 <span className="font-bold">S/ {total.toFixed(2)}</span>
               </div>
@@ -332,6 +419,49 @@ const Butacas: React.FC = () => {
                 CONTINUAR
               </span>
             </div>
+              {/* Botón confirmar asientos (persistencia final) */}
+              {showtimeId && selectedSeatCodes.length === totalEntradas && (
+                <button
+                  className="mt-4 w-full border border-blue-500 text-blue-500 py-2 rounded hover:bg-blue-500 hover:text-black transition-colors text-sm font-semibold"
+                  onClick={async () => {
+                    const sel = seatSelectionStore.selections[showtimeId];
+                    if (!sel) return;
+                    // Asegurar que todos estén reservados: reservar faltantes
+                    const reserved = new Set(sel.reservedCodes || []);
+                    const missing = sel.seatCodes.filter(c => !reserved.has(c));
+                    if (missing.length) {
+                      try {
+                        const res = await seatService.reserveSeatsTemporarily(showtimeId, sel.seatCodes);
+                        if (res.sessionId) {
+                          seatSelectionStore.attachSession(showtimeId, res.sessionId, res.expiresInMs);
+                        }
+                        seatSelectionStore.applyReservationResult(showtimeId, res.failedCodes);
+                        if (res.failedCodes.length) {
+                          toast.error(`No se pudieron reservar: ${res.failedCodes.join(', ')}`);
+                          return;
+                        }
+                      } catch {
+                        toast.error('Error reservando asientos. Intenta nuevamente');
+                        return;
+                      }
+                    }
+                    // Confirmar
+                    try {
+                      await seatService.confirmSeats(showtimeId, sel.seatCodes);
+                      toast.success('Asientos confirmados.');
+                      // Guardar selección confirmada y pasar a siguiente etapa
+                      // Persistencia futura: almacenar sessionId y confirmación; evitar confirmedSeats localStorage
+                      // Opcional: limpiar selección temporal
+                      seatSelectionStore.clearShowtime(showtimeId);
+                      window.location.href = '/dulceria-carrito';
+                    } catch {
+                      toast.error('Error confirmando asientos. Reintenta');
+                    }
+                  }}
+                >
+                  CONFIRMAR ASIENTOS
+                </button>
+              )}
           </div>
         </div>
       </div>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sliders } from "react-feather";
-import { getMovies, type Pelicula } from "../services/moviesService";
+import { fetchAllMovies } from "../services/moviesService";
+import type { Movie as Pelicula } from "../types/Movie";
 import { getAllCinemas } from "../services/cinemaService";
 import type { Cinema } from "../types/Cinema";
 
@@ -42,7 +43,7 @@ const FilterBar: React.FC = () => {
     const fetchData = async () => {
       try {
         const [moviesData, cinemasData] = await Promise.all([
-          getMovies(),
+          fetchAllMovies(),
           getAllCinemas()
         ]);
         setMovies(moviesData);
@@ -57,18 +58,18 @@ const FilterBar: React.FC = () => {
     fetchData();
   }, []);
 
-  const movieOptions = Array.from(new Set(movies.map(p => p.titulo)));
-  const cityOptions = Array.from(new Set(cinemas.map(c => c.city)));
+  const movieOptions = Array.from(new Set(movies.map(p => p.title)));
+  const cityOptions = Array.from(new Set(cinemas.map(c => c.location)));
   const getCinesByCity = (city: string) => {
     if (!city) return [];
-    return cinemas.filter(c => c.city === city);
+    return cinemas.filter(c => c.location === city);
   };
   const dateOptions = getDateOptions();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isReady) {
-      const selectedMovie = movies.find(m => m.titulo === movie);
+      const selectedMovie = movies.find(m => m.title === movie);
       if (selectedMovie) {
         navigate(`/detalle-pelicula?pelicula=${selectedMovie.id}`);
       }

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { FiX, FiPlus, FiMinus } from "react-icons/fi";
-import { getMovieSelection } from "../utils/storage";
+import { useShowtimeSelectionStore } from "../store/showtimeSelectionStore";
 import { getProductsByCinema } from "../services/concessionService";
+import { useSeatSelectionStore } from "../store/seatSelectionStore";
+import { useCartStore } from "../store/cartStore";
 import type { ConcessionProduct } from "../types/ConcessionProduct";
 
 interface Entrada {
@@ -21,15 +23,13 @@ interface ProductoDulceria {
   categoria: 'combos' | 'canchita' | 'bebidas' | 'snacks';
 }
 
-interface ProductoCarrito extends ProductoDulceria {
-  cantidad: number;
-}
 
 const CarritoDulceria: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const [selectedCine, setSelectedCine] = useState<string | null>(null);
+  // legacy query params not used
+  const navigate = useNavigate();
+  const selection = useShowtimeSelectionStore(s => s.selection);
   const [entradas, setEntradas] = useState<Entrada[]>([]);
-  const [movieSelection, setMovieSelection] = useState<any>(null);
+  const seatSelectionStore = useSeatSelectionStore();
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [productos, setProductos] = useState<{
     combos: ProductoDulceria[];
@@ -38,43 +38,25 @@ const CarritoDulceria: React.FC = () => {
     snacks: ProductoDulceria[];
   } | null>(null);
   const [activeCategory, setActiveCategory] = useState<'combos' | 'canchita' | 'bebidas' | 'snacks'>('combos');
-  const [carritoProductos, setCarritoProductos] = useState<ProductoCarrito[]>([]);
+  const cartConcessions = useCartStore(s => s.concessions);
+  const addConcession = useCartStore(s => s.addConcession);
+  const updateConcession = useCartStore(s => s.updateConcession);
   
-  const peliculaId = searchParams.get('pelicula');
-  const day = searchParams.get('day');
-  const time = searchParams.get('time');
-  const format = searchParams.get('format');
+  // legacy query params (not used currently)
   
   const totalEntradas = entradas.reduce((acc, e) => acc + e.precio * e.cantidad, 0);
-  const totalProductos = carritoProductos.reduce((acc, p) => acc + p.precio * p.cantidad, 0);
+  const totalProductos = cartConcessions.reduce((acc, c) => acc + c.unitPrice * c.quantity, 0);
   const totalGeneral = totalEntradas + totalProductos;
 
   useEffect(() => {
-    const savedCine = localStorage.getItem("selectedCine");
-    const savedSelection = localStorage.getItem("movieSelection");
+    const cineId = selection?.cinemaId || null;
+    // Entradas: legacy aún en local hasta modelar tipos; mantener si existen
     const savedEntradas = localStorage.getItem("selectedEntradas");
-    const savedSeats = localStorage.getItem("selectedSeats");
-    const savedCarrito = localStorage.getItem('carritoProductos');
-    
-    let cineId: number | null = null;
-    if (savedCine) {
-      try {
-        const parsed = JSON.parse(savedCine);
-        // parsed might be object with id or a string
-        cineId = parsed?.id ?? null;
-        setSelectedCine(parsed?.name ?? String(parsed));
-      } catch {
-        // savedCine might be a simple string
-        setSelectedCine(savedCine);
-      }
-    }
-
-    if (savedSelection) setMovieSelection(JSON.parse(savedSelection));
     if (savedEntradas) setEntradas(JSON.parse(savedEntradas));
-    if (savedSeats) setSelectedSeats(JSON.parse(savedSeats));
-
-    if (savedCarrito) {
-      try { setCarritoProductos(JSON.parse(savedCarrito)); } catch {}
+    // Asientos confirmados: usar seatSelectionStore si showtimeId presente
+    if (selection?.showtimeId) {
+      const sel = seatSelectionStore.selections[selection.showtimeId];
+      if (sel?.reservedCodes) setSelectedSeats(sel.reservedCodes);
     }
 
     // Load concession products for the selected cinema
@@ -125,24 +107,15 @@ const CarritoDulceria: React.FC = () => {
   };
 
   const agregarProducto = (producto: ProductoDulceria) => {
-    const existente = carritoProductos.find(p => p.id === producto.id);
-    if (existente) {
-      setCarritoProductos(carritoProductos.map(p => 
-        p.id === producto.id ? { ...p, cantidad: p.cantidad + 1 } : p
-      ));
-    } else {
-      setCarritoProductos([...carritoProductos, { ...producto, cantidad: 1 }]);
-    }
+    // Adaptar a CartStore concesiones
+    addConcession({ id: Number(producto.id), name: producto.nombre, price: producto.precio, description: producto.descripcion, imageUrl: producto.imagen || '', category: producto.categoria.toUpperCase() as any });
   };
 
   const cambiarCantidadProducto = (id: string, delta: number) => {
-    setCarritoProductos(carritoProductos.map(p => {
-      if (p.id === id) {
-        const nuevaCantidad = p.cantidad + delta;
-        return { ...p, cantidad: nuevaCantidad };
-      }
-      return p;
-    }).filter(p => p.cantidad > 0));
+    const concesion = cartConcessions.find(c => String(c.productId) === id);
+    if (!concesion) return;
+    const nuevaCantidad = concesion.quantity + delta;
+    updateConcession(concesion.productId, nuevaCantidad);
   };
 
   const categories = [
@@ -253,18 +226,14 @@ const CarritoDulceria: React.FC = () => {
           <h3 className="text-lg font-bold mb-6">RESUMEN</h3>
           
           {/* Información de la película */}
-          {(movieSelection?.pelicula) && (
+          {selection?.movieTitle && (
             <div className="mb-6">
               <h4 className="font-semibold mb-3">Película</h4>
               <div className="flex gap-3">
-                <img 
-                  src={(movieSelection?.pelicula)?.imagenCard} 
-                  alt={(movieSelection?.pelicula)?.titulo}
-                  className="w-12 h-16 object-cover rounded"
-                />
+                <div className="w-12 h-16 bg-gray-700 flex items-center justify-center rounded text-xs">Poster</div>
                 <div>
-                  <h5 className="font-medium text-sm">{(movieSelection?.pelicula)?.titulo.toUpperCase()}</h5>
-                  <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>{movieSelection?.selectedFormat || format} - Doblada</p>
+                  <h5 className="font-medium text-sm">{selection.movieTitle.toUpperCase()}</h5>
+                  <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>{selection.format} - Doblada</p>
                 </div>
               </div>
             </div>
@@ -276,10 +245,10 @@ const CarritoDulceria: React.FC = () => {
             <div className="flex items-start gap-3">
               <div className="w-6 h-6 bg-gray-600 rounded shrink-0 mt-1"></div>
               <div>
-                <h5 className="font-medium text-sm">{movieSelection?.selectedCine || selectedCine}</h5>
+                <h5 className="font-medium text-sm">{selection?.cinemaName}</h5>
                 <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>Sala 6</p>
                 <p className="text-xs" style={{ color: "var(--cineplus-gray)" }}>
-                  {formatDate((movieSelection?.selectedDay || day) || '')} - {movieSelection?.selectedTime || time}
+                  {formatDate(selection?.date || '')} - {selection?.time}
                 </p>
               </div>
             </div>
@@ -317,29 +286,29 @@ const CarritoDulceria: React.FC = () => {
           )}
 
           {/* Productos de dulcería */}
-          {carritoProductos.length > 0 && (
+          {cartConcessions.length > 0 && (
             <div className="mb-6">
               <h4 className="font-semibold mb-3">Alimentos y bebidas</h4>
               <div className="space-y-3">
-                {carritoProductos.map((producto) => (
-                  <div key={producto.id} className="flex items-center justify-between">
+                {cartConcessions.map((producto) => (
+                  <div key={producto.productId} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 bg-orange-500 rounded"></div>
                       <div>
-                        <div className="text-sm font-medium">{producto.cantidad} - {producto.nombre}</div>
-                        <div className="text-xs" style={{ color: "var(--cineplus-gray)" }}>S/ {producto.precio.toFixed(2)}</div>
+                        <div className="text-sm font-medium">{producto.quantity} - {producto.name}</div>
+                        <div className="text-xs" style={{ color: "var(--cineplus-gray)" }}>S/ {producto.unitPrice.toFixed(2)}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <button 
-                        onClick={() => cambiarCantidadProducto(producto.id, -1)}
+                        onClick={() => cambiarCantidadProducto(String(producto.productId), -1)}
                         className="w-6 h-6 border border-gray-400 rounded flex items-center justify-center text-gray-400 hover:text-white"
                       >
                         <FiMinus size={12} />
                       </button>
-                      <span className="w-8 text-center text-sm">{producto.cantidad}</span>
+                      <span className="w-8 text-center text-sm">{producto.quantity}</span>
                       <button 
-                        onClick={() => cambiarCantidadProducto(producto.id, 1)}
+                        onClick={() => cambiarCantidadProducto(String(producto.productId), 1)}
                         className="w-6 h-6 border border-gray-400 rounded flex items-center justify-center text-gray-400 hover:text-white"
                       >
                         <FiPlus size={12} />
@@ -367,8 +336,7 @@ const CarritoDulceria: React.FC = () => {
             <div 
               className="p-4 rounded flex items-center justify-between bg-white text-black cursor-pointer"
               onClick={() => {
-                localStorage.setItem('carritoProductos', JSON.stringify(carritoProductos));
-                window.location.href = '/pago';
+                navigate('/pago');
               }}
             >
               <div className="flex items-center gap-2">

@@ -1,8 +1,7 @@
 // authService.ts
 
-import axios from 'axios';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+import api from './apiClient';
+import { setAuthTokens, clearAuthTokens, getAccessToken } from '../utils/storage';
 
 export const STORAGE_TOKEN_KEY = 'token';
 export const STORAGE_USER_KEY = 'usuario';
@@ -44,57 +43,76 @@ export interface RegisterRequest {
 }
 
 async function login(payload: LoginRequest): Promise<JwtResponse> {
-  const url = `${API_BASE}/api/auth/login`;
-  const res = await axios.post(url, payload);
-  const data: JwtResponse = res.data || {};
+  const res = await api.post('/auth/login', payload);
+  const dataRaw = res.data || {};
+  if (import.meta.env.MODE !== 'production') {
+    try {
+      console.debug('[authService] login response status:', res.status);
+      console.debug('[authService] login response data:', dataRaw);
+    } catch (_) {}
+  }
 
-  if (data.token) {
-    localStorage.setItem(STORAGE_TOKEN_KEY, data.token);
+  // Detect token in multiple possible fields (token, accessToken, access_token, jwt)
+  const maybeToken = (dataRaw && (dataRaw.token || dataRaw.accessToken || dataRaw.access_token || dataRaw.jwt))
+    || (Object.values(dataRaw).find((v: any) => typeof v === 'string' && v.split && v.split('.').length === 3) as string | undefined)
+    || undefined;
+
+  // If we found a token-like string, normalize to `token` and persist tokens
+  if (maybeToken) {
+    // attach normalized field so callers relying on `res.token` keep working
+    (dataRaw as any).token = maybeToken;
+    // also support refresh token fields
+    const refresh = (dataRaw.refreshToken || dataRaw.refresh_token) as string | undefined;
+    setAuthTokens({ accessToken: maybeToken, refreshToken: refresh });
+
     const storedUser = JSON.stringify({
-      id: data.id,
-      username: data.username,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      roles: data.roles || [],
-      avatar: data.avatar ?? null,
-      birthDate: data.birthDate ?? null,
-      nationalId: data.nationalId ?? null,
-      phoneNumber: data.phoneNumber ?? null,
-      gender: data.gender ?? null,
-      favoriteCinema: data.favoriteCinema ?? null,
+      id: dataRaw.id,
+      username: dataRaw.username,
+      firstName: dataRaw.firstName,
+      lastName: dataRaw.lastName,
+      email: dataRaw.email,
+      roles: dataRaw.roles || [],
+      avatar: dataRaw.avatar ?? null,
+      birthDate: dataRaw.birthDate ?? null,
+      nationalId: dataRaw.nationalId ?? null,
+      phoneNumber: dataRaw.phoneNumber ?? null,
+      gender: dataRaw.gender ?? null,
+      favoriteCinema: dataRaw.favoriteCinema ?? null,
     });
     localStorage.setItem(STORAGE_USER_KEY, storedUser);
     window.dispatchEvent(new Event('auth:login'));
+  } else {
+    // In dev, log the response shape to help debugging missing token
+    if (import.meta.env.MODE !== 'production') console.debug('[authService] login response without token:', dataRaw);
   }
 
-  return data;
+  return dataRaw as JwtResponse;
 }
 
 async function register(payload: RegisterRequest) {
-  const url = `${API_BASE}/api/auth/register`;
+  const url = `/auth/register`;
   // ANTES: const { confirmPassword: _confirmPassword, ...bodyToSend } = payload;
   // AHORA: Enviamos todo el payload, ya que el backend espera confirmPassword
   const bodyToSend = { ...payload } as RegisterRequest; 
   
   if (!bodyToSend.roles || bodyToSend.roles.length === 0) bodyToSend.roles = ['USER'];
   try {
-    return (await axios.post(url, bodyToSend)).data;
+    return (await api.post(url, bodyToSend)).data;
   } catch (_err: unknown) { 
     // Si tu backend tiene /signup como alternativa
-    const alt = `${API_BASE}/api/auth/signup`;
-    return (await axios.post(alt, bodyToSend)).data; // Asegúrate de que esta alternativa también espera confirmPassword
+    const alt = `/auth/signup`;
+    return (await api.post(alt, bodyToSend)).data; // Asegúrate de que esta alternativa también espera confirmPassword
   }
 }
 
 function logout() {
-  localStorage.removeItem(STORAGE_TOKEN_KEY);
+  clearAuthTokens();
   localStorage.removeItem(STORAGE_USER_KEY);
   window.dispatchEvent(new Event('auth:logout'));
 }
 
 function getToken(): string | null {
-  return localStorage.getItem(STORAGE_TOKEN_KEY);
+  return getAccessToken();
 }
 
 function getCurrentUser(): JwtResponse | null {

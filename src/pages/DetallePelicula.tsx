@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 // Usamos el modal de selección de cines que provee el Navbar mediante evento
-import { getMovies, type Pelicula } from "../services/moviesService";
+import { useAllMovies } from "../hooks/useMovies";
+import { useShowtimes } from "../hooks/useShowtimes";
+import type { Movie } from '../types/Movie';
 import authService from '../services/authService';
+import { useShowtimeSelectionStore } from '../store/showtimeSelectionStore';
 import { getAllCinemas, getCinemaById } from "../services/cinemaService"; // Importar getCinemaById
 import type { Cinema } from "../types/Cinema";
 import { FiPlay } from "react-icons/fi";
@@ -39,16 +42,27 @@ const DetallePelicula: React.FC = () => {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
-  const [pelicula, setPelicula] = useState<Pelicula | null>(null);
+  const [pelicula, setPelicula] = useState<Movie | null>(null);
+  const { data: allMovies = [] } = useAllMovies();
   const [cinemas, setCinemas] = useState<Cinema[]>([]);
-  const availableFormats = ["2D", "3D", "IMAX"];
   const [loading, setLoading] = useState(true);
   
   const peliculaId = searchParams.get('pelicula');
   
   const availableDates = getAvailableDates();
-  const availableTimes = selectedDay && selectedFormat ? 
-    ["14:30", "17:00", "19:30", "22:00"] : [];
+  const showtimesQuery = useShowtimes({ movieId: pelicula?.id, cinemaId: selectedCinemaData?.id, date: selectedDay || '' });
+  const backendShowtimes = showtimesQuery.data || [];
+  const availableFormats = useMemo(() => {
+    const formats = new Set<string>();
+    backendShowtimes.forEach(s => { if (s.format) formats.add(s.format); });
+    return Array.from(formats);
+  }, [backendShowtimes]);
+  const availableTimes = useMemo(() => {
+    if (!selectedDay || !selectedFormat) return [];
+    return backendShowtimes
+      .filter(s => s.format === selectedFormat)
+      .map(s => new Date(s.startTime).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }));
+  }, [selectedDay, selectedFormat, backendShowtimes]);
 
   const isReadyToBuy = selectedDay && selectedTime && selectedFormat;
 
@@ -57,16 +71,12 @@ const DetallePelicula: React.FC = () => {
     
     const fetchData = async () => {
       try {
-        const [moviesData, cinemasData] = await Promise.all([
-          getMovies(),
-          getAllCinemas()
-        ]);
-        
-        const foundMovie = moviesData.find(p => p.id === peliculaId);
-        setPelicula(foundMovie || null);
+        if (peliculaId) {
+          const foundMovie = allMovies.find(p => String(p.id) === peliculaId) || null;
+          setPelicula(foundMovie);
+        }
+        const cinemasData = await getAllCinemas();
         setCinemas(cinemasData);
-        
-        // Leer el cine seleccionado desde localStorage (guardado por el Navbar como 'selectedCine')
         const savedCine = localStorage.getItem('selectedCine');
         if (savedCine) {
           try {
@@ -77,7 +87,6 @@ const DetallePelicula: React.FC = () => {
             console.error('Error parsing selectedCine from localStorage', err);
           }
         } else {
-          // Abrir el modal del Navbar (no una copia) indicando que viene de DetallePelicula
           window.dispatchEvent(new CustomEvent('openCinemaModal', { detail: { from: 'detalle' } }));
         }
       } catch (error) {
@@ -86,13 +95,8 @@ const DetallePelicula: React.FC = () => {
         setLoading(false);
       }
     };
-
-    if (peliculaId) {
-      fetchData();
-    } else {
-      setLoading(false);
-    }
-  }, [peliculaId]);
+    fetchData();
+  }, [peliculaId, allMovies]);
 
   // Nuevo useEffect para cargar los datos del cine cuando selectedCineName o cinemas cambien
   useEffect(() => {
@@ -160,47 +164,52 @@ const DetallePelicula: React.FC = () => {
           <div className="lg:col-span-1">
             <div className="mb-6">
               <img 
-                src={pelicula.imagenCard || '/placeholder.jpg'} 
-                alt={pelicula.titulo}
+                src={pelicula.posterUrl || '/placeholder.jpg'} 
+                alt={pelicula.title}
                 className="w-full rounded-lg shadow-lg"
               />
             </div>
             
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <span className="px-2 py-1 rounded text-sm" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>{pelicula.genero}</span>
-                <span className="px-2 py-1 rounded text-sm" style={{ backgroundColor: "#BB2228", color: "#EFEFEE" }}>{pelicula.clasificacion}</span>
+                {pelicula.genre && <span className="px-2 py-1 rounded text-sm" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>{pelicula.genre}</span>}
+                {pelicula.status && <span className="px-2 py-1 rounded text-sm" style={{ backgroundColor: "#BB2228", color: "#EFEFEE" }}>{pelicula.status}</span>}
               </div>
               
               <div>
                 <h3 className="font-bold mb-2">FORMATOS DISPONIBLES</h3>
-                <span className="px-3 py-1 rounded" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>2D</span>
+                {availableFormats.length === 0 ? (
+                  <span className="px-3 py-1 rounded" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>N/D</span>
+                ) : availableFormats.map(f => (
+                  <span key={f} className="px-3 py-1 rounded mr-2" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>{f}</span>
+                ))}
               </div>
               
               <div>
                 <h3 className="font-bold mb-2">DURACIÓN</h3>
-                <p style={{ color: "#E3E1E2" }}>{pelicula.duracion}</p>
+                {pelicula.durationMinutes && <p style={{ color: "#E3E1E2" }}>{pelicula.durationMinutes} min</p>}
               </div>
               
               <div>
                 <h3 className="font-bold mb-2">FECHA DE ESTRENO</h3>
-                <p style={{ color: "#E3E1E2" }}>18 Octubre, 2025</p>
+                <p style={{ color: "#E3E1E2" }}>{pelicula.releaseDate ? new Date(pelicula.releaseDate).toLocaleDateString('es-PE') : 'Sin fecha'}</p>
               </div>
               
               <div>
                 <h3 className="font-bold mb-2">DISTRIBUIDOR</h3>
-                <p style={{ color: "#E3E1E2" }}>UNITED INTERNATIONAL PICTURES</p>
+                {/* Distribuidor se mostraría si viene del backend */}
+                <p style={{ color: "#E3E1E2" }}>{pelicula.trailerUrl ? 'Trailer disponible' : 'Sin trailer'}</p>
               </div>
             </div>
           </div>
           
           <div className="lg:col-span-2">
             <div className="mb-6">
-              <h1 className="text-4xl font-bold mb-4">{pelicula.titulo.toUpperCase()}</h1>
+              <h1 className="text-4xl font-bold mb-4">{pelicula.title.toUpperCase()}</h1>
               <div className="relative mb-6">
                 <img 
-                  src={pelicula.banner || pelicula.imagenCard || '/placeholder.jpg'} 
-                  alt={pelicula.titulo}
+                  src={pelicula.posterUrl || '/placeholder.jpg'} 
+                  alt={pelicula.title}
                   className="w-full h-64 object-cover rounded-lg"
                 />
                 <button className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg hover:bg-opacity-70 transition-all">
@@ -208,7 +217,7 @@ const DetallePelicula: React.FC = () => {
                 </button>
               </div>
               <p className="text-sm leading-relaxed" style={{ color: "#E3E1E2" }}>
-                {pelicula.sinopsis}
+                {pelicula.synopsis}
               </p>
             </div>
             
@@ -299,7 +308,15 @@ const DetallePelicula: React.FC = () => {
                   {availableTimes.length > 0 ? availableTimes.map((time) => (
                     <button 
                       key={time}
-                      onClick={() => setSelectedTime(time)}
+                      onClick={() => {
+                        const user = authService.getCurrentUser();
+                        if (!user) {
+                          // Open the profile/login modal provided by Navbar
+                          window.dispatchEvent(new CustomEvent('openProfileModal', { detail: { from: 'horario-click' } }));
+                          return;
+                        }
+                        setSelectedTime(time);
+                      }}
                       className="px-4 py-2 rounded transition-colors"
                       style={{
                         backgroundColor: selectedTime === time ? "#BB2228" : "#393A3A",
@@ -338,21 +355,31 @@ const DetallePelicula: React.FC = () => {
                       window.dispatchEvent(new CustomEvent('openProfileModal'));
                       return;
                     }
-
-                    // Guardar selección y avanzar a confirmación
-                    try {
-                      localStorage.setItem('movieSelection', JSON.stringify({
-                        pelicula: pelicula,
-                        selectedDay,
-                        selectedTime,
-                        selectedFormat,
-                        selectedCineId: selectedCinemaData.id // Guardar el ID del cine
-                      }));
-                    } catch (e) {
-                      console.error('Error saving movieSelection', e);
+                    // Encontrar showtime real que coincida con selección
+                    const matchedShowtime = backendShowtimes.find(st => {
+                      const showTimeLocal = new Date(st.startTime).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+                      const showDate = new Date(st.startTime).toISOString().split('T')[0];
+                      return showTimeLocal === selectedTime && st.format === selectedFormat && showDate === selectedDay;
+                    });
+                    if (!matchedShowtime) {
+                      alert('No se encontró la función seleccionada. Intenta nuevamente.');
+                      return;
                     }
-
-                    window.location.href = `/confirmacion?pelicula=${pelicula.id}&day=${selectedDay}&time=${selectedTime}&format=${selectedFormat}&cineId=${selectedCinemaData.id}`;
+                    const selectionStore = useShowtimeSelectionStore.getState();
+                    selectionStore.setSelection({
+                      showtimeId: matchedShowtime.id,
+                      movieId: pelicula.id,
+                      movieTitle: pelicula.title,
+                      cinemaId: selectedCinemaData.id,
+                      cinemaName: selectedCinemaData.name,
+                      theaterName: matchedShowtime.theaterName || 'Sala', // placeholder si no existe
+                      date: selectedDay!,
+                      time: selectedTime!,
+                      format: selectedFormat!,
+                      price: matchedShowtime.price
+                    });
+                    // Navegar a selección de butacas con showtimeId + params informativos
+                    window.location.href = `/butacas/${matchedShowtime.id}?pelicula=${pelicula.id}&day=${selectedDay}&time=${selectedTime}&format=${selectedFormat}&cineId=${selectedCinemaData.id}`;
                   }}
                 >
                   COMPRAR ENTRADAS
