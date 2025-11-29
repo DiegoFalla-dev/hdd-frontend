@@ -65,13 +65,22 @@ async function login(payload: LoginRequest): Promise<JwtResponse> {
     const refresh = (dataRaw.refreshToken || dataRaw.refresh_token) as string | undefined;
     setAuthTokens({ accessToken: maybeToken, refreshToken: refresh });
 
+    // Normalizar roles del backend (e.g., ROLE_ADMIN -> ADMIN, ROLE_MANAGER -> STAFF, ROLE_USER -> USER)
+    const rawRoles: string[] = Array.isArray(dataRaw.roles) ? dataRaw.roles : [];
+    const normalizedRoles = rawRoles.map(r => {
+      if (r === 'ROLE_ADMIN' || r === 'ADMIN') return 'ADMIN';
+      if (r === 'ROLE_MANAGER' || r === 'MANAGER' || r === 'STAFF') return 'STAFF';
+      if (r === 'ROLE_USER' || r === 'USER') return 'USER';
+      return r; // fallback
+    });
+
     const storedUser = JSON.stringify({
       id: dataRaw.id,
       username: dataRaw.username,
       firstName: dataRaw.firstName,
       lastName: dataRaw.lastName,
       email: dataRaw.email,
-      roles: dataRaw.roles || [],
+      roles: normalizedRoles,
       avatar: dataRaw.avatar ?? null,
       birthDate: dataRaw.birthDate ?? null,
       nationalId: dataRaw.nationalId ?? null,
@@ -99,7 +108,15 @@ async function login(payload: LoginRequest): Promise<JwtResponse> {
 async function register(payload: RegisterRequest) {
   const url = `/auth/register`;
   const bodyToSend = { ...payload } as RegisterRequest;
-  if (!bodyToSend.roles || bodyToSend.roles.length === 0) bodyToSend.roles = ['USER'];
+  // Default role
+  const rawRoles = (!bodyToSend.roles || bodyToSend.roles.length === 0) ? ['USER'] : bodyToSend.roles;
+  // Map frontend roles to backend ROLE_*
+  const mappedRoles = rawRoles.map(r => {
+    if (r === 'ADMIN' || r === 'ROLE_ADMIN') return 'ROLE_ADMIN';
+    if (r === 'STAFF' || r === 'MANAGER' || r === 'ROLE_MANAGER') return 'ROLE_MANAGER';
+    return 'ROLE_USER';
+  });
+  (bodyToSend as any).roles = mappedRoles;
   // Only call the single canonical endpoint. If it fails, propagate the error to the caller.
   const resp = await api.post(url, bodyToSend);
   return resp.data;

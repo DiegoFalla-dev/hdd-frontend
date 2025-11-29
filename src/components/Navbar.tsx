@@ -9,13 +9,15 @@ import { FaUser, FaMapMarkerAlt, FaChevronDown } from 'react-icons/fa';
 import { getAllCinemas } from '../services/cinemaService'; // Asume que este servicio existe
 import { prefetchOnCinemaSelection } from '../lib/prefetch';
 import type { Cinema } from '../types/Cinema'; // Asume que este tipo existe
+import { useAuth } from '../context/AuthContext';
 
 type NavbarProps = {
-  variant?: string;
+  variant?: 'light' | 'dark';
   heroHeight?: number;
 };
 
-const Navbar: React.FC<NavbarProps> = () => {
+const Navbar: React.FC<NavbarProps> = ({ variant = 'light' }) => {
+  const { user } = useAuth();
   const [username, setUsername] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -104,32 +106,36 @@ const Navbar: React.FC<NavbarProps> = () => {
 
   const location = useLocation();
   const isHome = location.pathname === '/';
+  const forceDark = variant === 'dark';
 
   return (
-    <header className={`cineplus-header ${isScrolled ? 'scrolled' : 'transparent'} ${isHome ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white' : 'bg-white text-gray-800'}`}>
+    <header className={`cineplus-header ${isScrolled ? 'scrolled' : 'transparent'} ${isHome ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white' : forceDark ? 'bg-black text-white' : 'bg-white text-gray-800'}`}>
       <div className="navbar-container">
         <div className="navbar-left">
-          <NavLink to="/" className={`logo-text flex items-center gap-2 ${isHome ? 'text-white' : ''}`}>
+          <NavLink to="/" className={`logo-text flex items-center gap-2 ${(isHome || forceDark) ? 'text-white' : ''}`}>
             <img src="https://i.imgur.com/K9o09F6.png" alt="Logo" className="logo-img" />
             <div className="logo-brand"><span className="logo-cine">Cine</span><span className="logo-plus">Plus</span></div>
           </NavLink>
         </div>
         <nav className={`main-nav ${isHome ? 'opacity-95' : ''}`}>
           <ul className="flex space-x-6">
-            <li><NavLink to="/cartelera" className={({ isActive }) => isActive ? 'active font-semibold' : isHome ? 'text-white/90 hover:text-white' : ''}>Cartelera</NavLink></li>
-            <li><NavLink to="/cines" className={({ isActive }) => isActive ? 'active font-semibold' : isHome ? 'text-white/90 hover:text-white' : ''}>Cines</NavLink></li>
-            <li><NavLink to="/promociones" className={({ isActive }) => isActive ? 'active font-semibold' : isHome ? 'text-white/90 hover:text-white' : ''}>Promociones</NavLink></li>
-            <li><NavLink to="/dulceria" className={({ isActive }) => isActive ? 'active font-semibold' : isHome ? 'text-white/90 hover:text-white' : ''}>Dulcería</NavLink></li>
+            <li><NavLink to="/cartelera" className={({ isActive }) => isActive ? 'active font-semibold' : (isHome || forceDark) ? 'text-white/90 hover:text-white' : ''}>Cartelera</NavLink></li>
+            <li><NavLink to="/cines" className={({ isActive }) => isActive ? 'active font-semibold' : (isHome || forceDark) ? 'text-white/90 hover:text-white' : ''}>Cines</NavLink></li>
+            <li><NavLink to="/promociones" className={({ isActive }) => isActive ? 'active font-semibold' : (isHome || forceDark) ? 'text-white/90 hover:text-white' : ''}>Promociones</NavLink></li>
+            <li><NavLink to="/dulceria" className={({ isActive }) => isActive ? 'active font-semibold' : (isHome || forceDark) ? 'text-white/90 hover:text-white' : ''}>Dulcería</NavLink></li>
+            {Array.isArray(user?.roles) && (user.roles.includes('STAFF') || user.roles.includes('ADMIN')) && (
+              <li><NavLink to="/staff" className={({ isActive }) => isActive ? 'active font-semibold' : (isHome || forceDark) ? 'text-white/90 hover:text-white' : ''}>Staff</NavLink></li>
+            )}
           </ul>
         </nav>
         <div className="navbar-right">
-          <button className={`cinema-selector ${isHome ? 'bg-white/20 text-white' : ''}`} onClick={handleOpenModal}>
-            <FaMapMarkerAlt size={16} color="white" />
+          <button className={`cinema-selector ${(isHome || forceDark) ? 'bg-white/20 text-white' : ''}`} onClick={handleOpenModal}>
+            <FaMapMarkerAlt size={16} color={(isHome || forceDark) ? 'white' : 'black'} />
             <span>{selectedCinema ? selectedCinema.name : 'ELEGIR CINE'}</span>
-            <FaChevronDown size={12} color="white" />
+            <FaChevronDown size={12} color={(isHome || forceDark) ? 'white' : 'black'} />
           </button>
           <button type="button" className="icon-user" aria-label="Perfil usuario" onClick={() => setIsProfileOpen(true)}>
-            <FaUser size={20} color="white" />
+            <FaUser size={20} color={(isHome || forceDark) ? 'white' : 'black'} />
           </button>
         </div>
       </div>
