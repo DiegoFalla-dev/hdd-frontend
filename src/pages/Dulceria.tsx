@@ -49,8 +49,9 @@ export default function Dulceria() {
   const handleApply = () => {
     if (selectedCine) {
       setShowCineModal(false);
-      // Recargar la página para que el Navbar se actualice
-      window.location.reload();
+      // Cerrar modal y mantener selección sin recargar la página
+      // Si otros componentes necesitan saber el cine, deberían leerlo del store
+      // o de un contexto compartido. Evitamos reload para no entrar en bucle.
     }
   };
 
@@ -190,7 +191,7 @@ onClick={() => setShowCineModal(true)}
       </div>
 
       <SideModal 
-        isOpen={showCineModal || !selectedCine} 
+        isOpen={showCineModal} 
         onClose={() => navigate('/')}
         title="Seleccionar Cine"
       >
