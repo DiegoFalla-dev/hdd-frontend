@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService, { type LoginRequest, type JwtResponse, type RegisterRequest } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 import './ProfilePanel.css';
 import { getAllCinemas } from '../services/cinemaService';
 import type { Cinema } from '../types/Cinema';
@@ -16,6 +17,7 @@ type ActiveView = 'mainProfile' | 'account' | 'purchases' | 'payment' | 'contact
 
 const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const navigate = useNavigate();
+  const { logout, login: authLogin } = useAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUserData, setCurrentUserData] = useState<JwtResponse | null>(null);
   const [activeView, setActiveView] = useState<ActiveView>('login'); // Estado para la vista activa
@@ -155,34 +157,27 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
+    // Validar campos requeridos antes de llamar API
+    if (!loginForm.usernameOrEmail?.trim() || !loginForm.password?.trim()) {
+      setLoginError('Por favor completa correo y contraseña.');
+      return;
+    }
     try {
-      const response = await authService.login(loginForm);
-      if (response.token) {
-        setIsLoggedIn(true);
-        const updatedUser = authService.getCurrentUser();
-        setCurrentUserData(updatedUser);
-        setActiveView('mainProfile'); // Mostrar la vista principal del perfil después del login
-      } else {
-        setLoginError('Credenciales incorrectas o error al iniciar sesión.');
-      }
+      // Usar AuthContext para login (recarga de página en éxito ya gestionada allí)
+      await authLogin(loginForm);
     } catch (error: unknown) {
       console.error('Error durante el login:', error);
       const maybeErr = error as { response?: { data?: { message?: string } } } | undefined;
       if (maybeErr && maybeErr.response && maybeErr.response.data && maybeErr.response.data.message) {
         setLoginError(maybeErr.response.data.message as string);
       } else {
-        setLoginError('Error al intentar iniciar sesión. Intenta de nuevo.');
+        setLoginError('No se pudo iniciar sesión. Verifica tus datos.');
       }
     }
   };
 
-  const handleLogout = () => {
-    authService.logout();
-    setIsLoggedIn(false);
-    setCurrentUserData(null);
-    setActiveView('login'); // Volver al formulario de login
-    if (onClose) onClose();
-    navigate('/'); // Redirige a la página principal
+  const handleLogout = async () => {
+    await logout();
   };
 
   // --- Manejo del Registro ---
