@@ -90,7 +90,7 @@ const FilterBar: React.FC = () => {
   }
 
   return (
-    <section className="flex justify-center w-full py-8 bg-black">
+    <section className="flex justify-center w-full py-8 bg-transparent">
       <form
         style={{ background: "var(--cineplus-gray-light)" }}
         className="shadow-lg rounded-md flex flex-col md:flex-row items-stretch px-2 py-4 gap-4 md:gap-0 w-full max-w-2xl md:min-w-[700px]"

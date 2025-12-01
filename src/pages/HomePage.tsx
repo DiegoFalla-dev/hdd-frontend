@@ -13,7 +13,7 @@ const HomePage: React.FC = () => {
       
       <HeroBanner />
       
-      <section className="bg-black py-8">
+      <section className="bg-transparent py-8">
         <FilterBar />
       </section>
 

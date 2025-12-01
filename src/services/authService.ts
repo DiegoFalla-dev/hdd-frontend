@@ -107,17 +107,8 @@ async function login(payload: LoginRequest): Promise<JwtResponse> {
 
 async function register(payload: RegisterRequest) {
   const url = `/auth/register`;
-  const bodyToSend = { ...payload } as RegisterRequest;
-  // Default role
-  const rawRoles = (!bodyToSend.roles || bodyToSend.roles.length === 0) ? ['USER'] : bodyToSend.roles;
-  // Map frontend roles to backend ROLE_*
-  const mappedRoles = rawRoles.map(r => {
-    if (r === 'ADMIN' || r === 'ROLE_ADMIN') return 'ROLE_ADMIN';
-    if (r === 'STAFF' || r === 'MANAGER' || r === 'ROLE_MANAGER') return 'ROLE_MANAGER';
-    return 'ROLE_USER';
-  });
-  (bodyToSend as any).roles = mappedRoles;
-  // Only call the single canonical endpoint. If it fails, propagate the error to the caller.
+  const bodyToSend: Omit<RegisterRequest, 'roles'> = (({ firstName, lastName, email, password, confirmPassword, birthDate, nationalId, phoneNumber, gender, favoriteCinema, contactPreference }) => ({ firstName, lastName, email, password, confirmPassword, birthDate, nationalId, phoneNumber, gender, favoriteCinema, contactPreference }))(payload);
+  // Do NOT send roles; let backend assign defaults to avoid ROLE_* mismatch errors
   const resp = await api.post(url, bodyToSend);
   return resp.data;
 }
