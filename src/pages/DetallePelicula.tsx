@@ -226,34 +226,55 @@ const DetallePelicula: React.FC = () => {
             </div>
             
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                {pelicula.genre && <span className="px-2 py-1 rounded text-sm" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>{pelicula.genre}</span>}
-                {pelicula.status && <span className="px-2 py-1 rounded text-sm" style={{ backgroundColor: "#BB2228", color: "#EFEFEE" }}>{pelicula.status}</span>}
+              <div className="flex items-center gap-2 flex-wrap">
+                {pelicula.genre && (
+                  <span className="px-2 py-1 rounded text-sm" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>
+                    {pelicula.genre}
+                  </span>
+                )}
+                {pelicula.status && (
+                  <span className="px-2 py-1 rounded text-sm" style={{ backgroundColor: "#BB2228", color: "#EFEFEE" }}>
+                    {pelicula.status === 'NOW_PLAYING' ? 'NOW PLAYING' : pelicula.status === 'UPCOMING' ? 'PRÓXIMAMENTE' : pelicula.status}
+                  </span>
+                )}
               </div>
               
               <div>
                 <h3 className="font-bold mb-2">FORMATOS DISPONIBLES</h3>
                 {formatsToShow.length === 0 ? (
                   <span className="px-3 py-1 rounded" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>N/D</span>
-                ) : formatsToShow.map(f => (
-                  <span key={f} className="px-3 py-1 rounded mr-2" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>{formatLabel(f)}</span>
-                ))}
+                ) : (
+                  <div className="flex gap-2 flex-wrap">
+                    {formatsToShow.map(f => (
+                      <span key={f} className="px-3 py-1 rounded" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>{formatLabel(f)}</span>
+                    ))}
+                  </div>
+                )}
               </div>
               
               <div>
                 <h3 className="font-bold mb-2">DURACIÓN</h3>
-                {pelicula.durationMinutes && <p style={{ color: "#E3E1E2" }}>{pelicula.durationMinutes} min</p>}
+                <p style={{ color: "#E3E1E2" }}>
+                  {pelicula.durationMinutes ? `${pelicula.durationMinutes} min` : 'No disponible'}
+                </p>
               </div>
               
               <div>
                 <h3 className="font-bold mb-2">FECHA DE ESTRENO</h3>
-                <p style={{ color: "#E3E1E2" }}>{pelicula.releaseDate ? new Date(pelicula.releaseDate).toLocaleDateString('es-PE') : 'Sin fecha'}</p>
+                <p style={{ color: "#E3E1E2" }}>
+                  {pelicula.releaseDate
+                    ? new Date(pelicula.releaseDate).toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' })
+                    : 'Sin fecha'}
+                </p>
               </div>
               
               <div>
-                <h3 className="font-bold mb-2">DISTRIBUIDOR</h3>
-                {/* Distribuidor se mostraría si viene del backend */}
-                <p style={{ color: "#E3E1E2" }}>{pelicula.trailerUrl ? 'Trailer disponible' : 'Sin trailer'}</p>
+                <h3 className="font-bold mb-2">IDIOMAS</h3>
+                <p style={{ color: "#E3E1E2" }}>
+                  {pelicula.languages && pelicula.languages.length > 0
+                    ? pelicula.languages.join(', ')
+                    : 'Español'}
+                </p>
               </div>
             </div>
           </div>
