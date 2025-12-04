@@ -9,7 +9,7 @@ import MovieCarousel from '../components/MovieCarousel';
 const HomePage: React.FC = () => {
   return (
     <div className="cineplus-home">
-      <Navbar variant="landing" heroHeight={600} />
+      <Navbar variant="dark" heroHeight={600} />
       
       <HeroBanner />
       

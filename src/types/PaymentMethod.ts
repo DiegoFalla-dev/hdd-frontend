@@ -14,6 +14,7 @@ export interface PaymentMethod {
   isDefault?: boolean;
   default?: boolean;
   createdAt?: string;
+  phone?: string; // Para métodos tipo YAPE
 }
 
 export interface CreatePaymentMethodRequest {

@@ -12,9 +12,8 @@ import { getShowtimes } from '../services/showtimeService';
 import { useAuth } from '../context/AuthContext';
 import { usePaymentMethods } from '../hooks/usePaymentMethods';
 import paymentMethodService from '../services/paymentMethodService';
-import { useSeats } from '../hooks/useSeats';
-import type { Seat } from '../types/Seat';
 import type { CreateOrderItemDTO } from '../services/orderService';
+import type { Seat } from '../types/Seat';
 // OrderConfirmation type not used here
 
 const CarritoTotal: React.FC = () => {
@@ -286,18 +285,6 @@ const CarritoTotal: React.FC = () => {
       console.warn('Diferencia en grandTotal calculado vs preview', { computedGrand, expectedGrand });
     }
 
-    interface PaymentPayloadItem {
-      type: 'TICKET' | 'CONCESSION';
-      showtimeId?: number;
-      seatCode?: string;
-      ticketType?: string;
-      productId?: number;
-      name?: string;
-      quantity: number;
-      unitPrice: number;
-      totalPrice: number;
-    }
-
     // Build mapping seatCode -> ticketType using pendingOrder.entradas grouping
     let seatTypeMap: Record<string, string | undefined> = {};
     try {
@@ -322,28 +309,6 @@ const CarritoTotal: React.FC = () => {
       console.warn('Could not read pendingOrder to map ticket types', e);
       seatTypeMap = {};
     }
-
-    const items: PaymentPayloadItem[] = paymentItems.map(it => {
-      if (it.type === 'TICKET') {
-        return {
-          type: 'TICKET',
-          showtimeId: it.showtimeId,
-          seatCode: it.seatCode,
-          ticketType: it.seatCode ? seatTypeMap[it.seatCode] : undefined,
-          quantity: 1,
-          unitPrice: it.unitPrice,
-          totalPrice: it.totalPrice,
-        };
-      }
-      return {
-        type: 'CONCESSION',
-        productId: it.productId,
-        name: it.name,
-        quantity: it.quantity,
-        unitPrice: it.unitPrice,
-        totalPrice: it.totalPrice,
-      };
-    });
 
     // Validar que el usuario esté autenticado
     if (!user || !user.id) {

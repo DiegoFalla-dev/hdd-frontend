@@ -78,11 +78,11 @@ const Confirmacion: React.FC = () => {
       // Logo text (simulado)
       pdf.setTextColor(255, 255, 255);
       pdf.setFontSize(28);
-      pdf.setFont(undefined, 'bold');
+      pdf.setFont(undefined as any, 'bold');
       pdf.text('CINEPLUS', margin, 50);
       
       pdf.setFontSize(11);
-      pdf.setFont(undefined, 'normal');
+      pdf.setFont(undefined as any, 'normal');
       pdf.text('Tu experiencia cinematográfica premium', margin, 70);
       
       // QR Code en header
@@ -94,35 +94,35 @@ const Confirmacion: React.FC = () => {
       let y = 140;
       pdf.setTextColor(0, 0, 0);
       pdf.setFontSize(18);
-      pdf.setFont(undefined, 'bold');
+      pdf.setFont(undefined as any, 'bold');
       pdf.text('COMPROBANTE DE PAGO', margin, y);
       
       y += 30;
       pdf.setFontSize(10);
-      pdf.setFont(undefined, 'normal');
+      pdf.setFont(undefined as any, 'normal');
       
       // Datos de la orden en dos columnas
-      const fecha = confirmation.orderDate || confirmation.createdAt 
-        ? new Date(confirmation.orderDate || confirmation.createdAt).toLocaleString('es-PE', { 
+      const fecha = confirmation.orderDate
+        ? new Date(confirmation.orderDate).toLocaleString('es-PE', { 
             dateStyle: 'long', 
             timeStyle: 'short' 
           })
         : new Date().toLocaleString('es-PE', { dateStyle: 'long', timeStyle: 'short' });
       
-      pdf.setFont(undefined, 'bold');
+      pdf.setFont(undefined as any, 'bold');
       pdf.text('N° Orden:', margin, y);
-      pdf.setFont(undefined, 'normal');
+      pdf.setFont(undefined as any, 'normal');
       pdf.text(`${confirmation.id || 'N/A'}`, margin + 80, y);
       
-      pdf.setFont(undefined, 'bold');
+      pdf.setFont(undefined as any, 'bold');
       pdf.text('Estado:', pageWidth / 2, y);
-      pdf.setFont(undefined, 'normal');
+      pdf.setFont(undefined as any, 'normal');
       pdf.text(confirmation.orderStatus || 'COMPLETADO', pageWidth / 2 + 60, y);
       
       y += 20;
-      pdf.setFont(undefined, 'bold');
+      pdf.setFont(undefined as any, 'bold');
       pdf.text('Fecha:', margin, y);
-      pdf.setFont(undefined, 'normal');
+      pdf.setFont(undefined as any, 'normal');
       pdf.text(fecha, margin + 80, y);
       
       // Línea divisoria
@@ -134,7 +134,7 @@ const Confirmacion: React.FC = () => {
       // SECCIÓN DE ENTRADAS
       y += 25;
       pdf.setFontSize(14);
-      pdf.setFont(undefined, 'bold');
+      pdf.setFont(undefined as any, 'bold');
       pdf.setFillColor(240, 240, 240);
       pdf.rect(margin, y - 12, pageWidth - 2 * margin, 20, 'F');
       pdf.text('🎬  ENTRADAS DE CINE', margin + 5, y);
@@ -143,15 +143,15 @@ const Confirmacion: React.FC = () => {
       pdf.setFontSize(9);
       
       if (confirmation.orderItems && confirmation.orderItems.length > 0) {
-        confirmation.orderItems.forEach((item, idx) => {
+        confirmation.orderItems.forEach((item: any, idx: number) => {
           const seatCode = item.seat?.code || item.seat?.id || 'N/A';
           const showtimeId = item.showtime?.id || 'N/A';
           
-          pdf.setFont(undefined, 'normal');
+          pdf.setFont(undefined as any, 'normal');
           pdf.text(`${idx + 1}.`, margin + 10, y);
           pdf.text(`Función: Showtime #${showtimeId}`, margin + 25, y);
           pdf.text(`Asiento: ${seatCode}`, margin + 200, y);
-          pdf.setFont(undefined, 'bold');
+          pdf.setFont(undefined as any, 'bold');
           pdf.text(`S/ ${item.price?.toFixed(2) || '0.00'}`, pageWidth - margin - 60, y, { align: 'right' });
           
           y += 18;
@@ -161,7 +161,7 @@ const Confirmacion: React.FC = () => {
           }
         });
       } else {
-        pdf.setFont(undefined, 'italic');
+        pdf.setFont(undefined as any, 'italic');
         pdf.setTextColor(150, 150, 150);
         pdf.text('Sin entradas', margin + 10, y);
         pdf.setTextColor(0, 0, 0);
@@ -171,7 +171,7 @@ const Confirmacion: React.FC = () => {
       // SECCIÓN DE CONCESIONES
       y += 15;
       pdf.setFontSize(14);
-      pdf.setFont(undefined, 'bold');
+      pdf.setFont(undefined as any, 'bold');
       pdf.setFillColor(240, 240, 240);
       pdf.rect(margin, y - 12, pageWidth - 2 * margin, 20, 'F');
       pdf.text('🍿  DULCERÍA Y BEBIDAS', margin + 5, y);
@@ -179,14 +179,14 @@ const Confirmacion: React.FC = () => {
       y += 25;
       pdf.setFontSize(9);
       
-      if (confirmation.orderConcessions && confirmation.orderConcessions.length > 0) {
-        confirmation.orderConcessions.forEach((concession, idx) => {
-          pdf.setFont(undefined, 'normal');
+      if ((confirmation as any).orderConcessions && (confirmation as any).orderConcessions.length > 0) {
+        (confirmation as any).orderConcessions.forEach((concession: any, idx: number) => {
+          pdf.setFont(undefined as any, 'normal');
           pdf.text(`${idx + 1}.`, margin + 10, y);
           pdf.text(`${concession.productName}`, margin + 25, y);
           pdf.text(`Cantidad: ${concession.quantity}`, margin + 250, y);
           pdf.text(`S/ ${concession.unitPrice?.toFixed(2) || '0.00'} c/u`, margin + 350, y);
-          pdf.setFont(undefined, 'bold');
+          pdf.setFont(undefined as any, 'bold');
           pdf.text(`S/ ${concession.totalPrice?.toFixed(2) || '0.00'}`, pageWidth - margin - 60, y, { align: 'right' });
           
           y += 18;
@@ -196,7 +196,7 @@ const Confirmacion: React.FC = () => {
           }
         });
       } else {
-        pdf.setFont(undefined, 'italic');
+        pdf.setFont(undefined as any, 'italic');
         pdf.setTextColor(150, 150, 150);
         pdf.text('Sin productos de dulcería', margin + 10, y);
         pdf.setTextColor(0, 0, 0);
@@ -209,14 +209,14 @@ const Confirmacion: React.FC = () => {
       pdf.line(margin, y, pageWidth - margin, y);
       
       y += 20;
-      const total = confirmation.totalAmount || confirmation.grandTotal || 0;
-      const ticketsSubtotal = confirmation.orderItems?.reduce((sum, item) => sum + (item.price || 0), 0) || 0;
-      const concessionsSubtotal = confirmation.orderConcessions?.reduce((sum, c) => sum + (c.totalPrice || 0), 0) || 0;
+      const total = confirmation.totalAmount || 0;
+      const ticketsSubtotal = confirmation.orderItems?.reduce((sum: number, item: any) => sum + (item.price || 0), 0) || 0;
+      const concessionsSubtotal = (confirmation as any).orderConcessions?.reduce((sum: number, c: any) => sum + (c.totalPrice || 0), 0) || 0;
       const subtotalBeforeTax = total / 1.18;
       const igv = total - subtotalBeforeTax;
       
       pdf.setFontSize(10);
-      pdf.setFont(undefined, 'normal');
+      pdf.setFont(undefined as any, 'normal');
       
       pdf.text('Subtotal Entradas:', pageWidth - margin - 200, y);
       pdf.text(`S/ ${ticketsSubtotal.toFixed(2)}`, pageWidth - margin - 60, y, { align: 'right' });
@@ -239,7 +239,7 @@ const Confirmacion: React.FC = () => {
       
       y += 20;
       pdf.setFontSize(14);
-      pdf.setFont(undefined, 'bold');
+      pdf.setFont(undefined as any, 'bold');
       pdf.text('TOTAL A PAGAR:', pageWidth - margin - 200, y);
       pdf.setFontSize(16);
       pdf.text(`S/ ${total.toFixed(2)}`, pageWidth - margin - 60, y, { align: 'right' });
@@ -248,7 +248,7 @@ const Confirmacion: React.FC = () => {
       if (confirmation.promotion) {
         y += 25;
         pdf.setFontSize(9);
-        pdf.setFont(undefined, 'italic');
+        pdf.setFont(undefined as any, 'italic');
         pdf.setTextColor(0, 128, 0);
         pdf.text(`✓ Promoción aplicada: ${confirmation.promotion.code}`, margin, y);
         pdf.setTextColor(0, 0, 0);
@@ -261,7 +261,7 @@ const Confirmacion: React.FC = () => {
       
       y += 20;
       pdf.setFontSize(9);
-      pdf.setFont(undefined, 'normal');
+      pdf.setFont(undefined as any, 'normal');
       pdf.setTextColor(100, 100, 100);
       pdf.text('Gracias por tu compra en CINEPLUS', pageWidth / 2, y, { align: 'center' });
       
@@ -302,7 +302,7 @@ const Confirmacion: React.FC = () => {
           <h2 className="text-lg font-semibold mb-4">Detalle de Entradas</h2>
           <div className="space-y-3">
             {confirmation.orderItems && confirmation.orderItems.length > 0 ? (
-              confirmation.orderItems.map((item, idx) => (
+              confirmation.orderItems.map((item: any, idx: number) => (
                 <div key={idx} className="border border-gray-700 rounded p-4 bg-gray-800/40">
                   <p className="text-xs text-gray-400 mb-1">Showtime: {item.showtime?.id || 'N/A'}</p>
                   <p className="text-sm font-semibold mb-1">Asiento: {item.seat?.code || item.seat?.id || 'N/A'}</p>
@@ -317,8 +317,8 @@ const Confirmacion: React.FC = () => {
           
           <h2 className="text-lg font-semibold mt-6 mb-4">Concesiones (Dulcería)</h2>
           <div className="space-y-3">
-            {confirmation.orderConcessions && confirmation.orderConcessions.length > 0 ? (
-              confirmation.orderConcessions.map((concession, idx) => (
+            {(confirmation as any).orderConcessions && (confirmation as any).orderConcessions.length > 0 ? (
+              (confirmation as any).orderConcessions.map((concession: any, idx: number) => (
                 <div key={idx} className="border border-gray-700 rounded p-4 bg-gray-800/40">
                   <p className="text-sm font-semibold mb-1">{concession.productName}</p>
                   <p className="text-sm mb-1">Cantidad: {concession.quantity}</p>
@@ -339,11 +339,11 @@ const Confirmacion: React.FC = () => {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>Entradas</span>
-                <span>S/ {(confirmation.orderItems?.reduce((sum, item) => sum + (item.price || 0), 0) || 0).toFixed(2)}</span>
+                <span>S/ {(confirmation.orderItems?.reduce((sum: number, item: any) => sum + (item.price || 0), 0) || 0).toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Concesiones</span>
-                <span>S/ {(confirmation.orderConcessions?.reduce((sum, c) => sum + (c.totalPrice || 0), 0) || 0).toFixed(2)}</span>
+                <span>S/ {((confirmation as any).orderConcessions?.reduce((sum: number, c: any) => sum + (c.totalPrice || 0), 0) || 0).toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>IGV (18%)</span>
