@@ -19,6 +19,7 @@ interface NewShowtimeForm {
   time?: string; // HH:mm
   format?: string;
   language?: string;
+  price?: number;
 }
 
 export default function ShowtimesAdmin() {
@@ -29,10 +30,12 @@ export default function ShowtimesAdmin() {
   const [existing, setExisting] = useState<Showtime[]>([]);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const loadShowtimes = async () => {
-    if (!form.movieId || !form.cinemaId) { setExisting([]); return; }
-    const params: Record<string, unknown> = { movie: form.movieId, cinema: form.cinemaId };
+    if (!form.cinemaId) { setExisting([]); return; }
+    const params: Record<string, unknown> = { cinema: form.cinemaId };
+    if (form.movieId) params.movie = form.movieId;
     const resp = await api.get<Showtime[]>('/showtimes', { params });
     setExisting(Array.isArray(resp.data) ? resp.data : []);
   };
@@ -50,8 +53,34 @@ export default function ShowtimesAdmin() {
   }, [form.cinemaId]);
 
   const removeShowtime = async (id: number) => {
-    await api.delete(`/showtimes/${id}`);
-    await loadShowtimes();
+    if (!confirm('¿Estás seguro de eliminar esta función?')) return;
+    try {
+      await api.delete(`/showtimes/${id}`);
+      await loadShowtimes();
+    } catch (err) {
+      console.error('Error eliminando función', err);
+      setErrorMsg('Error al eliminar la función');
+    }
+  };
+
+  const editShowtime = (showtime: Showtime) => {
+    setEditingId(showtime.id!);
+    setForm({
+      cinemaId: showtime.cinemaId,
+      movieId: showtime.movieId,
+      theaterId: showtime.theaterId,
+      date: showtime.date,
+      time: showtime.time,
+      format: showtime.format === '_2D' ? '2D' : showtime.format === '_3D' ? '3D' : showtime.format,
+      language: showtime.language,
+      price: showtime.price,
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm({ cinemaId: form.cinemaId });
+    setErrorMsg('');
   };
 
   useEffect(() => {
@@ -65,7 +94,7 @@ export default function ShowtimesAdmin() {
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
-    const { movieId, cinemaId, theaterId, date, time, format, language } = form;
+    const { movieId, cinemaId, theaterId, date, time, format, language, price } = form;
     if (!cinemaId) { setErrorMsg('Seleccione un cine.'); return; }
     if (!movieId) { setErrorMsg('Seleccione una película.'); return; }
     if (!theaterId) { setErrorMsg('Seleccione una sala.'); return; }
@@ -73,6 +102,7 @@ export default function ShowtimesAdmin() {
     if (!time) { setErrorMsg('Seleccione la hora.'); return; }
     if (!format) { setErrorMsg('Seleccione el formato.'); return; }
     if (!language) { setErrorMsg('Seleccione el idioma.'); return; }
+    if (!price || price <= 0) { setErrorMsg('Ingrese un precio válido.'); return; }
 
     const mapFormat = (f?: string) => {
       if (!f) return undefined;
@@ -80,16 +110,21 @@ export default function ShowtimesAdmin() {
       if (f === '3D') return '_3D';
       return f; // XD stays as XD
     };
-    const payload = { movieId, cinemaId, theaterId, date, time, format: mapFormat(format), language };
+    const payload = { movieId, cinemaId, theaterId, date, time, format: mapFormat(format), language, price };
     try {
       setSaving(true);
-      await api.post('/showtimes', payload);
+      if (editingId) {
+        await api.put(`/showtimes/${editingId}`, payload);
+      } else {
+        await api.post('/showtimes', payload);
+      }
       // recargar lista y limpiar
       await loadShowtimes();
       setForm({ cinemaId, movieId });
+      setEditingId(null);
     } catch (err: any) {
-      console.error('Error creando función', err);
-      const msg = (err?.response?.data?.message) || err?.message || 'Error al crear función';
+      console.error(editingId ? 'Error editando función' : 'Error creando función', err);
+      const msg = (err?.response?.data?.message) || err?.message || (editingId ? 'Error al editar función' : 'Error al crear función');
       setErrorMsg(String(msg));
     } finally {
       setSaving(false);
@@ -156,10 +191,19 @@ export default function ShowtimesAdmin() {
                 {languageOptions.map(l => (<option key={l} value={l}>{l}</option>))}
               </select>
             </div>
-            <div className="flex items-end">
-              <button type="submit" disabled={saving} className="px-4 py-2 rounded w-full" style={{ backgroundColor: 'var(--cinepal-primary)', color: 'var(--cinepal-bg-100)', opacity: saving ? 0.7 : 1 }}>
-                {saving ? 'Creando...' : 'Crear Función'}
+            <div>
+              <label className="block text-sm font-medium mb-1">Precio *</label>
+              <input className="p-2 rounded w-full" disabled={!form.cinemaId} style={{ backgroundColor: 'var(--cinepal-bg-100)', color: 'var(--cinepal-gray-900)' }} type="number" step="0.01" min="0" placeholder="10.00" value={form.price || ''} onChange={e => setForm(f => ({ ...f, price: Number(e.target.value) }))} />
+            </div>
+            <div className="flex items-end gap-2 md:col-span-1">
+              <button type="submit" disabled={saving} className="px-4 py-2 rounded flex-1" style={{ backgroundColor: 'var(--cinepal-primary)', color: 'var(--cinepal-bg-100)', opacity: saving ? 0.7 : 1 }}>
+                {saving ? (editingId ? 'Guardando...' : 'Creando...') : (editingId ? 'Guardar Cambios' : 'Crear Función')}
               </button>
+              {editingId && (
+                <button type="button" onClick={cancelEdit} className="px-4 py-2 rounded" style={{ backgroundColor: 'var(--cinepal-gray-600)', color: 'var(--cinepal-bg-100)' }}>
+                  Cancelar
+                </button>
+              )}
             </div>
           </form>
 
@@ -180,7 +224,8 @@ export default function ShowtimesAdmin() {
                       <div>Inicio: {s.startTime}</div>
                       <div>Formato: {s.format} | Idioma: {s.language}</div>
                       <div className="flex gap-2 mt-2">
-                        <button className="px-3 py-2 rounded" style={{ backgroundColor: 'var(--cinepal-primary)', color: 'var(--cinepal-bg-100)' }} onClick={() => removeShowtime(s.id!)}>Borrar</button>
+                        <button className="px-3 py-2 rounded flex-1" style={{ backgroundColor: 'var(--cinepal-secondary)', color: 'var(--cinepal-bg-100)' }} onClick={() => editShowtime(s)}>Editar</button>
+                        <button className="px-3 py-2 rounded flex-1" style={{ backgroundColor: 'var(--cinepal-primary)', color: 'var(--cinepal-bg-100)' }} onClick={() => removeShowtime(s.id!)}>Borrar</button>
                       </div>
                     </div>
                   ))}
@@ -194,7 +239,8 @@ export default function ShowtimesAdmin() {
                     <div>Inicio: {s.startTime}</div>
                     <div>Formato: {s.format} | Idioma: {s.language}</div>
                     <div className="flex gap-2 mt-2">
-                      <button className="px-3 py-2 rounded" style={{ backgroundColor: 'var(--cinepal-primary)', color: 'var(--cinepal-bg-100)' }} onClick={() => removeShowtime(s.id!)}>Borrar</button>
+                      <button className="px-3 py-2 rounded flex-1" style={{ backgroundColor: 'var(--cinepal-secondary)', color: 'var(--cinepal-bg-100)' }} onClick={() => editShowtime(s)}>Editar</button>
+                      <button className="px-3 py-2 rounded flex-1" style={{ backgroundColor: 'var(--cinepal-primary)', color: 'var(--cinepal-bg-100)' }} onClick={() => removeShowtime(s.id!)}>Borrar</button>
                     </div>
                   </div>
                 ))}

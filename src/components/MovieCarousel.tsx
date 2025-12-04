@@ -3,6 +3,7 @@ import { PlusCircle } from "react-feather";
 import { fetchAllMovies } from "../services/moviesService";
 import type { Movie, MovieStatus } from '../types/Movie';
 import { useNavigate } from "react-router-dom";
+import { COLORS } from "../styles/colors";
 
 const STATUS_TABS: { label: string; status: MovieStatus }[] = [
   { label: "En cartelera", status: 'NOW_PLAYING' },
@@ -86,7 +87,7 @@ const MovieCarousel: React.FC = () => {
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 bg-black/40 backdrop-blur-sm" style={{backdropFilter: 'blur(6px)'}}>
                 <button 
                   className="cursor-pointer flex items-center gap-2 font-bold px-8 py-3 rounded-full text-lg shadow-lg hover:scale-105 transition-all" 
-                  style={{ backgroundColor: "#BB2228", color: "#EFEFEE" }}
+                  style={{ backgroundColor: COLORS.primary, color: COLORS.bgLight }}
                   onClick={() => handleVerDetalles(String(currentMovies[0].id))}
                 >
                   <PlusCircle size={20}/> Ver detalles
@@ -102,12 +103,12 @@ const MovieCarousel: React.FC = () => {
             <div key={p.id} className="relative rounded shadow overflow-hidden flex items-center justify-center group" style={{width: 220, height: 300, background: 'var(--cineplus-gray-dark)'}}>
               <img src={p.posterUrl || '/placeholder.jpg'} alt={p.title} className="object-cover w-full h-full" />
               {activeTab === 0 && (
-                <span className="absolute left-0 top-2 -rotate-12 bg-[#e50914] text-white px-4 py-1 text-base font-bold shadow-lg" style={{fontFamily: 'inherit'}}>Estreno</span>
+                <span className="absolute left-0 top-2 -rotate-12 text-white px-4 py-1 text-base font-bold shadow-lg" style={{fontFamily: 'inherit', backgroundColor: COLORS.primary}}>Estreno</span>
               )}
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 bg-black/40 backdrop-blur-sm" style={{backdropFilter: 'blur(6px)'}}>
                 <button 
                   className="cursor-pointer flex items-center gap-2 font-bold px-8 py-3 rounded-full text-lg shadow-lg hover:scale-105 transition-all" 
-                  style={{ backgroundColor: "#BB2228", color: "#EFEFEE" }}
+                  style={{ backgroundColor: COLORS.primary, color: COLORS.bgLight }}
                   onClick={() => handleVerDetalles(String(p.id))}
                 >
                   <PlusCircle size={20}/> Ver detalles
@@ -119,12 +120,12 @@ const MovieCarousel: React.FC = () => {
             <div key={p.id} className="relative rounded shadow overflow-hidden flex items-center justify-center group" style={{width: 220, height: 300, background: 'var(--cineplus-gray-dark)'}}>
               <img src={p.posterUrl || '/placeholder.jpg'} alt={p.title} className="object-cover w-full h-full" />
               {activeTab === 0 && (
-                <span className="absolute left-0 top-2 -rotate-12 bg-[#e50914] text-white px-4 py-1 text-base font-bold shadow-lg" style={{fontFamily: 'inherit'}}>Estreno</span>
+                <span className="absolute left-0 top-2 -rotate-12 text-white px-4 py-1 text-base font-bold shadow-lg" style={{fontFamily: 'inherit', backgroundColor: COLORS.primary}}>Estreno</span>
               )}
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 bg-black/40 backdrop-blur-sm" style={{backdropFilter: 'blur(6px)'}}>
                 <button 
                   className="cursor-pointer flex items-center gap-2 font-bold px-8 py-3 rounded-full text-lg shadow-lg hover:scale-105 transition-all" 
-                  style={{ backgroundColor: "#BB2228", color: "#EFEFEE" }}
+                  style={{ backgroundColor: COLORS.primary, color: COLORS.bgLight }}
                   onClick={() => handleVerDetalles(String(p.id))}
                 >
                   <PlusCircle size={20}/> Ver detalles
@@ -140,7 +141,7 @@ const MovieCarousel: React.FC = () => {
           style={{
             width: 220,
             height: 608,
-            background: 'linear-gradient(to bottom, #393A3A, #141113)',
+            background: `linear-gradient(to bottom, ${COLORS.textDefault}, ${COLORS.textStrong})`,
           }}
         >
           <button
@@ -152,7 +153,7 @@ const MovieCarousel: React.FC = () => {
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
-              color: '#EFEFEE'
+              color: COLORS.bgLight
             }}
             onClick={() => navigate('/cartelera')}
           >

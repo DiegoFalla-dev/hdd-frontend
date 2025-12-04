@@ -30,6 +30,11 @@ interface LocalSeatUI {
   status: 'available' | 'occupied' | 'selected';
 }
 
+// Función generadora de sessionId como fallback si el backend no lo proporciona
+function generateSessionId(): string {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
 const Butacas: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { peliculaId: peliculaIdParam, showtimeId: showtimeIdParam } = useParams();
@@ -158,15 +163,30 @@ const Butacas: React.FC = () => {
     // Construir matriz base (remota futura o fallback local) y overlay ocupados reales
     const rows = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q'];
     const occupiedSet = new Set(occupiedCodes || []);
+    const selectedSet = new Set(showtimeId ? (seatSelectionStore.selections[showtimeId]?.seatCodes || []) : []);
+    
     if (remoteSeats && remoteSeats.length) {
       setSeats(remoteSeats.map(s => {
         // prefer backend-provided code (e.g. 'F7'), otherwise build from row+number
         const code = (s as any).code || `${s.row}${s.number}`;
+        
+        // Determinar el estado del asiento
+        let status: 'available' | 'occupied' | 'selected' = 'available';
+        
+        // Primero verificar si está ocupado en la BD
+        if (occupiedSet.has(String(code)) || (s.status && s.status !== 'AVAILABLE')) {
+          status = 'occupied';
+        } 
+        // Luego verificar si está seleccionado localmente (solo si no está ocupado)
+        else if (selectedSet.has(String(code))) {
+          status = 'selected';
+        }
+        
         return {
           id: String(code),
           row: s.row,
           number: s.number,
-          status: occupiedSet.has(String(code)) || (s.status && s.status !== 'AVAILABLE') ? 'occupied' : 'available'
+          status
         };
       }));
     } else {
@@ -175,17 +195,30 @@ const Butacas: React.FC = () => {
       for (let r = 0; r < matrix.rows; r++) {
         for (let c = 1; c <= matrix.cols; c++) {
           const seatId = `${rows[r]}${c}`;
+          
+          // Determinar el estado del asiento
+          let status: 'available' | 'occupied' | 'selected' = 'available';
+          
+          // Primero verificar si está ocupado
+          if (occupiedSet.has(seatId)) {
+            status = 'occupied';
+          }
+          // Luego verificar si está seleccionado (solo si no está ocupado)
+          else if (selectedSet.has(seatId)) {
+            status = 'selected';
+          }
+          
           newSeats.push({
             id: seatId,
             row: rows[r],
             number: c,
-            status: occupiedSet.has(seatId) ? 'occupied' : 'available'
+            status
           });
         }
       }
       setSeats(newSeats);
     }
-  }, [remoteSeats, seatMatrix, occupiedCodes]);
+  }, [remoteSeats, seatMatrix, occupiedCodes, showtimeId, seatSelectionStore.selections]);
 
   // Soporte para cantidad de entradas proveniente de query param 'entradas' (id:qty|id:qty)
   const entradasParam = searchParams.get('entradas');
@@ -226,37 +259,48 @@ const Butacas: React.FC = () => {
   const handleSeatClick = (seatId: string) => {
     const seat = seats.find(s => s.id === seatId);
     if (!seat || seat.status === 'occupied' || !showtimeId) return;
+    
+    // Primero hacer el toggle en el store
     seatSelectionStore.toggleSeatCode(showtimeId, seatId, totalEntradas);
-    // reflect UI status update
-    const updatedSelected = showtimeId ? seatSelectionStore.selections[showtimeId]?.seatCodes || [] : [];
-    setSeats(seats.map(s => {
-      if (s.id === seatId) {
-        const isSelected = updatedSelected.includes(seatId);
-        return { ...s, status: isSelected ? 'selected' : 'available' };
+    
+    // Obtener el estado actualizado después del toggle
+    const updatedSelected = seatSelectionStore.selections[showtimeId]?.seatCodes || [];
+    
+    // Actualizar el estado local de seats inmediatamente para reflejar el cambio
+    const occupiedSet = new Set(occupiedCodes || []);
+    setSeats(prevSeats => prevSeats.map(s => {
+      // Si es un asiento ocupado desde la BD, mantenerlo ocupado
+      if (occupiedSet.has(s.id)) {
+        return { ...s, status: 'occupied' };
       }
-      if (s.status === 'selected' && !updatedSelected.includes(s.id)) {
-        return { ...s, status: 'available' };
+      // Si está en la lista de seleccionados, marcarlo como selected
+      if (updatedSelected.includes(s.id)) {
+        return { ...s, status: 'selected' };
       }
-      return s;
+      // Si no está seleccionado ni ocupado, marcarlo como available
+      return { ...s, status: 'available' };
     }));
-    // Intentar reserva temporal tras cada cambio (optimización futura: sólo on add)
-    if (updatedSelected.length) {
+    
+    // Intentar reserva temporal tras cada cambio (solo si hay asientos seleccionados)
+    if (updatedSelected.length > 0) {
       seatService.reserveSeatsTemporarily(showtimeId, updatedSelected)
         .then((res: TemporarySeatReservationResponse) => {
           const failed = res.failedCodes || [];
-          if (res.sessionId) {
-            seatSelectionStore.attachSession(showtimeId, res.sessionId, res.expiresInMs);
-          }
+          // Use backend sessionId if provided, otherwise generate one as fallback
+          const sessionId = res.sessionId || generateSessionId();
+          seatSelectionStore.attachSession(showtimeId, sessionId, res.expiresInMs);
           if (failed.length) {
             seatSelectionStore.applyReservationResult(showtimeId, failed);
             const failedSet = new Set(failed);
             const kept = updatedSelected.filter(c => !failedSet.has(c));
-            setSeats(seats.map(s => {
-              if (failedSet.has(s.id)) {
+            // Actualizar el estado para reflejar los asientos que fallaron
+            setSeats(prevSeats => prevSeats.map(s => {
+              const occupiedSet = new Set(occupiedCodes || []);
+              if (failedSet.has(s.id) || occupiedSet.has(s.id)) {
                 return { ...s, status: 'occupied' };
               }
               const isSelected = kept.includes(s.id);
-              return { ...s, status: isSelected ? 'selected' : s.status };
+              return { ...s, status: isSelected ? 'selected' : 'available' };
             }));
             toast.error(`Asientos ocupados: ${failed.join(', ')}`);
           } else {
@@ -489,9 +533,9 @@ const Butacas: React.FC = () => {
                   if (missing.length) {
                     try {
                       const res = await seatService.reserveSeatsTemporarily(showtimeId, sel.seatCodes);
-                      if (res.sessionId) {
-                        seatSelectionStore.attachSession(showtimeId, res.sessionId, res.expiresInMs);
-                      }
+                      // Use backend sessionId if provided, otherwise generate one as fallback
+                      const sessionId = res.sessionId || generateSessionId();
+                      seatSelectionStore.attachSession(showtimeId, sessionId, res.expiresInMs);
                       seatSelectionStore.applyReservationResult(showtimeId, res.failedCodes);
                       if (res.failedCodes && res.failedCodes.length) {
                         toast.error(`No se pudieron reservar: ${res.failedCodes.join(', ')}`);

@@ -51,6 +51,11 @@ const DetallePelicula: React.FC = () => {
   const navigate = useNavigate();
   
   const availableDates = getAvailableDates();
+  // Helper: muestra las etiquetas de formato limpias al usuario (backend usa valores como "_2D")
+  const formatLabel = (f?: string | null) => {
+    if (!f) return '';
+    return f.replace(/^_+/, '').toUpperCase();
+  };
   const showtimesQuery = useShowtimes({ movieId: pelicula?.id, cinemaId: selectedCinemaData?.id, date: selectedDay || '' });
   const backendShowtimes = showtimesQuery.data || [];
   const availableFormats = useMemo(() => {
@@ -65,6 +70,11 @@ const DetallePelicula: React.FC = () => {
     if (selectedCinemaData?.availableFormats && selectedCinemaData.availableFormats.length > 0) return selectedCinemaData.availableFormats;
     return pelicula?.formats && pelicula.formats.length ? pelicula.formats : [];
   }, [availableFormats, pelicula]);
+
+  // Si cambia el día o el formato, limpiamos la hora seleccionada para evitar estados inconsistentes
+  useEffect(() => {
+    setSelectedTime(null);
+  }, [selectedDay, selectedFormat]);
   const availableTimes = useMemo(() => {
     if (!selectedDay || !selectedFormat) return [];
     return backendShowtimes
@@ -226,7 +236,7 @@ const DetallePelicula: React.FC = () => {
                 {formatsToShow.length === 0 ? (
                   <span className="px-3 py-1 rounded" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>N/D</span>
                 ) : formatsToShow.map(f => (
-                  <span key={f} className="px-3 py-1 rounded mr-2" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>{f}</span>
+                  <span key={f} className="px-3 py-1 rounded mr-2" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>{formatLabel(f)}</span>
                 ))}
               </div>
               
@@ -303,7 +313,7 @@ const DetallePelicula: React.FC = () => {
                           color: selectedFormat === format ? "#EFEFEE" : "#E3E1E2"
                         }}
                       >
-                        {format}
+                        {formatLabel(format)}
                       </button>
                       ))}
                   </div>
@@ -345,7 +355,7 @@ const DetallePelicula: React.FC = () => {
                 </p>
                 
                 <div className="mb-4">
-                  <span className="font-bold">{selectedFormat || "2D"}</span>
+                  <span className="font-bold">{formatLabel(selectedFormat) || "2D"}</span>
                   <span className="ml-2" style={{ color: "#E3E1E2" }}>- Doblada</span>
                 </div>
                 

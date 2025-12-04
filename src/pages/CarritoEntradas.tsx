@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiX, FiMinus, FiPlus } from "react-icons/fi";
 import { getMovies, type Pelicula } from "../services/moviesService";
 import { useShowtimeSelectionStore } from "../store/showtimeSelectionStore";
 import { useShowtimes } from "../hooks/useShowtimes";
+import { useTicketTypes } from "../hooks/useTicketTypes";
 
 interface Entrada {
   id: string;
+  code: string; // código del ticket type en el backend
   nombre: string;
   precio: number;
   cantidad: number;
@@ -23,11 +25,38 @@ const Carrito: React.FC = () => {
   const format = selection?.format;
   const cinemaId = selection?.cinemaId;
   const showtimesQuery = useShowtimes({ movieId: selection?.movieId, cinemaId, date: day });
+  const { data: ticketTypes, isLoading: ticketTypesLoading } = useTicketTypes();
+  
   const showtimeId = selection?.showtimeId || showtimesQuery.data?.find(st => {
     const localTime = new Date(st.startTime).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
     const localDate = new Date(st.startTime).toISOString().split('T')[0];
     return localTime === time && localDate === day && st.format === format;
   })?.id;
+
+  // Mapear ticket types del backend a categorías
+  const tiposEntrada = useMemo(() => {
+    if (!ticketTypes) return { general: [], convenios: [] };
+    
+    const general = ticketTypes
+      .filter(tt => tt.active && !tt.code.includes('DCTO'))
+      .map(tt => ({
+        id: tt.code.toLowerCase().replace(/_/g, '-'),
+        code: tt.code,
+        nombre: tt.name,
+        precio: tt.price
+      }));
+    
+    const convenios = ticketTypes
+      .filter(tt => tt.active && tt.code.includes('DCTO'))
+      .map(tt => ({
+        id: tt.code.toLowerCase().replace(/_/g, '-'),
+        code: tt.code,
+        nombre: tt.name,
+        precio: tt.price
+      }));
+    
+    return { general, convenios };
+  }, [ticketTypes]);
 
   useEffect(() => {
     if (peliculaId) {
@@ -45,19 +74,6 @@ const Carrito: React.FC = () => {
     const dayName = dayNames[date.getDay()];
     const dayMonth = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
     return `${dayName}, ${dayMonth}`;
-  };
-
-  const tiposEntrada = {
-    general: [
-      { id: 'promo-online', nombre: 'PROMO ONLINE', precio: 14.96 },
-      { id: 'persona-discapacidad', nombre: 'PERSONA CON DISCAPACIDAD', precio: 17.70 },
-      { id: 'silla-ruedas', nombre: 'SILLA DE RUEDAS', precio: 17.70 },
-      { id: 'nino', nombre: 'NIÑO', precio: 21.60 },
-      { id: 'adulto', nombre: 'ADULTO', precio: 23.60 }
-    ],
-    convenios: [
-      { id: 'banco-ripley', nombre: '50% DCTO BANCO RIPLEY', precio: 12.80 }
-    ]
   };
 
   const agregarEntrada = (tipo: any) => {
@@ -82,6 +98,18 @@ const Carrito: React.FC = () => {
   };
 
   const total = entradas.reduce((acc, e) => acc + e.precio * e.cantidad, 0);
+
+  // Loading state
+  if (ticketTypesLoading) {
+    return (
+      <div style={{ background: "var(--cineplus-black)", color: "var(--cineplus-gray-light)" }} className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Cargando tipos de entrada...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ background: "var(--cineplus-black)", color: "var(--cineplus-gray-light)" }} className="min-h-screen">
@@ -310,9 +338,14 @@ const Carrito: React.FC = () => {
               }`}
               onClick={() => {
                 if (entradas.length > 0 && showtimeId) {
-                  // Codificar entradas como query param para evitar localStorage
-                  const encoded = entradas.map(e => `${encodeURIComponent(e.id)}:${e.cantidad}`).join('|');
-                  navigate(`/butacas/${showtimeId}?entradas=${encoded}`);
+                  // Guardar entradas en localStorage para que Butacas las use
+                  localStorage.setItem('selectedEntradas', JSON.stringify(entradas));
+                  
+                  // Calcular total de entradas
+                  const totalEntradas = entradas.reduce((sum, e) => sum + e.cantidad, 0);
+                  
+                  // Navegar a la página de selección de butacas
+                  navigate(`/butacas/${showtimeId}?total=${totalEntradas}`);
                 }
               }}
             >

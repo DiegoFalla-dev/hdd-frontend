@@ -2,6 +2,7 @@
 
 import api from './apiClient';
 import { setAuthTokens, clearAuthTokens, getAccessToken } from '../utils/storage';
+import { getCinemaById } from './cinemaService';
 
 export const STORAGE_TOKEN_KEY = 'token';
 export const STORAGE_USER_KEY = 'usuario';
@@ -89,12 +90,18 @@ async function login(payload: LoginRequest): Promise<JwtResponse> {
       favoriteCinema: dataRaw.favoriteCinema ?? null,
     });
     localStorage.setItem(STORAGE_USER_KEY, storedUser);
-    // If backend provided a favorite cinema, set it as the selectedCine in localStorage
-    const favCinema = (dataRaw as any).favoriteCinema || (dataRaw as any).favCine || null;
-    if (favCinema) {
+    
+    // If backend provided a favorite cinema ID, fetch its name and set as selectedCine
+    const favCinemaId = (dataRaw as any).favoriteCinema || (dataRaw as any).favCine;
+    if (favCinemaId) {
       try {
-        localStorage.setItem('selectedCine', JSON.stringify({ name: favCinema }));
-      } catch (_) {}
+        const favCinema = await getCinemaById(favCinemaId);
+        if (favCinema && favCinema.name) {
+          localStorage.setItem('selectedCine', JSON.stringify({ name: favCinema.name }));
+        }
+      } catch (err) {
+        console.warn('Failed to fetch favorite cinema name:', err);
+      }
     }
     window.dispatchEvent(new Event('auth:login'));
   } else {

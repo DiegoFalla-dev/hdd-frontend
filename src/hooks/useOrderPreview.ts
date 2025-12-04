@@ -24,10 +24,32 @@ export function useOrderPreview(enabled: boolean = true) {
         return await orderService.previewOrder(payload);
       } catch (err: any) {
         // Fallback: compute preview locally from cart snapshot if backend preview not available (e.g., 405)
-        const base = Math.max(0, snapshot.ticketsSubtotal + snapshot.concessionsSubtotal - snapshot.discountTotal);
+        
+        // Try to get more accurate data from pendingOrder if cart snapshot is incomplete
+        let ticketsSubtotal = snapshot.ticketsSubtotal;
+        
+        if (ticketsSubtotal === 0) {
+          // Try to calculate from pendingOrder
+          try {
+            const pendingOrderRaw = localStorage.getItem('pendingOrder');
+            if (pendingOrderRaw) {
+              const pendingOrder = JSON.parse(pendingOrderRaw);
+              if (pendingOrder.entradas && Array.isArray(pendingOrder.entradas)) {
+                ticketsSubtotal = pendingOrder.entradas.reduce((sum: number, e: any) => 
+                  sum + (e.precio * e.cantidad), 0
+                );
+                console.log('🔄 Using tickets total from pendingOrder:', ticketsSubtotal);
+              }
+            }
+          } catch (e) {
+            console.warn('Could not read pendingOrder for preview', e);
+          }
+        }
+        
+        const base = Math.max(0, ticketsSubtotal + snapshot.concessionsSubtotal - snapshot.discountTotal);
         const tax = typeof snapshot.taxTotal === 'number' ? snapshot.taxTotal : parseFloat((base * 0.18).toFixed(2));
         const localPreview: Partial<OrderPreview> = {
-          ticketsSubtotal: snapshot.ticketsSubtotal,
+          ticketsSubtotal: ticketsSubtotal,
           concessionsSubtotal: snapshot.concessionsSubtotal,
           discountTotal: snapshot.discountTotal,
           taxTotal: tax,
