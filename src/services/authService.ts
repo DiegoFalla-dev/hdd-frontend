@@ -2,6 +2,7 @@
 
 import api from './apiClient';
 import { setAuthTokens, clearAuthTokens, getAccessToken } from '../utils/storage';
+import { getCinemaById } from './cinemaService';
 
 export const STORAGE_TOKEN_KEY = 'token';
 export const STORAGE_USER_KEY = 'usuario';
@@ -65,13 +66,22 @@ async function login(payload: LoginRequest): Promise<JwtResponse> {
     const refresh = (dataRaw.refreshToken || dataRaw.refresh_token) as string | undefined;
     setAuthTokens({ accessToken: maybeToken, refreshToken: refresh });
 
+    // Normalizar roles del backend (e.g., ROLE_ADMIN -> ADMIN, ROLE_MANAGER -> STAFF, ROLE_USER -> USER)
+    const rawRoles: string[] = Array.isArray(dataRaw.roles) ? dataRaw.roles : [];
+    const normalizedRoles = rawRoles.map(r => {
+      if (r === 'ROLE_ADMIN' || r === 'ADMIN') return 'ADMIN';
+      if (r === 'ROLE_MANAGER' || r === 'MANAGER' || r === 'STAFF') return 'STAFF';
+      if (r === 'ROLE_USER' || r === 'USER') return 'USER';
+      return r; // fallback
+    });
+
     const storedUser = JSON.stringify({
       id: dataRaw.id,
       username: dataRaw.username,
       firstName: dataRaw.firstName,
       lastName: dataRaw.lastName,
       email: dataRaw.email,
-      roles: dataRaw.roles || [],
+      roles: normalizedRoles,
       avatar: dataRaw.avatar ?? null,
       birthDate: dataRaw.birthDate ?? null,
       nationalId: dataRaw.nationalId ?? null,
@@ -80,12 +90,18 @@ async function login(payload: LoginRequest): Promise<JwtResponse> {
       favoriteCinema: dataRaw.favoriteCinema ?? null,
     });
     localStorage.setItem(STORAGE_USER_KEY, storedUser);
-    // If backend provided a favorite cinema, set it as the selectedCine in localStorage
-    const favCinema = (dataRaw as any).favoriteCinema || (dataRaw as any).favCine || null;
-    if (favCinema) {
+    
+    // If backend provided a favorite cinema ID, fetch its name and set as selectedCine
+    const favCinemaId = (dataRaw as any).favoriteCinema || (dataRaw as any).favCine;
+    if (favCinemaId) {
       try {
-        localStorage.setItem('selectedCine', JSON.stringify({ name: favCinema }));
-      } catch (_) {}
+        const favCinema = await getCinemaById(favCinemaId);
+        if (favCinema && favCinema.name) {
+          localStorage.setItem('selectedCine', JSON.stringify({ name: favCinema.name }));
+        }
+      } catch (err) {
+        console.warn('Failed to fetch favorite cinema name:', err);
+      }
     }
     window.dispatchEvent(new Event('auth:login'));
   } else {
@@ -98,9 +114,8 @@ async function login(payload: LoginRequest): Promise<JwtResponse> {
 
 async function register(payload: RegisterRequest) {
   const url = `/auth/register`;
-  const bodyToSend = { ...payload } as RegisterRequest;
-  if (!bodyToSend.roles || bodyToSend.roles.length === 0) bodyToSend.roles = ['USER'];
-  // Only call the single canonical endpoint. If it fails, propagate the error to the caller.
+  const bodyToSend: Omit<RegisterRequest, 'roles'> = (({ firstName, lastName, email, password, confirmPassword, birthDate, nationalId, phoneNumber, gender, favoriteCinema, contactPreference }) => ({ firstName, lastName, email, password, confirmPassword, birthDate, nationalId, phoneNumber, gender, favoriteCinema, contactPreference }))(payload);
+  // Do NOT send roles; let backend assign defaults to avoid ROLE_* mismatch errors
   const resp = await api.post(url, bodyToSend);
   return resp.data;
 }

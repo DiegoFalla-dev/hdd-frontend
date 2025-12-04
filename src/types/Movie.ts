@@ -9,6 +9,7 @@ export interface Movie {
   synopsis?: string;
   genre?: string;
   durationMinutes?: number;
+  bannerUrl?: string;
   posterUrl?: string;
   trailerUrl?: string;
   releaseDate?: string; // ISO

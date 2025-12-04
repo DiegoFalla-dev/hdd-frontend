@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import type { ReactNode } from 'react';
 import authService from '../services/authService';
 import type { JwtResponse as ServiceJwtResponse, LoginRequest as ServiceLoginRequest, RegisterRequest as ServiceRegisterRequest } from '../services/authService';
-import { getAccessToken, getRefreshToken, clearAuthTokens } from '../utils/storage';
+import { getAccessToken, getRefreshToken, clearAllAppStorage } from '../utils/storage';
 import { prefetchAfterLogin } from '../lib/prefetch';
 
 interface AuthState {
@@ -32,14 +32,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const res = await authService.login(data as any);
     if (res.token) {
       setUser(res);
-      // intentar leer cine previamente seleccionado para prefetch concesiones
+      // Prefetch en segundo plano para no bloquear el refresco
       try {
         const saved = localStorage.getItem('selectedCine');
         const parsed = saved ? JSON.parse(saved) : null;
-        await prefetchAfterLogin(parsed?.id);
+        void prefetchAfterLogin(parsed?.id);
       } catch {
-        await prefetchAfterLogin();
+        void prefetchAfterLogin();
       }
+      // Refrescar la página tras un login exitoso (no bloqueante)
+      setTimeout(() => { window.location.reload(); }, 0);
     }
   }, []);
 
@@ -58,10 +60,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const logout = useCallback(() => {
-    authService.logout();
-    clearAuthTokens();
-    setUser(null);
+  const logout = useCallback(async () => {
+    try {
+      authService.logout();
+      await clearAllAppStorage();
+      setUser(null);
+      // notify other components listening to logout
+      try { window.dispatchEvent(new Event('auth:logout')); } catch {}
+      // Hard refresh to ensure all state resets
+      window.location.reload();
+    } catch {
+      setUser(null);
+      window.location.reload();
+    }
   }, []);
 
   const refresh = useCallback(async () => {

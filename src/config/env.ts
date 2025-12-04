@@ -8,8 +8,8 @@ function normalizeBase(url: string): string {
 export const API_BASE_URL: string = (() => {
   const raw = import.meta.env.VITE_API_BASE_URL as string | undefined;
   if (!raw || raw.trim() === '') {
-    console.warn('VITE_API_BASE_URL no definida. Usando fallback https://hdd-backend-bedl.onrender.com/api');
-    return 'https://hdd-backend-bedl.onrender.com/api';
+    console.warn('VITE_API_BASE_URL no definida. Usando fallback http://localhost:8080/api');
+    return 'http://localhost:8080/api';
   }
   return normalizeBase(raw.trim());
 })();

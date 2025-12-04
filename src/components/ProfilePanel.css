@@ -1,5 +1,8 @@
 /* ProfilePanel.css */
 
+/* Import color palette */
+@import '../styles/palette.css';
+
 /* -------------------------------------------------------------------------- */
 /*                     Estilos del Contenedor Principal                       */
 /* -------------------------------------------------------------------------- */
@@ -11,7 +14,7 @@
   width: 100%; /* Ajusta si tienes un ancho fijo */
   max-width: 400px; /* Ejemplo de ancho máximo, ajusta según tu diseño */
   height: 100%;
-  background-color: #1a1a1a; /* Fondo oscuro */
+  background-color: var(--cinepal-gray-900); /* Fondo oscuro */
   color: #fff;
   z-index: 1000; /* Asegura que esté por encima de otros elementos */
   box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5); /* Sombra para dar profundidad */
@@ -38,6 +41,7 @@
   font-weight: 600;
   flex-grow: 1; /* Permite que el título ocupe el espacio disponible */
   text-align: center; /* Centra el título */
+  color: var(--cinepal-primary);
 }
 
 .close-btn, .back-btn {
@@ -125,7 +129,7 @@
   position: absolute;
   bottom: 0;
   right: 0;
-  background-color: #e50914; /* Rojo de Cinemark */
+  background-color: var(--cinepal-primary); /* Rojo de paleta */
   border-radius: 50%;
   width: 30px;
   height: 30px;
@@ -171,12 +175,12 @@
 
 .profile-action-item:hover {
   background-color: #3a3a3a;
-  border-color: #e50914;
+  border-color: var(--cinepal-primary);
 }
 
 /* Botón de cerrar sesión */
 .logout-btn {
-  background-color: #e50914; /* Rojo de Cinemark */
+  background-color: var(--cinepal-primary); /* Rojo de paleta */
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -205,7 +209,7 @@
 .section-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #e50914; /* Color rojo de Cinemark */
+  color: var(--cinepal-primary); /* Color rojo de paleta */
   margin-bottom: 5px;
   text-align: left;
 }
@@ -233,7 +237,7 @@
 
 .info-item input:focus, .info-item select:focus {
   outline: none;
-  border-color: #e50914;
+  border-color: var(--cinepal-primary);
 }
 
 .input-with-icon {
@@ -262,7 +266,7 @@
   margin-right: 10px;
   width: 18px;
   height: 18px;
-  accent-color: #e50914; /* Color del checkbox al activarse */
+  accent-color: var(--cinepal-primary); /* Color del checkbox */
 }
 
 .checkbox-item label {
@@ -272,7 +276,7 @@
 }
 
 .update-data-btn {
-  background-color: #e50914;
+  background-color: var(--cinepal-primary);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -358,7 +362,7 @@
 
 .input-group input:focus {
   outline: none;
-  border-color: #e50914;
+  border-color: var(--cinepal-primary);
 }
 
 .password-input-wrapper {
@@ -395,7 +399,7 @@
 }
 
 .login-submit-btn {
-  background-color: #e50914;
+  background-color: var(--cinepal-primary);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -511,3 +515,139 @@
     margin-left: auto;
     margin-right: auto;
 }
+
+/* -------------------------------------------------------------------------- */
+/*                         Estilos de Vista de Compras                         */
+/* -------------------------------------------------------------------------- */
+
+.purchases-list {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.purchase-card {
+  background-color: #2a2a2a;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #444;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.purchase-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.purchase-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #444;
+}
+
+.purchase-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #fff;
+  font-weight: 600;
+}
+
+.purchase-status {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.purchase-status.confirmed {
+  background-color: #28a745;
+  color: #fff;
+}
+
+.purchase-status.pending {
+  background-color: #ffc107;
+  color: #000;
+}
+
+.purchase-status.cancelled {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.purchase-details {
+  margin-bottom: 12px;
+}
+
+.purchase-details p {
+  margin: 6px 0;
+  font-size: 0.9rem;
+  color: #ccc;
+}
+
+.purchase-details strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.purchase-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.btn-download,
+.btn-view-details {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-download {
+  background-color: #007bff;
+  color: #fff;
+}
+
+.btn-download:hover {
+  background-color: #0056b3;
+  transform: scale(1.02);
+}
+
+.btn-download:active {
+  transform: scale(0.98);
+}
+
+.btn-download:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  transform: scale(1);
+  opacity: 0.7;
+}
+
+.btn-view-details {
+  background-color: #6c757d;
+  color: #fff;
+}
+
+.btn-view-details:hover {
+  background-color: #5a6268;
+  transform: scale(1.02);
+}
+
+.btn-view-details:active {
+  transform: scale(0.98);
+}
+

@@ -57,6 +57,7 @@ function mapMovie(m: BackendMovieDTO): Movie {
     synopsis: m.synopsis,
     genre: m.genre,
     durationMinutes: m.durationMinutes,
+    bannerUrl: m.bannerUrl,
     posterUrl: poster,
     imagenCard: poster,
     trailerUrl: m.trailerUrl,
@@ -133,4 +134,18 @@ export const getMovies = fetchAllMovies;
 
 export type Pelicula = Movie;
 
-export default { fetchMovies, fetchAllMovies };
+export async function createMovie(payload: Partial<Movie>): Promise<Movie> {
+  const response = await api.post<BackendMovieDTO>('/movies', payload);
+  return mapMovie(response.data);
+}
+
+export async function updateMovie(id: number, payload: Partial<Movie>): Promise<Movie> {
+  const response = await api.put<BackendMovieDTO>(`/movies/${id}`, payload);
+  return mapMovie(response.data);
+}
+
+export async function deleteMovie(id: number): Promise<void> {
+  await api.delete(`/movies/${id}`);
+}
+
+export default { fetchMovies, fetchAllMovies, createMovie, updateMovie, deleteMovie };

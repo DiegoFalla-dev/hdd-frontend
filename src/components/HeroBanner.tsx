@@ -44,6 +44,13 @@ const HeroBanner: React.FC = () => {
     prevArrow: <PrevArrow />,
   };
 
+  // Selección de imagen: primero bannerUrl, luego cardImageUrl, luego posterUrl/trailerUrl, y por último placeholder
+  const getBannerImage = (m: Movie) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const anyM = m as any;
+    return anyM.bannerUrl || anyM.cardImageUrl || m.posterUrl || m.trailerUrl || '/placeholder-banner.jpg';
+  };
+
   return (
     <section className="relative w-full max-h-[600px] overflow-hidden">
       {isLoading ? (
@@ -53,7 +60,7 @@ const HeroBanner: React.FC = () => {
           {movies.map((m) => (
             <figure key={m.id} className="relative w-full">
               <img
-                src={m.posterUrl || m.trailerUrl || '/placeholder-banner.jpg'}
+                src={getBannerImage(m)}
                 alt={m.title}
                 className="w-full h-[600px] object-cover"
               />

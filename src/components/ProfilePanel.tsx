@@ -1,21 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { usePaymentMethods, useAddPaymentMethod, useDeletePaymentMethod, useSetDefaultPaymentMethod, useUpdatePaymentMethod } from '../hooks/usePaymentMethods';
 import authService, { type LoginRequest, type JwtResponse, type RegisterRequest } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 import './ProfilePanel.css';
 import { getAllCinemas } from '../services/cinemaService';
 import type { Cinema } from '../types/Cinema';
 import { getUserName } from '../services/userService';
+import { useOrders } from '../hooks/useOrders';
+import { generateOrderPDF } from '../utils/pdfGenerator';
+import { COLORS } from '../styles/colors';
 
 import {
   FaUserCircle, FaEdit, FaShoppingBag, FaUser, FaCreditCard, FaEnvelope, FaTimes, FaEye, FaEyeSlash,
-  FaArrowLeft, FaCalendarAlt, FaIdCard, FaMapMarkerAlt, FaGenderless // Nuevos iconos para la vista de Cuenta
+  FaArrowLeft, FaCalendarAlt, FaIdCard, FaMapMarkerAlt, FaGenderless, FaTrash, FaStar, FaPhone, FaDownload
 } from 'react-icons/fa';
 
 // --- Definición de Vistas ---
 type ActiveView = 'mainProfile' | 'account' | 'purchases' | 'payment' | 'contact' | 'login' | 'register';
 
 const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
-  const navigate = useNavigate();
+  const { logout, login: authLogin } = useAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUserData, setCurrentUserData] = useState<JwtResponse | null>(null);
   const [activeView, setActiveView] = useState<ActiveView>('login'); // Estado para la vista activa
@@ -49,6 +53,78 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const [loadingCinemas, setLoadingCinemas] = useState(true);
   const [errorCinemas, setErrorCinemas] = useState<string | null>(null);
 
+
+  // --- Métodos de pago: hooks y estados al nivel superior para cumplir reglas de hooks ---
+  const paymentMethodsQuery = usePaymentMethods();
+  const addPaymentMethodMutation = useAddPaymentMethod();
+  const deletePaymentMethodMutation = useDeletePaymentMethod();
+  const setDefaultPaymentMethodMutation = useSetDefaultPaymentMethod();
+  const updatePaymentMethodMutation = useUpdatePaymentMethod();
+  
+  // --- Hook de órdenes/compras ---
+  const ordersQuery = useOrders();
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingPaymentId, setEditingPaymentId] = useState<number | null>(null);
+  const [editPasswordInput, setEditPasswordInput] = useState('');
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [paymentType, setPaymentType] = useState<'CARD' | 'YAPE'>('CARD');
+  // Campos CARD
+  const [cardNumber, setCardNumber] = useState('');
+  const [holderName, setHolderName] = useState('');
+  const [expMonth, setExpMonth] = useState<number | ''>('');
+  const [expYear, setExpYear] = useState<number | ''>('');
+  const [cvc, setCvc] = useState('');
+  // Campos YAPE
+  const [yapePhone, setYapePhone] = useState('');
+  const [yapeCode, setYapeCode] = useState('');
+  // General
+  const [setDefault, setSetDefault] = useState(false);
+
+  const handleAddPaymentMethod = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (paymentType === 'CARD') {
+      if (!cardNumber || !holderName || !expMonth || !expYear || !cvc) return;
+      addPaymentMethodMutation.mutate({ 
+        type: 'CARD',
+        cardNumber, 
+        cardHolder: holderName, 
+        expMonth: Number(expMonth), 
+        expYear: Number(expYear), 
+        cci: cvc,
+        isDefault: setDefault 
+      }, {
+        onSuccess: () => {
+          setCardNumber('');
+          setHolderName('');
+          setExpMonth('');
+          setExpYear('');
+          setCvc('');
+          setSetDefault(false);
+          setPaymentType('CARD');
+          setShowAddForm(false);
+        }
+      });
+    } else if (paymentType === 'YAPE') {
+      if (!yapePhone || !yapeCode) return;
+      addPaymentMethodMutation.mutate({ 
+        type: 'YAPE',
+        phone: yapePhone,
+        verificationCode: yapeCode,
+        isDefault: setDefault 
+      }, {
+        onSuccess: () => {
+          setYapePhone('');
+          setYapeCode('');
+          setSetDefault(false);
+          setPaymentType('CARD');
+          setShowAddForm(false);
+        }
+      });
+    }
+  };
 
   // --- Inicialización y manejo de sesión ---
   useEffect(() => {
@@ -155,34 +231,27 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
+    // Validar campos requeridos antes de llamar API
+    if (!loginForm.usernameOrEmail?.trim() || !loginForm.password?.trim()) {
+      setLoginError('Por favor completa correo y contraseña.');
+      return;
+    }
     try {
-      const response = await authService.login(loginForm);
-      if (response.token) {
-        setIsLoggedIn(true);
-        const updatedUser = authService.getCurrentUser();
-        setCurrentUserData(updatedUser);
-        setActiveView('mainProfile'); // Mostrar la vista principal del perfil después del login
-      } else {
-        setLoginError('Credenciales incorrectas o error al iniciar sesión.');
-      }
+      // Usar AuthContext para login (recarga de página en éxito ya gestionada allí)
+      await authLogin(loginForm);
     } catch (error: unknown) {
       console.error('Error durante el login:', error);
       const maybeErr = error as { response?: { data?: { message?: string } } } | undefined;
       if (maybeErr && maybeErr.response && maybeErr.response.data && maybeErr.response.data.message) {
         setLoginError(maybeErr.response.data.message as string);
       } else {
-        setLoginError('Error al intentar iniciar sesión. Intenta de nuevo.');
+        setLoginError('No se pudo iniciar sesión. Verifica tus datos.');
       }
     }
   };
 
-  const handleLogout = () => {
-    authService.logout();
-    setIsLoggedIn(false);
-    setCurrentUserData(null);
-    setActiveView('login'); // Volver al formulario de login
-    if (onClose) onClose();
-    navigate('/'); // Redirige a la página principal
+  const handleLogout = async () => {
+    await logout();
   };
 
   // --- Manejo del Registro ---
@@ -357,44 +426,458 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   );
 
   // Componente/JSX para la Vista de Compras
-  const renderPurchasesView = () => (
-    <div className="sub-panel-content">
-      <div className="sub-panel-header">
-        <button className="back-btn" onClick={() => setActiveView('mainProfile')} aria-label="Volver atrás">
-          <FaArrowLeft size={20} color="white" />
-        </button>
-        <h2 className="sub-panel-title">Últimas operaciones</h2>
-        <button className="close-btn" onClick={onClose} aria-label="Cerrar">
-            <FaTimes size={20} color="white" />
-        </button>
-      </div>
-      <div className="empty-state-message">
-        <p>CUANDO REALICES UN PEDIDO, SE MOSTRARÁ AQUÍ.</p>
-      </div>
-    </div>
-  );
+  const renderPurchasesView = () => {
+    const { data: orders = [], isLoading, isError } = ordersQuery;
 
-  // Componente/JSX para la Vista de Métodos de Pago (similar a Cuenta)
-  const renderPaymentView = () => (
-    <div className="sub-panel-content">
-      <div className="sub-panel-header">
-        <button className="back-btn" onClick={() => setActiveView('mainProfile')} aria-label="Volver atrás">
-          <FaArrowLeft size={20} color="white" />
-        </button>
-        <h2 className="sub-panel-title">Métodos de Pago</h2>
-        <button className="close-btn" onClick={onClose} aria-label="Cerrar">
+    const handleDownloadPDF = async (orderId: number) => {
+      try {
+        setDownloadingId(orderId);
+        const order = orders.find(o => o.id === orderId);
+        if (order) {
+          await generateOrderPDF(order);
+        }
+      } catch (error) {
+        console.error('Error descargando PDF:', error);
+      } finally {
+        setDownloadingId(null);
+      }
+    };
+
+    return (
+      <div className="sub-panel-content">
+        <div className="sub-panel-header">
+          <button className="back-btn" onClick={() => setActiveView('mainProfile')} aria-label="Volver atrás">
+            <FaArrowLeft size={20} color="white" />
+          </button>
+          <h2 className="sub-panel-title">Últimas operaciones</h2>
+          <button className="close-btn" onClick={onClose} aria-label="Cerrar">
             <FaTimes size={20} color="white" />
-        </button>
-      </div>
-      <div className="personal-info-section">
-        <h3 className="section-title">TARJETAS GUARDADAS</h3>
-        <div className="empty-state-message">
-          <p>Aún no tienes métodos de pago guardados.</p>
+          </button>
         </div>
-        <button className="update-data-btn">AÑADIR MÉTODO DE PAGO</button>
+
+        {isLoading && (
+          <div className="empty-state-message">
+            <p>Cargando tus compras...</p>
+          </div>
+        )}
+
+        {isError && (
+          <div className="empty-state-message">
+            <p>Error al cargar tus compras. Por favor, intenta nuevamente.</p>
+          </div>
+        )}
+
+        {!isLoading && !isError && orders.length === 0 && (
+          <div className="empty-state-message">
+            <p>CUANDO REALICES UN PEDIDO, SE MOSTRARÁ AQUÍ.</p>
+          </div>
+        )}
+
+        {!isLoading && !isError && orders.length > 0 && (
+          <div className="purchases-list">
+            {orders.map((order) => (
+              <div key={order.id} className="purchase-card">
+                <div className="purchase-header">
+                  <h3>{order.movieTitle}</h3>
+                  <span className={`purchase-status ${order.status.toLowerCase()}`}>
+                    {order.status}
+                  </span>
+                </div>
+                <div className="purchase-details">
+                  <p><strong>Fecha:</strong> {new Date(order.purchaseDate).toLocaleDateString('es-PE')}</p>
+                  <p><strong>Cine:</strong> {order.cinemaName}</p>
+                  <p><strong>Función:</strong> {new Date(order.showtimeDate || order.purchaseDate).toLocaleString('es-PE', {
+                    weekday: 'short',
+                    day: '2-digit',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}</p>
+                  <p><strong>Sala:</strong> {order.roomName}</p>
+                  <p><strong>Total:</strong> S/ {order.totalAmount.toFixed(2)}</p>
+                </div>
+                <div className="purchase-actions">
+                  <button 
+                    className="btn-download"
+                    onClick={() => handleDownloadPDF(order.id)}
+                    disabled={downloadingId === order.id}
+                    title="Descargar comprobante"
+                  >
+                    <FaDownload /> {downloadingId === order.id ? 'Descargando...' : 'Descargar PDF'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
+
+  // Componente/JSX para la Vista de Métodos de Pago (integrado con lógica real, sin hooks internos)
+  const renderPaymentView = () => {
+    const { data: methods = [], isLoading, isError } = paymentMethodsQuery;
+    const addMutation = addPaymentMethodMutation;
+    const delMutation = deletePaymentMethodMutation;
+    const defMutation = setDefaultPaymentMethodMutation;
+    const updateMutation = updatePaymentMethodMutation;
+
+    const handleEditPayment = (m: any) => {
+      setEditingPaymentId(m.id);
+      if (m.type === 'CARD') {
+        setPaymentType('CARD');
+        setCvc('');
+      } else {
+        setPaymentType('YAPE');
+        setYapeCode(m.verificationCode || '');
+      }
+    };
+
+    const handleSaveEdit = () => {
+      if (!editPasswordInput.trim()) {
+        alert('Debes ingresar tu contraseña para confirmar');
+        return;
+      }
+      
+      if (editingPaymentId === null) return;
+
+      const editingMethod = methods.find(m => m.id === editingPaymentId);
+      if (!editingMethod) return;
+
+      updateMutation.mutate({
+        id: editingPaymentId,
+        data: {
+          type: editingMethod.type,
+          ...(editingMethod.type === 'CARD' && cvc ? { cci: cvc } : {}),
+          ...(editingMethod.type === 'YAPE' && yapeCode ? { verificationCode: yapeCode } : {}),
+          isDefault: setDefault,
+        }
+      }, {
+        onSuccess: () => {
+          setEditingPaymentId(null);
+          setEditPasswordInput('');
+          setCvc('');
+          setYapeCode('');
+          setSetDefault(false);
+        }
+      });
+    };
+
+    return (
+      <div className="sub-panel-content">
+        <div className="sub-panel-header">
+          <button className="back-btn" onClick={() => setActiveView('mainProfile')} aria-label="Volver atrás">
+            <FaArrowLeft size={20} color="white" />
+          </button>
+          <h2 className="sub-panel-title">Métodos de Pago</h2>
+          <button className="close-btn" onClick={onClose} aria-label="Cerrar">
+              <FaTimes size={20} color="white" />
+          </button>
+        </div>
+        <div className="personal-info-section" style={{maxWidth: '100%', margin: '0 auto', padding: '24px'}}>
+          <h3 className="section-title">MÉTODOS DE PAGO GUARDADOS</h3>
+          {isLoading && <p style={{textAlign: 'center', padding: '20px'}}>Cargando...</p>}
+          {isError && <p style={{color: COLORS.error, textAlign: 'center', padding: '20px'}}>Error cargando métodos</p>}
+          {!isLoading && methods.length === 0 && <p style={{textAlign: 'center', padding: '20px', color: COLORS.textSecondary}}>No hay métodos de pago guardados.</p>}
+          <ul style={{marginBottom: '24px'}}>
+            {methods.map(m => {
+              const isEditing = editingPaymentId === m.id;
+              const cardDisplay = m.type === 'CARD' 
+                ? `•••• •••• •••• ${m.last4}` 
+                : `••••••• ${(m.phone || '').slice(-3)}`;
+              
+              return (
+                <li key={m.id} style={{background: COLORS.surface, borderRadius: 8, padding: '16px', marginBottom: '12px', border: `1px solid ${COLORS.border}`}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px'}}>
+                    <div style={{flex: 1}}>
+                      <div style={{fontSize: 15, fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        {m.type === 'CARD' ? <FaCreditCard size={18} /> : <FaPhone size={18} />}
+                        <span>{m.type === 'CARD' ? (m.brand || 'Tarjeta') : 'Yape'}</span>
+                      </div>
+                      <div style={{fontSize: 13, color: COLORS.textLight, marginBottom: 8, fontFamily: 'monospace', letterSpacing: '2px'}}>
+                        {cardDisplay}
+                      </div>
+                      {m.type === 'CARD' && (
+                        <div style={{fontSize: 12, color: COLORS.textMuted, marginBottom: 4}}>
+                          Vence: {String(m.expMonth || m.expiryMonth).padStart(2, '0')}/{String(m.expYear || m.expiryYear).slice(-2)}
+                        </div>
+                      )}
+                      {(m.default || m.isDefault) && (
+                        <span style={{fontSize: 11, color: COLORS.success, marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: '4px'}}>
+                          <FaStar size={10} /> Principal
+                        </span>
+                      )}
+                      
+                      {isEditing && (
+                        <div style={{marginTop: '16px', padding: '12px', background: COLORS.border, borderRadius: 6}}>
+                          <label style={{display: 'block', fontSize: 12, color: '#a1a1a1', marginBottom: '8px'}}>
+                            {m.type === 'CARD' ? 'CVC' : 'Código de Verificación'}
+                          </label>
+                          <input 
+                            type="password"
+                            placeholder={m.type === 'CARD' ? 'Ingresa CVC' : 'Código de verificación'}
+                            value={m.type === 'CARD' ? cvc : yapeCode}
+                            onChange={e => m.type === 'CARD' ? setCvc(e.target.value) : setYapeCode(e.target.value)}
+                            style={{width: '100%', padding: '8px 12px', background: '#27272a', border: '1px solid #52525b', borderRadius: 4, color: 'white', fontSize: 13, marginBottom: '8px'}}
+                          />
+                          <label style={{display: 'block', fontSize: 12, color: '#a1a1a1', marginBottom: '8px'}}>
+                            Contraseña
+                          </label>
+                          <div style={{display: 'flex', gap: '8px', marginBottom: '12px'}}>
+                            <input 
+                              type={showEditPassword ? 'text' : 'password'}
+                              placeholder="Ingresa tu contraseña"
+                              value={editPasswordInput}
+                              onChange={e => setEditPasswordInput(e.target.value)}
+                              style={{flex: 1, padding: '8px 12px', background: '#27272a', border: '1px solid #52525b', borderRadius: 4, color: 'white', fontSize: 13}}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowEditPassword(!showEditPassword)}
+                              style={{padding: '8px 12px', background: '#52525b', border: 'none', borderRadius: 4, color: 'white', cursor: 'pointer'}}
+                            >
+                              {showEditPassword ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
+                            </button>
+                          </div>
+                          <label style={{display: 'flex', alignItems: 'center', gap: '8px', fontSize: 12, cursor: 'pointer', marginBottom: '12px'}}>
+                            <input 
+                              type="checkbox"
+                              checked={setDefault}
+                              onChange={e => setSetDefault(e.target.checked)}
+                              style={{cursor: 'pointer', width: 14, height: 14}}
+                            />
+                            <span>Usar como método principal</span>
+                          </label>
+                          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
+                            <button
+                              type="button"
+                              onClick={handleSaveEdit}
+                              disabled={updateMutation.isPending}
+                              style={{padding: '8px 12px', background: '#4f46e5', border: 'none', borderRadius: 4, color: 'white', fontSize: 12, cursor: 'pointer', opacity: updateMutation.isPending ? 0.6 : 1}}
+                            >
+                              Guardar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingPaymentId(null);
+                                setEditPasswordInput('');
+                                setCvc('');
+                                setYapeCode('');
+                                setSetDefault(false);
+                              }}
+                              style={{padding: '8px 12px', background: '#52525b', border: 'none', borderRadius: 4, color: 'white', fontSize: 12, cursor: 'pointer'}}
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{display: 'flex', gap: '8px', flexDirection: 'column'}}>
+                      <button 
+                        onClick={() => handleEditPayment(m)}
+                        title="Editar"
+                        style={{padding: '8px 10px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+                      >
+                        <FaEdit size={14} />
+                      </button>
+                      {!(m.default || m.isDefault) && (
+                        <button 
+                          onClick={() => defMutation.mutate(m.id)}
+                          title="Establecer como principal"
+                          style={{padding: '8px 10px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+                        >
+                          <FaStar size={14} />
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => delMutation.mutate(m.id)}
+                        title="Eliminar"
+                        style={{padding: '8px 10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+                      >
+                        <FaTrash size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          
+          <div style={{textAlign: 'center'}}>
+            {!showAddForm && (
+              <button className="update-data-btn" onClick={() => {
+                setShowAddForm(true);
+                setPaymentType('CARD');
+              }} style={{width:'100%', padding: '12px 20px', fontSize: 14, fontWeight: 600}}>
+                ＋ AÑADIR NUEVO MÉTODO DE PAGO
+              </button>
+            )}
+            
+            {showAddForm && (
+              <div style={{marginTop: '16px', background: '#27272a', borderRadius: 12, padding: '24px', border: '1px solid #3f3f46'}}>
+                <h4 style={{marginBottom: '20px', fontSize: 16, fontWeight: 600, textAlign: 'center'}}>Selecciona el tipo de método</h4>
+                
+                {/* Selector de tipo */}
+                <div style={{display: 'flex', gap: '12px', marginBottom: '24px'}}>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentType('CARD')}
+                    style={{
+                      flex: 1,
+                      padding: '14px 16px',
+                      background: paymentType === 'CARD' ? '#ef4444' : '#3f3f46',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      fontWeight: 500,
+                      fontSize: 14,
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <FaCreditCard size={18} /> Tarjeta
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentType('YAPE')}
+                    style={{
+                      flex: 1,
+                      padding: '14px 16px',
+                      background: paymentType === 'YAPE' ? '#ef4444' : '#3f3f46',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      fontWeight: 500,
+                      fontSize: 14,
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <FaPhone size={18} /> Yape
+                  </button>
+                </div>
+
+                <form onSubmit={handleAddPaymentMethod} style={{display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', boxSizing: 'border-box', overflow: 'hidden'}}>
+                  {paymentType === 'CARD' ? (
+                    <>
+                      <input 
+                        placeholder="Número de tarjeta" 
+                        value={cardNumber} 
+                        onChange={e=>setCardNumber(e.target.value)} 
+                        className="bg-neutral-800 px-4 py-3 rounded text-white" 
+                        style={{fontSize: 14, border: 'none', width: '100%', boxSizing: 'border-box'}} 
+                      />
+                      <input 
+                        placeholder="Titular" 
+                        value={holderName} 
+                        onChange={e=>setHolderName(e.target.value)} 
+                        className="bg-neutral-800 px-4 py-3 rounded text-white" 
+                        style={{fontSize: 14, border: 'none', width: '100%', boxSizing: 'border-box'}} 
+                      />
+                      <div style={{display: 'flex', gap:'12px', width: '100%', boxSizing: 'border-box'}}>
+                        <input 
+                          placeholder="Mes (MM)" 
+                          value={expMonth} 
+                          onChange={e=>setExpMonth(e.target.value as any)} 
+                          className="bg-neutral-800 px-4 py-3 rounded text-white" 
+                          style={{fontSize: 14, border: 'none', flex: 1, minWidth: 0, boxSizing: 'border-box'}} 
+                        />
+                        <input 
+                          placeholder="Año (YY)" 
+                          value={expYear} 
+                          onChange={e=>setExpYear(e.target.value as any)} 
+                          className="bg-neutral-800 px-4 py-3 rounded text-white" 
+                          style={{fontSize: 14, border: 'none', flex: 1, minWidth: 0, boxSizing: 'border-box'}} 
+                        />
+                        <input 
+                          placeholder="CVC" 
+                          value={cvc} 
+                          onChange={e=>setCvc(e.target.value)} 
+                          className="bg-neutral-800 px-4 py-3 rounded text-white" 
+                          style={{fontSize: 14, border: 'none', flex: 1, minWidth: 0, boxSizing: 'border-box'}} 
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <input 
+                        placeholder="Número de teléfono" 
+                        value={yapePhone} 
+                        onChange={e=>setYapePhone(e.target.value)} 
+                        className="bg-neutral-800 px-4 py-3 rounded text-white" 
+                        style={{fontSize: 14, border: 'none', width: '100%', boxSizing: 'border-box'}} 
+                      />
+                      <input 
+                        placeholder="Código de verificación" 
+                        value={yapeCode} 
+                        onChange={e=>setYapeCode(e.target.value)} 
+                        className="bg-neutral-800 px-4 py-3 rounded text-white" 
+                        style={{fontSize: 14, border: 'none', width: '100%', boxSizing: 'border-box'}} 
+                      />
+                    </>
+                  )}
+                  
+                  <label style={{display: 'flex', alignItems: 'center', gap: '10px', fontSize: 14, marginTop: '8px', cursor: 'pointer'}}>
+                    <input 
+                      type="checkbox" 
+                      checked={setDefault} 
+                      onChange={e=>setSetDefault(e.target.checked)} 
+                      style={{cursor: 'pointer', width: 16, height: 16}} 
+                    /> 
+                    <span>Usar como método principal</span>
+                  </label>
+
+                  <div style={{display:'grid', gridTemplateColumns: '1fr 1fr', gap:'12px', marginTop:'20px'}}>
+                    <button 
+                      type="submit" 
+                      disabled={addMutation.isPending} 
+                      className="update-data-btn" 
+                      style={{padding: '12px 20px', opacity: addMutation.isPending ? 0.6 : 1, cursor: addMutation.isPending ? 'not-allowed' : 'pointer', fontSize: 14, fontWeight: 600}}
+                    >
+                      {addMutation.isPending ? 'Guardando...' : 'Guardar'}
+                    </button>
+                    <button 
+                      type="button" 
+                      style={{padding: '12px 20px', background:'#52525b', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 14, fontWeight: 600}} 
+                      onClick={()=>{
+                        setShowAddForm(false);
+                        setCardNumber('');
+                        setHolderName('');
+                        setExpMonth('');
+                        setExpYear('');
+                        setCvc('');
+                        setYapePhone('');
+                        setYapeCode('');
+                        setSetDefault(false);
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                  
+                  {addMutation.isError && (
+                    <div style={{color:'#ff6b6b', fontSize:13, textAlign: 'center', background: '#3f2323', padding: '10px', borderRadius: 6, marginTop: 8}}>
+                      Error al guardar método de pago
+                    </div>
+                  )}
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Componente/JSX para la Vista de Escríbenos (direccional sin rumbo)
   const renderContactView = () => (

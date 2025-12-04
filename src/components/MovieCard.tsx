@@ -2,6 +2,7 @@ import React from 'react';
 import { ShoppingCart, PlusCircle } from 'react-feather';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
+import { COLORS } from '../styles/colors';
 
 interface Pelicula {
 	id: string;
@@ -34,14 +35,12 @@ const MovieCard: React.FC<MovieCardProps> = ({ pelicula, showEstrenoLabel = fals
 				</div>
 			)}
 
-			{showEstrenoLabel && (
-				<span className="absolute left-0 top-2 -rotate-12 bg-[#e50914] text-white px-4 py-1 text-base font-bold shadow-lg">Estreno</span>
-			)}
-			{showPreventaLabel && (
-				<span className="absolute left-0 top-2 -rotate-12 bg-[#e50914] text-white px-4 py-1 text-base font-bold shadow-lg">Pre-venta</span>
-			)}
-
-			<div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/50">
+		{showEstrenoLabel && (
+			<span className="absolute left-0 top-2 -rotate-12 text-white px-4 py-1 text-base font-bold shadow-lg" style={{backgroundColor: COLORS.primary}}>Estreno</span>
+		)}
+		{showPreventaLabel && (
+			<span className="absolute left-0 top-2 -rotate-12 text-white px-4 py-1 text-base font-bold shadow-lg" style={{backgroundColor: COLORS.primary}}>Pre-venta</span>
+		)}			<div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/50">
 				<div className="flex flex-col items-center gap-3">
                     <button
 						className="flex items-center gap-2 px-5 py-2 rounded-full font-bold text-white w-40 justify-center transform transition-transform duration-200 hover:-translate-y-1 hover:scale-105 hover:brightness-110"

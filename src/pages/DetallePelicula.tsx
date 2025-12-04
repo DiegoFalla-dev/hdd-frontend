@@ -51,6 +51,11 @@ const DetallePelicula: React.FC = () => {
   const navigate = useNavigate();
   
   const availableDates = getAvailableDates();
+  // Helper: muestra las etiquetas de formato limpias al usuario (backend usa valores como "_2D")
+  const formatLabel = (f?: string | null) => {
+    if (!f) return '';
+    return f.replace(/^_+/, '').toUpperCase();
+  };
   const showtimesQuery = useShowtimes({ movieId: pelicula?.id, cinemaId: selectedCinemaData?.id, date: selectedDay || '' });
   const backendShowtimes = showtimesQuery.data || [];
   const availableFormats = useMemo(() => {
@@ -65,6 +70,11 @@ const DetallePelicula: React.FC = () => {
     if (selectedCinemaData?.availableFormats && selectedCinemaData.availableFormats.length > 0) return selectedCinemaData.availableFormats;
     return pelicula?.formats && pelicula.formats.length ? pelicula.formats : [];
   }, [availableFormats, pelicula]);
+
+  // Si cambia el día o el formato, limpiamos la hora seleccionada para evitar estados inconsistentes
+  useEffect(() => {
+    setSelectedTime(null);
+  }, [selectedDay, selectedFormat]);
   const availableTimes = useMemo(() => {
     if (!selectedDay || !selectedFormat) return [];
     return backendShowtimes
@@ -216,34 +226,55 @@ const DetallePelicula: React.FC = () => {
             </div>
             
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                {pelicula.genre && <span className="px-2 py-1 rounded text-sm" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>{pelicula.genre}</span>}
-                {pelicula.status && <span className="px-2 py-1 rounded text-sm" style={{ backgroundColor: "#BB2228", color: "#EFEFEE" }}>{pelicula.status}</span>}
+              <div className="flex items-center gap-2 flex-wrap">
+                {pelicula.genre && (
+                  <span className="px-2 py-1 rounded text-sm" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>
+                    {pelicula.genre}
+                  </span>
+                )}
+                {pelicula.status && (
+                  <span className="px-2 py-1 rounded text-sm" style={{ backgroundColor: "#BB2228", color: "#EFEFEE" }}>
+                    {pelicula.status === 'NOW_PLAYING' ? 'NOW PLAYING' : pelicula.status === 'UPCOMING' ? 'PRÓXIMAMENTE' : pelicula.status}
+                  </span>
+                )}
               </div>
               
               <div>
                 <h3 className="font-bold mb-2">FORMATOS DISPONIBLES</h3>
                 {formatsToShow.length === 0 ? (
                   <span className="px-3 py-1 rounded" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>N/D</span>
-                ) : formatsToShow.map(f => (
-                  <span key={f} className="px-3 py-1 rounded mr-2" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>{f}</span>
-                ))}
+                ) : (
+                  <div className="flex gap-2 flex-wrap">
+                    {formatsToShow.map(f => (
+                      <span key={f} className="px-3 py-1 rounded" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>{formatLabel(f)}</span>
+                    ))}
+                  </div>
+                )}
               </div>
               
               <div>
                 <h3 className="font-bold mb-2">DURACIÓN</h3>
-                {pelicula.durationMinutes && <p style={{ color: "#E3E1E2" }}>{pelicula.durationMinutes} min</p>}
+                <p style={{ color: "#E3E1E2" }}>
+                  {pelicula.durationMinutes ? `${pelicula.durationMinutes} min` : 'No disponible'}
+                </p>
               </div>
               
               <div>
                 <h3 className="font-bold mb-2">FECHA DE ESTRENO</h3>
-                <p style={{ color: "#E3E1E2" }}>{pelicula.releaseDate ? new Date(pelicula.releaseDate).toLocaleDateString('es-PE') : 'Sin fecha'}</p>
+                <p style={{ color: "#E3E1E2" }}>
+                  {pelicula.releaseDate
+                    ? new Date(pelicula.releaseDate).toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' })
+                    : 'Sin fecha'}
+                </p>
               </div>
               
               <div>
-                <h3 className="font-bold mb-2">DISTRIBUIDOR</h3>
-                {/* Distribuidor se mostraría si viene del backend */}
-                <p style={{ color: "#E3E1E2" }}>{pelicula.trailerUrl ? 'Trailer disponible' : 'Sin trailer'}</p>
+                <h3 className="font-bold mb-2">IDIOMAS</h3>
+                <p style={{ color: "#E3E1E2" }}>
+                  {pelicula.languages && pelicula.languages.length > 0
+                    ? pelicula.languages.join(', ')
+                    : 'Español'}
+                </p>
               </div>
             </div>
           </div>
@@ -303,7 +334,7 @@ const DetallePelicula: React.FC = () => {
                           color: selectedFormat === format ? "#EFEFEE" : "#E3E1E2"
                         }}
                       >
-                        {format}
+                        {formatLabel(format)}
                       </button>
                       ))}
                   </div>
@@ -345,7 +376,7 @@ const DetallePelicula: React.FC = () => {
                 </p>
                 
                 <div className="mb-4">
-                  <span className="font-bold">{selectedFormat || "2D"}</span>
+                  <span className="font-bold">{formatLabel(selectedFormat) || "2D"}</span>
                   <span className="ml-2" style={{ color: "#E3E1E2" }}>- Doblada</span>
                 </div>
                 

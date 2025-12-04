@@ -44,6 +44,7 @@ export default {
   getRefreshToken,
   setAuthTokens,
   clearAuthTokens,
+  clearAllAppStorage,
 };
 
 // Auth token helpers
@@ -67,5 +68,27 @@ export function getRefreshToken(): string | null {
 export function clearAuthTokens() {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
+// Clears all local storage related to the app and session, and best-effort caches
+export async function clearAllAppStorage() {
+  try {
+    // Remove auth tokens first
+    clearAuthTokens();
+    // Clear known app keys
+    try { localStorage.removeItem('selectedCine'); } catch {}
+    // Fallback: clear entire localStorage/sessionStorage for a hard reset
+    try { localStorage.clear(); } catch {}
+    try { sessionStorage.clear(); } catch {}
+    // Best-effort clear of Cache Storage (service worker caches)
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+    } catch {}
+  } catch (e) {
+    console.warn('clearAllAppStorage encountered an issue', e);
+  }
 }
 

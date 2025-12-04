@@ -18,6 +18,10 @@ import CarritoTotal from './pages/CarritoTotal'
 import OrdersPage from './pages/OrdersPage'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import StaffDashboard from './pages/Staff/StaffDashboard';
+import MoviesAdmin from './pages/Staff/MoviesAdmin';
+import TheatersAdmin from './pages/Staff/TheatersAdmin';
+import ShowtimesAdmin from './pages/Staff/ShowtimesAdmin';
 
 // Placeholder components for routes we haven't implemented yet
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -51,6 +55,10 @@ function App() {
         <Route path="/perfil" element={<ProtectedRoute><ProfileEditPage /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/staff" element={<StaffDashboard />} />
+        <Route path="/staff/movies" element={<MoviesAdmin />} />
+        <Route path="/staff/theaters" element={<TheatersAdmin />} />
+        <Route path="/staff/showtimes" element={<ShowtimesAdmin />} />
       </Routes>
     </BrowserRouter>
   )
