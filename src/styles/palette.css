@@ -1,0 +1,43 @@
+/* Palette variables for CinePlus custom theme
+   Palette provided by user:
+   #EFEFEE
+   #E3E1E2
+   #393A3A
+   #141113
+   #BB2228
+   #5C1214
+*/
+:root {
+  --cinepal-bg-100: #EFEFEE;
+  --cinepal-bg-200: #E3E1E2;
+  --cinepal-gray-700: #393A3A;
+  --cinepal-gray-900: #141113;
+  --cinepal-primary: #BB2228; /* rojo brillante */
+  --cinepal-primary-700: #5C1214; /* rojo oscuro */
+
+  /* Semantic shortcuts */
+  --bg-light: var(--cinepal-bg-100);
+  --bg-muted: var(--cinepal-bg-200);
+  --text-default: var(--cinepal-gray-700);
+  --text-strong: var(--cinepal-gray-900);
+  --accent: var(--cinepal-primary);
+  --accent-dark: var(--cinepal-primary-700);
+}
+
+/* Small helpers to use in CSS files (non-Tailwind) */
+.cinepal-bg {
+  background-color: var(--bg-light);
+}
+.cinepal-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03));
+  border: 1px solid rgba(57,58,58,0.08);
+  color: var(--text-default);
+}
+.cinepal-btn-accent {
+  background: var(--accent);
+  color: white;
+}
+.cinepal-btn-accent-dark {
+  background: var(--accent-dark);
+  color: white;
+}

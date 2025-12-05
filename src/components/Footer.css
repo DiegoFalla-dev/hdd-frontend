@@ -1,0 +1,6 @@
+.cineplus-footer{background:#0b0b0b;color:#ddd;padding:48px 32px}
+.cineplus-footer .footer-columns{display:flex;gap:40px;justify-content:space-between;margin-bottom:24px}
+.cineplus-footer .col strong{display:block;margin-bottom:12px}
+.cineplus-footer .col ul{list-style:none;padding:0;margin:0}
+.cineplus-footer .col li{margin-bottom:8px}
+.cineplus-footer .footer-bottom{border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;display:flex;justify-content:space-between;font-size:13px;color:#9b9b9b}
