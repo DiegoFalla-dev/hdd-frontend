@@ -28,17 +28,32 @@ export default function StaffDashboard() {
   useEffect(() => {
     const load = async () => {
       try {
+        // Obtener datos directamente de los endpoints existentes
         const [movies, cinemas] = await Promise.all([
           fetchAllMovies(),
           getAllCinemas()
         ]);
+        
         setMoviesCount(Array.isArray(movies) ? movies.length : 0);
         setCinemasCount(Array.isArray(cinemas) ? cinemas.length : 0);
-
-        const resp = await api.get('/showtimes');
-        const data = Array.isArray(resp.data) ? resp.data : [];
-        setShowtimesCount(data.length);
+        
+        // Para showtimes, obtener todos los showtimes de todos los cines
+        try {
+          const showtimesPromises = cinemas.map(cinema => 
+            api.get(`/showtimes?cinema=${cinema.id}`).catch(() => ({ data: [] }))
+          );
+          const showtimesResponses = await Promise.all(showtimesPromises);
+          const totalShowtimes = showtimesResponses.reduce((sum, resp) => {
+            const data = Array.isArray(resp.data) ? resp.data : [];
+            return sum + data.length;
+          }, 0);
+          setShowtimesCount(totalShowtimes);
+        } catch (showtimeError) {
+          console.error('Error loading showtimes:', showtimeError);
+          setShowtimesCount(0);
+        }
       } catch (e) {
+        console.error('Error loading stats:', e);
         // En caso de error, mantenemos los contadores en 0
         setMoviesCount(0);
         setCinemasCount(0);
