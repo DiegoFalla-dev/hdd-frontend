@@ -22,6 +22,7 @@ import StaffDashboard from './pages/Staff/StaffDashboard';
 import MoviesAdmin from './pages/Staff/MoviesAdmin';
 import TheatersAdmin from './pages/Staff/TheatersAdmin';
 import ShowtimesAdmin from './pages/Staff/ShowtimesAdmin';
+import UsersAdmin from './pages/Staff/UsersAdmin';
 
 // Placeholder components for routes we haven't implemented yet
 const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
@@ -59,6 +60,7 @@ function App() {
         <Route path="/staff/movies" element={<MoviesAdmin />} />
         <Route path="/staff/theaters" element={<TheatersAdmin />} />
         <Route path="/staff/showtimes" element={<ShowtimesAdmin />} />
+        <Route path="/staff/users" element={<UsersAdmin />} />
       </Routes>
     </BrowserRouter>
   )

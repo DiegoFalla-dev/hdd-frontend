@@ -101,106 +101,225 @@ export default function TheatersAdmin() {
 
   return (
     <ProtectedRoute roles={["STAFF", "ADMIN"]}>
-      <div style={{ background: "var(--cinepal-gray-900)", color: "var(--cinepal-bg-100)" }} className="min-h-screen pt-16">
-        <Navbar />
-        <div className="p-8 max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6">Salas</h1>
+      <div style={{ background: "var(--cinepal-gray-900)", color: "var(--cinepal-bg-100)" }} className="min-h-screen">
+        <Navbar variant="dark" />
+        
+        {/* Header */}
+        <div className="relative pt-24 pb-12 px-8" style={{ 
+          background: 'linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(127, 29, 29, 0.1) 100%)'
+        }}>
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center gap-4 mb-2">
+              <div className="text-5xl">🎭</div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">
+                  Gestión de Salas
+                </h1>
+                <p className="text-gray-400 mt-1">Configura salas y capacidades por cine</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
-          <div className="mb-6">
-            <label className="mr-4">Cine:</label>
-            <select className="p-2 rounded" style={{ backgroundColor: 'var(--cinepal-bg-100)', color: 'var(--cinepal-gray-900)' }} value={selectedCinema?.id || ''} onChange={e => {
-              const c = cines.find(x => x.id === Number(e.target.value));
-              setSelectedCinema(c || null);
-            }}>
-              <option value="">Seleccione</option>
+        <div className="px-8 pb-12 max-w-7xl mx-auto -mt-8">
+          {/* Selector de Cine */}
+          <div className="mb-8 rounded-xl p-6" style={{ 
+            backgroundColor: 'var(--cinepal-gray-800)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)'
+          }}>
+            <label className="block text-lg font-semibold mb-3">🏢 Seleccionar Cine</label>
+            <select 
+              className="p-4 rounded-lg w-full md:w-96 text-lg transition-all focus:ring-2 focus:ring-red-500" 
+              style={{ backgroundColor: 'var(--cinepal-gray-700)', color: 'var(--cinepal-bg-100)', border: 'none' }} 
+              value={selectedCinema?.id || ''} 
+              onChange={e => {
+                const c = cines.find(x => x.id === Number(e.target.value));
+                setSelectedCinema(c || null);
+              }}
+            >
+              <option value="">Seleccione un cine...</option>
               {cines.map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}
             </select>
           </div>
 
           {selectedCinema && (
-            <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <div>
-                <label className="block text-sm font-medium mb-1">Cine seleccionado</label>
-                <div className="p-2 rounded w-full" style={{ backgroundColor: 'var(--cinepal-gray-700)', color: 'var(--cinepal-bg-100)' }}>
-                  {selectedCinema.name}
+            <form onSubmit={onSubmit} className="rounded-xl p-8 mb-8 relative overflow-hidden" style={{ 
+              backgroundColor: 'var(--cinepal-gray-800)',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)'
+            }}>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-red-700 to-red-800" />
+              
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                <span className="text-2xl">{editing ? '✏️' : '➕'}</span>
+                {editing ? 'Editar Sala' : 'Nueva Sala'}
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-300">Cine seleccionado</label>
+                  <div className="p-4 rounded-lg w-full font-semibold" style={{ backgroundColor: 'var(--cinepal-gray-700)', color: 'var(--cinepal-bg-100)' }}>
+                    {selectedCinema.name}
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Nombre de la Sala *</label>
-                <input className="p-2 rounded w-full" style={{ backgroundColor: 'var(--cinepal-bg-100)', color: 'var(--cinepal-gray-900)' }} placeholder="Ej: Sala 1" value={form.name || ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-                <div className="text-xs opacity-70 mt-1">El nombre se autogenera como "Sala N" según las salas existentes del cine.</div>
-              </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-300">Nombre de la Sala *</label>
+                  <input 
+                    className="p-4 rounded-lg w-full transition-all focus:ring-2 focus:ring-red-500" 
+                    style={{ backgroundColor: 'var(--cinepal-gray-700)', color: 'var(--cinepal-bg-100)', border: 'none' }} 
+                    placeholder="Ej: Sala 1" 
+                    value={form.name || ''} 
+                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))} 
+                  />
+                  <div className="text-xs text-gray-500 mt-1">El nombre se autogenera como "Sala N"</div>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Tipo de Sala *</label>
-                <div className="flex flex-wrap gap-2">
-                  {(['SMALL','MEDIUM','LARGE','XL'] as const).map(tp => (
-                    <button
-                      key={tp}
-                      type="button"
-                      className="px-3 py-2 rounded"
-                      style={{ backgroundColor: form.type === tp ? 'var(--cinepal-primary)' : 'var(--cinepal-bg-200)', color: form.type === tp ? 'var(--cinepal-bg-100)' : 'var(--cinepal-gray-900)' }}
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-300">Tipo de Sala *</label>
+                  <div className="flex flex-wrap gap-2">
+                    {(['SMALL','MEDIUM','LARGE','XL'] as const).map(tp => (
+                      <button
+                        key={tp}
+                        type="button"
+                        className="px-4 py-3 rounded-lg font-medium transition-all hover:scale-105"
+                        style={{ 
+                          backgroundColor: form.type === tp ? 'var(--cinepal-primary)' : 'var(--cinepal-gray-700)', 
+                          color: 'var(--cinepal-bg-100)',
+                          border: form.type === tp ? '2px solid rgba(220, 38, 38, 0.5)' : '2px solid transparent'
+                        }}
+                        onClick={() => {
+                          const preset = TYPE_PRESETS[tp];
+                          setForm(f => ({ ...f, type: tp, rows: preset.rows, columns: preset.columns }));
+                        }}
+                      >
+                        {tp}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-300">Columnas</label>
+                  <input 
+                    className="p-4 rounded-lg w-full" 
+                    style={{ backgroundColor: 'var(--cinepal-gray-600)', color: 'var(--cinepal-gray-400)', border: 'none' }} 
+                    value={form.columns ?? 0} 
+                    readOnly 
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-300">Filas</label>
+                  <input 
+                    className="p-4 rounded-lg w-full" 
+                    style={{ backgroundColor: 'var(--cinepal-gray-600)', color: 'var(--cinepal-gray-400)', border: 'none' }} 
+                    value={form.rows ?? 0} 
+                    readOnly 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-300">Capacidad Total</label>
+                  <div className="p-4 rounded-lg w-full font-bold text-xl text-center bg-gradient-to-r from-red-600 to-red-700 text-white">
+                    {capacityComputed} asientos
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1 text-center">Filas × Columnas</div>
+                </div>
+
+                <div className="md:col-span-3 flex items-center gap-3 flex-wrap">
+                  <button 
+                    type="submit" 
+                    className="px-6 py-3 rounded-lg font-semibold transition-all hover:scale-105 bg-gradient-to-r from-red-600 to-red-700 text-white"
+                    disabled={saving}
+                    style={{ opacity: saving ? 0.7 : 1 }}
+                  >
+                    {saving ? (editing ? '⏳ Actualizando...' : '⏳ Creando...') : (editing ? '✓ Actualizar Sala' : '+ Crear Sala')}
+                  </button>
+                  {editing && (
+                    <button 
+                      type="button" 
+                      className="px-6 py-3 rounded-lg font-semibold transition-all hover:scale-105" 
+                      style={{ backgroundColor: 'var(--cinepal-gray-700)', color: 'var(--cinepal-bg-100)' }} 
                       onClick={() => {
-                        const preset = TYPE_PRESETS[tp];
-                        setForm(f => ({ ...f, type: tp, rows: preset.rows, columns: preset.columns }));
+                        setEditing(null);
+                        const preset = TYPE_PRESETS[form.type ?? 'SMALL'];
+                        setForm({ name: form.name ?? '', capacity: capacityComputed, type: form.type ?? 'SMALL', rows: preset.rows, columns: preset.columns });
                       }}
-                    >{tp}</button>
-                  ))}
+                    >
+                      ✕ Cancelar
+                    </button>
+                  )}
+                  {errorMsg && (
+                    <div className="flex items-center px-4 py-3 rounded-lg bg-red-500/20 text-red-300">
+                      {errorMsg}
+                    </div>
+                  )}
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Columnas (protegido)</label>
-                <input className="p-2 rounded w-full" style={{ backgroundColor: 'var(--cinepal-gray-700)', color: 'var(--cinepal-bg-100)' }} value={form.columns ?? 0} readOnly />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Filas (protegido)</label>
-                <input className="p-2 rounded w-full" style={{ backgroundColor: 'var(--cinepal-gray-700)', color: 'var(--cinepal-bg-100)' }} value={form.rows ?? 0} readOnly />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Capacidad (autocalculada)</label>
-                <input className="p-2 rounded w-full" style={{ backgroundColor: 'var(--cinepal-gray-700)', color: 'var(--cinepal-bg-100)' }} value={capacityComputed} readOnly />
-                <div className="text-xs opacity-70 mt-1">Se calcula como Filas x Columnas según el tipo.</div>
-              </div>
-
-              <div className="flex items-end gap-2">
-                <button type="submit" className="px-4 py-2 rounded" disabled={saving} style={{ backgroundColor: 'var(--cinepal-primary)', color: 'var(--cinepal-bg-100)', opacity: saving ? 0.7 : 1 }}>
-                  {saving ? (editing ? 'Actualizando...' : 'Creando...') : (editing ? 'Actualizar Sala' : 'Crear Sala')}
-                </button>
-                {editing && <button type="button" className="px-4 py-2 rounded" style={{ backgroundColor: 'var(--cinepal-gray-700)', color: 'var(--cinepal-bg-100)' }} onClick={() => {
-                  setEditing(null);
-                  const preset = TYPE_PRESETS[form.type ?? 'SMALL'];
-                  setForm({ name: form.name ?? '', capacity: capacityComputed, type: form.type ?? 'SMALL', rows: preset.rows, columns: preset.columns });
-                }}>Cancelar</button>}
-                {errorMsg && <span className="text-sm opacity-80">{errorMsg}</span>}
               </div>
             </form>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {theaters.map(t => {
-              const tipo = t.seatMatrixType ?? t.type;
-              const filas = t.rowCount ?? t.rows ?? 0;
-              const columnas = t.colCount ?? t.columns ?? 0;
-              const capacidad = t.totalSeats ?? t.capacity ?? (filas * columnas);
-              const tipoLabel = tipo === 'XLARGE' ? 'XL' : tipo;
-              return (
-                <div key={t.id} className="rounded p-4" style={{ backgroundColor: 'var(--cinepal-gray-700)' }}>
-                  <div className="font-bold text-xl mb-2">{t.name}</div>
-                  <div className="text-sm mb-1">Tipo: {tipoLabel}</div>
-                  <div className="text-sm mb-1">Filas: {filas} · Columnas: {columnas}</div>
-                  <div className="text-sm mb-2">Total de Asientos: {capacidad}</div>
-                  <div className="flex gap-2">
-                    <button className="px-3 py-2 rounded" style={{ backgroundColor: 'var(--cinepal-bg-200)', color: 'var(--cinepal-gray-900)' }} onClick={() => onEdit(t)}>Editar</button>
-                    <button className="px-3 py-2 rounded" style={{ backgroundColor: 'var(--cinepal-primary)', color: 'var(--cinepal-bg-100)' }} onClick={() => onDelete(t)}>Borrar</button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          {/* Listado de Salas */}
+          {selectedCinema && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                <span className="text-2xl">🎬</span>
+                Salas de {selectedCinema.name} ({theaters.length})
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {theaters.map(t => {
+                  const tipo = t.seatMatrixType ?? t.type;
+                  const filas = t.rowCount ?? t.rows ?? 0;
+                  const columnas = t.colCount ?? t.columns ?? 0;
+                  const capacidad = t.totalSeats ?? t.capacity ?? (filas * columnas);
+                  const tipoLabel = tipo === 'XLARGE' ? 'XL' : tipo;
+                  return (
+                    <div 
+                      key={t.id} 
+                      className="rounded-xl p-6 group hover:scale-105 transition-all duration-300 relative overflow-hidden" 
+                      style={{ 
+                        backgroundColor: 'var(--cinepal-gray-800)',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)'
+                      }}
+                    >
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-red-600/20 to-transparent rounded-bl-full" />
+                      
+                      <div className="relative z-10">
+                        <div className="font-bold text-2xl mb-3">{t.name}</div>
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="bg-red-500/20 text-red-300 px-3 py-1 rounded-full font-medium">{tipoLabel}</span>
+                          </div>
+                          <div className="text-gray-400 text-sm">📐 Filas: {filas} · Columnas: {columnas}</div>
+                          <div className="text-lg font-bold text-red-400">🪑 {capacidad} asientos</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button 
+                            className="flex-1 px-4 py-2 rounded-lg font-medium transition-all hover:scale-105" 
+                            style={{ backgroundColor: 'var(--cinepal-gray-700)', color: 'var(--cinepal-bg-100)' }} 
+                            onClick={() => onEdit(t)}
+                          >
+                            ✏️ Editar
+                          </button>
+                          <button 
+                            className="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 bg-gradient-to-r from-red-600 to-red-700 text-white" 
+                            onClick={() => onDelete(t)}
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-red-700 to-red-800 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
+        
         <Footer />
       </div>
     </ProtectedRoute>

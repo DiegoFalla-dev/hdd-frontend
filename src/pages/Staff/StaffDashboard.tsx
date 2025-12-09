@@ -6,24 +6,13 @@ import ProtectedRoute from '../../components/ProtectedRoute';
 import { getAllCinemas } from '../../services/cinemaService';
 import { fetchAllMovies } from '../../services/moviesService';
 import api from '../../services/apiClient';
-import authService from '../../services/authService';
-import { useAuth } from '../../context/AuthContext';
 
 export default function StaffDashboard() {
-  const { user } = useAuth();
   const [moviesCount, setMoviesCount] = useState<number>(0);
   const [cinemasCount, setCinemasCount] = useState<number>(0);
   const [showtimesCount, setShowtimesCount] = useState<number>(0);
-  const [creating, setCreating] = useState(false);
-  const [createForm, setCreateForm] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    role: 'STAFF' as 'ADMIN' | 'STAFF' | 'USER',
-  });
-  const [createMsg, setCreateMsg] = useState<string>('');
+  const [usersCount, setUsersCount] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -36,6 +25,14 @@ export default function StaffDashboard() {
         
         setMoviesCount(Array.isArray(movies) ? movies.length : 0);
         setCinemasCount(Array.isArray(cinemas) ? cinemas.length : 0);
+        
+        // Obtener count de usuarios
+        try {
+          const usersResponse = await api.get('/users/count');
+          setUsersCount(typeof usersResponse.data === 'number' ? usersResponse.data : 0);
+        } catch {
+          setUsersCount(0);
+        }
         
         // Para showtimes, obtener todos los showtimes de todos los cines
         try {
@@ -54,109 +51,246 @@ export default function StaffDashboard() {
         }
       } catch (e) {
         console.error('Error loading stats:', e);
-        // En caso de error, mantenemos los contadores en 0
         setMoviesCount(0);
         setCinemasCount(0);
         setShowtimesCount(0);
+        setUsersCount(0);
+      } finally {
+        setLoading(false);
       }
     };
     load();
   }, []);
 
-  const canSeeCreateUser = Array.isArray(user?.roles) && user.roles.includes('ADMIN');
-
-  const onQuickCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCreateMsg('');
-    try {
-      await authService.register({
-        firstName: createForm.firstName,
-        lastName: createForm.lastName,
-        email: createForm.email,
-        password: createForm.password,
-        confirmPassword: createForm.confirmPassword,
-        roles: [createForm.role],
-      });
-      setCreateMsg('Usuario creado correctamente');
-      setCreating(false);
-      setCreateForm({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '', role: 'STAFF' });
-    } catch (err: any) {
-      setCreateMsg('Error al crear usuario');
+  const stats = [
+    { 
+      label: 'Películas', 
+      value: moviesCount, 
+      icon: '🎬',
+      color: 'from-red-500 to-red-600',
+      bgCard: 'var(--cinepal-gray-800)'
+    },
+    { 
+      label: 'Cines', 
+      value: cinemasCount, 
+      icon: '🏢',
+      color: 'from-red-600 to-red-700',
+      bgCard: 'var(--cinepal-gray-800)'
+    },
+    { 
+      label: 'Funciones', 
+      value: showtimesCount, 
+      icon: '🎞️',
+      color: 'from-red-500 to-orange-600',
+      bgCard: 'var(--cinepal-gray-800)'
+    },
+    { 
+      label: 'Usuarios', 
+      value: usersCount, 
+      icon: '👥',
+      color: 'from-red-600 to-pink-600',
+      bgCard: 'var(--cinepal-gray-800)'
     }
-  };
+  ];
+
+  const managementCards = [
+    {
+      title: 'Gestionar Películas',
+      description: 'Administra el catálogo de películas',
+      icon: '🎬',
+      path: 'movies',
+      gradient: 'from-red-600 to-red-700'
+    },
+    {
+      title: 'Gestionar Salas',
+      description: 'Configura salas y capacidades',
+      icon: '🎭',
+      path: 'theaters',
+      gradient: 'from-red-700 to-red-800'
+    },
+    {
+      title: 'Gestionar Funciones',
+      description: 'Programa horarios de películas',
+      icon: '🎞️',
+      path: 'showtimes',
+      gradient: 'from-red-600 to-orange-600'
+    },
+    {
+      title: 'Gestionar Usuarios',
+      description: 'Administra usuarios del sistema',
+      icon: '👥',
+      path: 'users',
+      gradient: 'from-red-600 to-pink-600'
+    }
+  ];
+
   return (
     <ProtectedRoute roles={["STAFF", "ADMIN"]}>
-      <div style={{ background: "var(--cinepal-gray-900)", color: "var(--cinepal-bg-100)" }} className="min-h-screen pt-16">
+      <div style={{ background: "var(--cinepal-gray-900)", color: "var(--cinepal-bg-100)" }} className="min-h-screen">
         <Navbar variant="dark" />
-        <div className="p-8 max-w-5xl mx-auto pt-6">
-          <h1 className="text-3xl font-bold mb-6">Panel de Staff</h1>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="rounded p-4" style={{ backgroundColor: 'var(--cinepal-gray-700)' }}>
-              <div className="text-sm opacity-80">Películas</div>
-              <div className="text-2xl font-bold">{moviesCount}</div>
-            </div>
-            <div className="rounded p-4" style={{ backgroundColor: 'var(--cinepal-gray-700)' }}>
-              <div className="text-sm opacity-80">Cines</div>
-              <div className="text-2xl font-bold">{cinemasCount}</div>
-            </div>
-            <div className="rounded p-4" style={{ backgroundColor: 'var(--cinepal-gray-700)' }}>
-              <div className="text-sm opacity-80">Funciones</div>
-              <div className="text-2xl font-bold">{showtimesCount}</div>
+        
+        {/* Header con gradiente */}
+        <div className="relative pt-24 pb-12 px-8" style={{ 
+          background: 'linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(127, 29, 29, 0.1) 100%)'
+        }}>
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center gap-4 mb-2">
+              <div className="text-5xl">⚡</div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">
+                  Panel de Administración
+                </h1>
+                <p className="text-gray-400 mt-1">Gestión completa del sistema CinePlus</p>
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Link to="movies" className="rounded p-6" style={{ backgroundColor: "var(--cinepal-gray-700)" }}>Gestionar Películas</Link>
-            <Link to="theaters" className="rounded p-6" style={{ backgroundColor: "var(--cinepal-gray-700)" }}>Gestionar Salas</Link>
-            <Link to="showtimes" className="rounded p-6" style={{ backgroundColor: "var(--cinepal-gray-700)" }}>Gestionar Funciones</Link>
+        </div>
+
+        <div className="px-8 pb-12 max-w-7xl mx-auto -mt-8">
+          {/* Estadísticas */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            {stats.map((stat, idx) => (
+              <div
+                key={idx}
+                className="rounded-xl p-6 relative overflow-hidden group hover:scale-105 transition-transform duration-300"
+                style={{ 
+                  backgroundColor: stat.bgCard,
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)'
+                }}
+              >
+                {/* Gradiente de fondo sutil */}
+                <div 
+                  className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-5 group-hover:opacity-10 transition-opacity`}
+                />
+                
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-3xl">{stat.icon}</span>
+                    {loading && (
+                      <div className="animate-pulse bg-gray-600 h-4 w-12 rounded"/>
+                    )}
+                  </div>
+                  <div className="text-sm text-gray-400 mb-1">{stat.label}</div>
+                  <div className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                    {loading ? '...' : stat.value}
+                  </div>
+                </div>
+
+                {/* Borde gradiente */}
+                <div 
+                  className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.color}`}
+                />
+              </div>
+            ))}
           </div>
 
-          {canSeeCreateUser && (
-            <div className="mt-8 rounded p-6" style={{ backgroundColor: 'var(--cinepal-gray-700)' }}>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">Creación rápida de usuario</h2>
-                <button className="px-4 py-2 rounded" style={{ backgroundColor: 'var(--cinepal-bg-200)', color: 'var(--cinepal-gray-900)' }} onClick={() => setCreating(v => !v)}>
-                  {creating ? 'Cerrar' : 'Crear usuario'}
-                </button>
-              </div>
-              {creating && (
-                <form onSubmit={onQuickCreateUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Nombre *</label>
-                    <input className="p-2 rounded w-full" style={{ backgroundColor: 'var(--cinepal-bg-100)', color: 'var(--cinepal-gray-900)' }} placeholder="Ej: Juan" value={createForm.firstName} onChange={e => setCreateForm(f => ({ ...f, firstName: e.target.value }))} />
+          {/* Sección de gestión */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+              <span className="text-2xl">🎯</span>
+              Módulos de Gestión
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {managementCards.map((card, idx) => (
+                <Link
+                  key={idx}
+                  to={card.path}
+                  className="group rounded-xl p-8 relative overflow-hidden hover:scale-105 transition-all duration-300"
+                  style={{ 
+                    backgroundColor: 'var(--cinepal-gray-800)',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)'
+                  }}
+                >
+                  {/* Gradiente de fondo */}
+                  <div 
+                    className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
+                  />
+                  
+                  {/* Contenido */}
+                  <div className="relative z-10">
+                    <div className="flex items-start justify-between mb-4">
+                      <span className="text-5xl group-hover:scale-110 transition-transform duration-300">
+                        {card.icon}
+                      </span>
+                      <div 
+                        className={`w-10 h-10 rounded-full bg-gradient-to-br ${card.gradient} opacity-20 group-hover:opacity-40 transition-opacity flex items-center justify-center`}
+                      >
+                        <span className="text-white text-xl">→</span>
+                      </div>
+                    </div>
+                    
+                    <h3 className="text-xl font-bold mb-2 group-hover:text-white transition-colors">
+                      {card.title}
+                    </h3>
+                    <p className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors">
+                      {card.description}
+                    </p>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Apellido *</label>
-                    <input className="p-2 rounded w-full" style={{ backgroundColor: 'var(--cinepal-bg-100)', color: 'var(--cinepal-gray-900)' }} placeholder="Ej: Pérez" value={createForm.lastName} onChange={e => setCreateForm(f => ({ ...f, lastName: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Email *</label>
-                    <input className="p-2 rounded w-full" style={{ backgroundColor: 'var(--cinepal-bg-100)', color: 'var(--cinepal-gray-900)' }} placeholder="Ej: usuario@ejemplo.com" type="email" value={createForm.email} onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Rol *</label>
-                    <select className="p-2 rounded w-full" style={{ backgroundColor: 'var(--cinepal-bg-100)', color: 'var(--cinepal-gray-900)' }} value={createForm.role} onChange={e => setCreateForm(f => ({ ...f, role: e.target.value as any }))}>
-                      <option value="ADMIN">ADMIN</option>
-                      <option value="STAFF">STAFF</option>
-                      <option value="USER">USER</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Contraseña *</label>
-                    <input className="p-2 rounded w-full" style={{ backgroundColor: 'var(--cinepal-bg-100)', color: 'var(--cinepal-gray-900)' }} placeholder="Ej: contraseña123" type="password" value={createForm.password} onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Confirmar contraseña *</label>
-                    <input className="p-2 rounded w-full" style={{ backgroundColor: 'var(--cinepal-bg-100)', color: 'var(--cinepal-gray-900)' }} placeholder="Ej: contraseña123" type="password" value={createForm.confirmPassword} onChange={e => setCreateForm(f => ({ ...f, confirmPassword: e.target.value }))} />
-                  </div>
-                  <div className="md:col-span-2 flex gap-2">
-                    <button type="submit" className="px-4 py-2 rounded" style={{ backgroundColor: 'var(--cinepal-primary)', color: 'var(--cinepal-bg-100)' }}>Crear</button>
-                    {createMsg && <span className="px-2 py-2 text-sm opacity-80">{createMsg}</span>}
-                  </div>
-                </form>
-              )}
+
+                  {/* Borde gradiente en hover */}
+                  <div 
+                    className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${card.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left`}
+                  />
+                </Link>
+              ))}
             </div>
-          )}
+          </div>
+
+          {/* Acceso rápido */}
+          <div className="rounded-xl p-6" style={{ 
+            backgroundColor: 'var(--cinepal-gray-800)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)'
+          }}>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <span>⚡</span>
+              Accesos Rápidos
+            </h3>
+            <div className="flex flex-wrap gap-3">
+              <Link 
+                to="movies" 
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
+                style={{ 
+                  backgroundColor: 'var(--cinepal-gray-700)',
+                  color: 'var(--cinepal-bg-100)'
+                }}
+              >
+                + Nueva Película
+              </Link>
+              <Link 
+                to="theaters" 
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
+                style={{ 
+                  backgroundColor: 'var(--cinepal-gray-700)',
+                  color: 'var(--cinepal-bg-100)'
+                }}
+              >
+                + Nueva Sala
+              </Link>
+              <Link 
+                to="showtimes" 
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
+                style={{ 
+                  backgroundColor: 'var(--cinepal-gray-700)',
+                  color: 'var(--cinepal-bg-100)'
+                }}
+              >
+                + Nueva Función
+              </Link>
+              <Link 
+                to="users" 
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
+                style={{ 
+                  backgroundColor: 'var(--cinepal-gray-700)',
+                  color: 'var(--cinepal-bg-100)'
+                }}
+              >
+                + Nuevo Usuario
+              </Link>
+            </div>
+          </div>
         </div>
+
         <Footer />
       </div>
     </ProtectedRoute>
