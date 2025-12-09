@@ -10,8 +10,12 @@ import { useAllMovies } from '../hooks/useMovies';
 const HeroBanner: React.FC = () => {
   const { data: allMovies = [], isLoading } = useAllMovies();
   const movies: Movie[] = React.useMemo(() => {
-    const featured = allMovies.filter(m => m.status === 'NOW_PLAYING').slice(0, 5);
-    return featured.length > 0 ? featured : allMovies.slice(0, 5);
+    // Filtrar SOLO películas que tienen banner_url (no null)
+    const moviesWithBanner = allMovies.filter(m => {
+      const anyM = m as any;
+      return anyM.bannerUrl != null && anyM.bannerUrl !== '';
+    });
+    return moviesWithBanner;
   }, [allMovies]);
 
   const NextArrow = ({ onClick }: any) => (
@@ -44,17 +48,21 @@ const HeroBanner: React.FC = () => {
     prevArrow: <PrevArrow />,
   };
 
-  // Selección de imagen: primero bannerUrl, luego cardImageUrl, luego posterUrl/trailerUrl, y por último placeholder
+  // Usar SOLO banner_url (sin fallbacks)
   const getBannerImage = (m: Movie) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const anyM = m as any;
-    return anyM.bannerUrl || anyM.cardImageUrl || m.posterUrl || m.trailerUrl || '/placeholder-banner.jpg';
+    return anyM.bannerUrl;
   };
 
+  // Si no hay películas con banner, no renderizar nada
+  if (movies.length === 0) {
+    return null;
+  }
+
   return (
-    <section className="relative w-full max-h-[600px] overflow-hidden">
+    <section className="relative w-full h-[700px] overflow-hidden">
       {isLoading ? (
-        <div className="w-full h-[600px] flex items-center justify-center text-white">Cargando...</div>
+        <div className="w-full h-[700px] flex items-center justify-center text-white">Cargando...</div>
       ) : (
         <Slider {...settings}>
           {movies.map((m) => (
@@ -62,7 +70,7 @@ const HeroBanner: React.FC = () => {
               <img
                 src={getBannerImage(m)}
                 alt={m.title}
-                className="w-full h-[600px] object-cover"
+                className="w-full h-[700px] object-cover"
               />
               <figcaption className="absolute bottom-4 left-4 text-white text-2xl font-bold drop-shadow-md">{m.title}</figcaption>
             </figure>

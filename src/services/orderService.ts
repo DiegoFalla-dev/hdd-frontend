@@ -101,7 +101,7 @@ export async function getOrdersForUser(userId: number | string): Promise<OrderSu
       format: showtime?.format,
       // Incluir items y concesiones completos
       orderItems: order.orderItems || [],
-      orderConcessions: (order as any).orderConcessions || []
+      orderConcessions: order.orderConcessions || []
     };
   });
 }

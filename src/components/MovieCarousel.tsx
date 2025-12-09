@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { PlusCircle } from "react-feather";
+import axios from "axios";
 import { fetchAllMovies } from "../services/moviesService";
 import type { Movie, MovieStatus } from '../types/Movie';
 import { useNavigate } from "react-router-dom";
@@ -22,20 +23,37 @@ const MovieCarousel: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let isCancelled = false;
+    
     (async () => {
       try {
         const all = await fetchAllMovies();
+        
+        if (isCancelled) return;
+        
         if (import.meta.env.MODE !== 'production') console.debug(`[MovieCarousel] fetched movies: ${Array.isArray(all) ? all.length : 'N/A'}`);
         if (!all || !Array.isArray(all) || all.length === 0) {
           console.warn('[MovieCarousel] no movies returned from fetchAllMovies');
         }
         setMovies(all);
       } catch (error) {
+        // Ignore cancelled request errors
+        if (isCancelled) return;
+        // Ignorar errores de cancelación de solicitudes duplicadas
+        if (axios.isAxiosError(error) && (error.code === 'ERR_CANCELED' || error.name === 'CanceledError')) {
+          return;
+        }
         console.error('Error fetching movies:', error);
       } finally {
-        setLoading(false);
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
     })();
+    
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   const handleVerDetalles = (movieId: string) => {

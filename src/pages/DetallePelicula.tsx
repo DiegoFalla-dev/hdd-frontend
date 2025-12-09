@@ -5,35 +5,13 @@ import Footer from "../components/Footer";
 // Usamos el modal de selección de cines que provee el Navbar mediante evento
 import { useAllMovies } from "../hooks/useMovies";
 import { useShowtimes } from "../hooks/useShowtimes";
+import { useAvailableDates } from "../hooks/useAvailableDates";
 import type { Movie } from '../types/Movie';
 import authService from '../services/authService';
 import { useShowtimeSelectionStore } from '../store/showtimeSelectionStore';
 import { getAllCinemas, getCinemaById } from "../services/cinemaService"; // Importar getCinemaById
 import type { Cinema } from "../types/Cinema";
 import { FiPlay } from "react-icons/fi";
-
-const getAvailableDates = () => {
-  const dates = [];
-  const today = new Date();
-  today.setHours(today.getHours() - 5); // GMT-5 Peru timezone
-  
-  for (let i = 0; i < 3; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + i);
-    
-    const dayName = date.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase();
-    const dayNumber = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    
-    dates.push({
-      label: dayName,
-      date: `${dayNumber}/${month}`,
-      fullDate: date.toISOString().split('T')[0]
-    });
-  }
-  
-  return dates;
-};
 
 const DetallePelicula: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -46,11 +24,15 @@ const DetallePelicula: React.FC = () => {
   const { data: allMovies = [] } = useAllMovies();
   const [cinemas, setCinemas] = useState<Cinema[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showTrailer, setShowTrailer] = useState(false);
   
   const peliculaId = searchParams.get('pelicula');
   const navigate = useNavigate();
   
-  const availableDates = getAvailableDates();
+  // Obtener fechas disponibles dinámicamente desde el backend
+  const availableDatesQuery = useAvailableDates({ movieId: pelicula?.id, cinemaId: selectedCinemaData?.id });
+  const availableDates = availableDatesQuery.data || [];
+  
   // Helper: muestra las etiquetas de formato limpias al usuario (backend usa valores como "_2D")
   const formatLabel = (f?: string | null) => {
     if (!f) return '';
@@ -58,51 +40,75 @@ const DetallePelicula: React.FC = () => {
   };
   const showtimesQuery = useShowtimes({ movieId: pelicula?.id, cinemaId: selectedCinemaData?.id, date: selectedDay || '' });
   const backendShowtimes = showtimesQuery.data || [];
+  
+  // Obtener formatos disponibles SOLO para la fecha seleccionada
   const availableFormats = useMemo(() => {
+    if (!selectedDay) return []; // No mostrar formatos hasta que se seleccione una fecha
     const formats = new Set<string>();
-    backendShowtimes.forEach(s => { if (s.format) formats.add(s.format); });
+    backendShowtimes.forEach(s => { 
+      if (s.format && s.startTime) {
+        const showDate = new Date(s.startTime).toISOString().split('T')[0];
+        if (showDate === selectedDay) {
+          formats.add(s.format);
+        }
+      }
+    });
     return Array.from(formats);
-  }, [backendShowtimes]);
-  // If backend doesn't return showtime formats yet, fall back to movie-level formats
+  }, [backendShowtimes, selectedDay]);
+  
+  // Si no hay formatos disponibles para la fecha seleccionada, mostrar los de la película como fallback
   const formatsToShow = useMemo(() => {
     if (availableFormats && availableFormats.length > 0) return availableFormats;
-    // Prefer cinema-enabled formats when available
-    if (selectedCinemaData?.availableFormats && selectedCinemaData.availableFormats.length > 0) return selectedCinemaData.availableFormats;
-    return pelicula?.formats && pelicula.formats.length ? pelicula.formats : [];
-  }, [availableFormats, pelicula]);
+    // Solo mostrar formatos fallback si NO se ha seleccionado fecha aún
+    if (!selectedDay) {
+      if (selectedCinemaData?.availableFormats && selectedCinemaData.availableFormats.length > 0) return selectedCinemaData.availableFormats;
+      return pelicula?.formats && pelicula.formats.length ? pelicula.formats : [];
+    }
+    return [];
+  }, [availableFormats, selectedDay, selectedCinemaData?.availableFormats, pelicula?.formats]);
 
-  // Si cambia el día o el formato, limpiamos la hora seleccionada para evitar estados inconsistentes
+  // Si cambia el día, limpiamos el formato y la hora seleccionada
+  useEffect(() => {
+    setSelectedFormat(null);
+    setSelectedTime(null);
+  }, [selectedDay]);
+  
+  // Si cambia el formato, limpiamos la hora seleccionada
   useEffect(() => {
     setSelectedTime(null);
-  }, [selectedDay, selectedFormat]);
+  }, [selectedFormat]);
   const availableTimes = useMemo(() => {
     if (!selectedDay || !selectedFormat) return [];
-    return backendShowtimes
-      .filter(s => {
-        if (!s.startTime) return false;
-        const showDate = new Date(s.startTime).toISOString().split('T')[0];
-        return showDate === selectedDay && s.format === selectedFormat;
-      })
-      .map(s => new Date(s.startTime).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }))
+    
+    const filteredShowtimes = backendShowtimes.filter(s => {
+      if (!s.startTime) return false;
+      const showDate = new Date(s.startTime).toISOString().split('T')[0];
+      return showDate === selectedDay && s.format === selectedFormat;
+    });
+    
+    // Usar un Map para eliminar duplicados por hora, manteniendo el primer showtime de cada hora
+    const timeMap = new Map<string, typeof filteredShowtimes[0]>();
+    filteredShowtimes.forEach(s => {
+      const timeStr = new Date(s.startTime).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+      if (!timeMap.has(timeStr)) {
+        timeMap.set(timeStr, s);
+      }
+    });
+    
+    // Convertir a array de [hora, showtime] y ordenar por hora
+    return Array.from(timeMap.entries())
       .sort((a, b) => {
         // sort times by HH:MM
         const toMinutes = (t: string) => {
           const parts = t.split(':').map(p => parseInt(p, 10));
           return parts[0] * 60 + (parts[1] || 0);
         };
-        return toMinutes(a) - toMinutes(b);
-      });
+        return toMinutes(a[0]) - toMinutes(b[0]);
+      })
+      .map(([time]) => time); // Solo devolver las horas únicas ordenadas
   }, [selectedDay, selectedFormat, backendShowtimes]);
 
   const isReadyToBuy = selectedDay && selectedTime && selectedFormat;
-
-  // Debugging: log showtime query params and results to help diagnose missing times
-  useEffect(() => {
-    try {
-      console.debug('[DetallePelicula] showtime params', { movieId: pelicula?.id, cinemaId: selectedCinemaData?.id, date: selectedDay, format: selectedFormat });
-      console.debug('[DetallePelicula] backendShowtimes', backendShowtimes);
-    } catch (e) { /* noop */ }
-  }, [pelicula?.id, selectedCinemaData?.id, selectedDay, selectedFormat, backendShowtimes]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -255,7 +261,7 @@ const DetallePelicula: React.FC = () => {
               <div>
                 <h3 className="font-bold mb-2">DURACIÓN</h3>
                 <p style={{ color: "#E3E1E2" }}>
-                  {pelicula.durationMinutes ? `${pelicula.durationMinutes} min` : 'No disponible'}
+                  {pelicula.duration || 'No disponible'}
                 </p>
               </div>
               
@@ -276,6 +282,15 @@ const DetallePelicula: React.FC = () => {
                     : 'Español'}
                 </p>
               </div>
+              
+              <div>
+                <h3 className="font-bold mb-2">REPARTO</h3>
+                <p style={{ color: "#E3E1E2" }}>
+                  {pelicula.cast && pelicula.cast.length > 0
+                    ? pelicula.cast.join(', ')
+                    : 'No disponible'}
+                </p>
+              </div>
             </div>
           </div>
           
@@ -283,14 +298,47 @@ const DetallePelicula: React.FC = () => {
             <div className="mb-6">
               <h1 className="text-4xl font-bold mb-4">{pelicula.title.toUpperCase()}</h1>
               <div className="relative mb-6">
-                <img 
-                  src={pelicula.posterUrl || '/placeholder.jpg'} 
-                  alt={pelicula.title}
-                  className="w-full h-64 object-cover rounded-lg"
-                />
-                <button className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg hover:bg-opacity-70 transition-all">
-                  <FiPlay size={48} className="text-white" />
-                </button>
+                {showTrailer && pelicula.trailerUrl ? (
+                  <div className="relative w-full h-64">
+                    <iframe
+                      className="w-full h-full rounded-lg"
+                      src={pelicula.trailerUrl.includes('youtube.com') || pelicula.trailerUrl.includes('youtu.be')
+                        ? pelicula.trailerUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')
+                        : pelicula.trailerUrl}
+                      title={pelicula.title}
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                    <button
+                      onClick={() => setShowTrailer(false)}
+                      className="absolute top-2 right-2 bg-black bg-opacity-70 text-white px-3 py-1 rounded hover:bg-opacity-90 transition-all text-sm"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <img 
+                      src={pelicula.posterUrl || '/placeholder.jpg'} 
+                      alt={pelicula.title}
+                      className="w-full h-64 object-cover rounded-lg"
+                    />
+                    {pelicula.trailerUrl && (
+                      <button 
+                        onClick={() => setShowTrailer(true)}
+                        className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg hover:bg-opacity-70 transition-all"
+                      >
+                        <FiPlay size={48} className="text-white" />
+                      </button>
+                    )}
+                    {!pelicula.trailerUrl && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
+                        <FiPlay size={48} className="text-gray-500" />
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
               <p className="text-sm leading-relaxed" style={{ color: "#E3E1E2" }}>
                 {pelicula.synopsis}
@@ -300,26 +348,34 @@ const DetallePelicula: React.FC = () => {
             <div>
               <h2 className="text-2xl font-bold mb-4">HORARIOS</h2>
               
-              <div className="mb-4">
-                <div className="flex gap-2 mb-4">
-                  {availableDates.map((day) => (
-                    <button 
-                      key={day.fullDate}
-                      onClick={() => setSelectedDay(day.fullDate)}
-                      className="px-4 py-2 rounded font-bold transition-colors"
-                      style={{
-                        backgroundColor: selectedDay === day.fullDate ? "#EFEFEE" : "transparent",
-                        color: selectedDay === day.fullDate ? "#141113" : "#E3E1E2",
-                        border: selectedDay === day.fullDate ? "none" : "1px solid #393A3A"
-                      }}
-                    >
-                      <div className="text-center">
-                        <div>{day.label}</div>
-                        <div className="text-xs">{day.date}</div>
-                      </div>
-                    </button>
-                  ))}
+              {pelicula.status === 'UPCOMING' ? (
+                <div className="mb-6 p-6 rounded-lg text-center" style={{ backgroundColor: "#393A3A" }}>
+                  <p className="text-lg" style={{ color: "#E3E1E2" }}>
+                    No hay funciones programadas para esta película
+                  </p>
                 </div>
+              ) : (
+                <>
+                  <div className="mb-4">
+                    <div className="flex gap-2 mb-4">
+                      {availableDates.map((day) => (
+                        <button 
+                          key={day.fullDate}
+                          onClick={() => setSelectedDay(day.fullDate)}
+                          className="px-4 py-2 rounded font-bold transition-colors"
+                          style={{
+                            backgroundColor: selectedDay === day.fullDate ? "#EFEFEE" : "transparent",
+                            color: selectedDay === day.fullDate ? "#141113" : "#E3E1E2",
+                            border: selectedDay === day.fullDate ? "none" : "1px solid #393A3A"
+                          }}
+                        >
+                          <div className="text-center">
+                            <div>{day.label}</div>
+                            <div className="text-xs">{day.date}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                 
                 <div className="flex gap-4 mb-4">
                   <div className="flex gap-2">
@@ -477,6 +533,8 @@ const DetallePelicula: React.FC = () => {
                   COMPRAR ENTRADAS
                 </button>
               </div>
+              </>
+              )}
             </div>
           </div>
         </div>

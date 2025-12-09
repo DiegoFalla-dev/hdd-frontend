@@ -32,18 +32,34 @@ const Navbar: React.FC<NavbarProps> = ({ variant = 'light' }) => {
     // Lógica para obtener el usuario actual
     const u = authService.getCurrentUser();
     setUsername(u?.username ?? null);
-    const onStorage = () => setUsername(authService.getCurrentUser()?.username ?? null);
+    
+    // Lógica para cargar el cine seleccionado del localStorage
+    const loadSelectedCinema = () => {
+      const savedCinema = localStorage.getItem('selectedCine');
+      if (savedCinema) {
+        try {
+          setSelectedCinema(JSON.parse(savedCinema));
+        } catch (e) {
+          console.error('Error parsing selectedCine:', e);
+        }
+      }
+    };
+    
+    loadSelectedCinema();
+    
+    const onStorage = () => {
+      setUsername(authService.getCurrentUser()?.username ?? null);
+      loadSelectedCinema();
+    };
     const onLogout = () => { setUsername(null); setIsProfileOpen(false); };
+    
     window.addEventListener('storage', onStorage);
     window.addEventListener('auth:logout', onLogout);
     
-    // Lógica para cargar el cine seleccionado del localStorage
-    const savedCinema = localStorage.getItem('selectedCine');
-    if (savedCinema) {
-      setSelectedCinema(JSON.parse(savedCinema));
-    }
-    
-    return () => { window.removeEventListener('storage', onStorage); window.removeEventListener('auth:logout', onLogout); };
+    return () => { 
+      window.removeEventListener('storage', onStorage); 
+      window.removeEventListener('auth:logout', onLogout); 
+    };
   }, []);
 
   useEffect(() => {
