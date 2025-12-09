@@ -39,6 +39,8 @@ const MovieCardWithShowtime: React.FC<{
     ? new Date(firstShowtime.startTime).toISOString().split('T')[0]
     : firstShowtime?.date || null;
   
+  const isProximo = activeTabIndex === 2; // Tab de Próximos estrenos
+  
   return (
     <div className="transform hover:scale-105 transition-transform duration-300">
       <MovieCard
@@ -51,6 +53,7 @@ const MovieCardWithShowtime: React.FC<{
         }}
         showEstrenoLabel={activeTabIndex === 0 && index < 6}
         showPreventaLabel={isPresale}
+        showProximoLabel={isProximo}
         firstShowtimeDate={isPresale ? showtimeDate : null}
       />
       {/* Información de la película debajo del card */}
