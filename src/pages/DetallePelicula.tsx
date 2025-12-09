@@ -46,6 +46,7 @@ const DetallePelicula: React.FC = () => {
   const { data: allMovies = [] } = useAllMovies();
   const [cinemas, setCinemas] = useState<Cinema[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showTrailer, setShowTrailer] = useState(false);
   
   const peliculaId = searchParams.get('pelicula');
   const navigate = useNavigate();
@@ -283,14 +284,47 @@ const DetallePelicula: React.FC = () => {
             <div className="mb-6">
               <h1 className="text-4xl font-bold mb-4">{pelicula.title.toUpperCase()}</h1>
               <div className="relative mb-6">
-                <img 
-                  src={pelicula.posterUrl || '/placeholder.jpg'} 
-                  alt={pelicula.title}
-                  className="w-full h-64 object-cover rounded-lg"
-                />
-                <button className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg hover:bg-opacity-70 transition-all">
-                  <FiPlay size={48} className="text-white" />
-                </button>
+                {showTrailer && pelicula.trailerUrl ? (
+                  <div className="relative w-full h-64">
+                    <iframe
+                      className="w-full h-full rounded-lg"
+                      src={pelicula.trailerUrl.includes('youtube.com') || pelicula.trailerUrl.includes('youtu.be')
+                        ? pelicula.trailerUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')
+                        : pelicula.trailerUrl}
+                      title={pelicula.title}
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                    <button
+                      onClick={() => setShowTrailer(false)}
+                      className="absolute top-2 right-2 bg-black bg-opacity-70 text-white px-3 py-1 rounded hover:bg-opacity-90 transition-all text-sm"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <img 
+                      src={pelicula.posterUrl || '/placeholder.jpg'} 
+                      alt={pelicula.title}
+                      className="w-full h-64 object-cover rounded-lg"
+                    />
+                    {pelicula.trailerUrl && (
+                      <button 
+                        onClick={() => setShowTrailer(true)}
+                        className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg hover:bg-opacity-70 transition-all"
+                      >
+                        <FiPlay size={48} className="text-white" />
+                      </button>
+                    )}
+                    {!pelicula.trailerUrl && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
+                        <FiPlay size={48} className="text-gray-500" />
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
               <p className="text-sm leading-relaxed" style={{ color: "#E3E1E2" }}>
                 {pelicula.synopsis}
