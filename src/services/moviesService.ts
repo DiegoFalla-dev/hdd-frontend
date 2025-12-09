@@ -8,9 +8,7 @@ interface BackendMovieDTO {
   synopsis?: string;
   genre?: string;
   classification?: string;
-  // some backends return a human readable duration like "1h 50m"
-  durationMinutes?: number;
-  duration?: string;
+  duration?: string; // Human readable: "1h 52min", "2h", etc.
   // different backends may use different keys for images
   posterUrl?: string;
   cardImageUrl?: string;
@@ -56,7 +54,8 @@ function mapMovie(m: BackendMovieDTO): Movie {
     titulo: m.title,
     synopsis: m.synopsis,
     genre: m.genre,
-    durationMinutes: m.durationMinutes,
+    classification: m.classification,
+    duration: m.duration,
     bannerUrl: m.bannerUrl,
     posterUrl: poster,
     imagenCard: poster,

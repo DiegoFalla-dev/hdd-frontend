@@ -80,6 +80,17 @@ const Cartelera: React.FC = () => {
                     showEstrenoLabel={activeTabIndex === 0 && index < 6}
                     showPreventaLabel={activeTabIndex === 1}
                   />
+                  {/* Información de la película debajo del card */}
+                  <div className="mt-3 space-y-1">
+                    <h3 className="font-bold text-base text-white line-clamp-2">{pelicula.title}</h3>
+                    <div className="flex items-center gap-2 text-sm text-neutral-400">
+                      {pelicula.genre && <span>{pelicula.genre}</span>}
+                      {pelicula.genre && (pelicula.classification || pelicula.duration) && <span>•</span>}
+                      {pelicula.classification && <span className="font-semibold text-neutral-300">{pelicula.classification}</span>}
+                      {pelicula.classification && pelicula.duration && <span>•</span>}
+                      {pelicula.duration && <span>{pelicula.duration}</span>}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
