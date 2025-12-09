@@ -14,10 +14,11 @@ export function useShowtimes(params: Params): UseQueryResult<Showtime[]> {
   return useQuery({
     queryKey: ['showtimes', movieId, cinemaId, date],
     queryFn: () => {
-      if (movieId == null || cinemaId == null || !date) return Promise.resolve([]);
+      // date puede ser undefined o una cadena vacía para obtener todas las fechas
+      if (movieId == null || cinemaId == null || date === undefined) return Promise.resolve([]);
       return getShowtimes({ movieId, cinemaId, date });
     },
-    enabled: movieId != null && cinemaId != null && !!date,
+    enabled: movieId != null && cinemaId != null && date !== undefined,
     staleTime: 60 * 1000, // keep fresh
   });
 }

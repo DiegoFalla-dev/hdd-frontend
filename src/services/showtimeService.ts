@@ -25,7 +25,12 @@ function mapShowtime(s: BackendShowtimeDTO): Showtime {
     // ensure time has seconds
     const time = s.time.length === 5 ? `${s.time}:00` : s.time;
     startTimeIso = `${s.date}T${time}`;
+  } else if (s.date) {
+    // Si solo hay fecha (sin hora), usar la fecha como startTime en formato ISO
+    // Esto permite extraer la fecha para availableDates
+    startTimeIso = `${s.date}T00:00:00`;
   }
+  
   return {
     id: s.id || 0,
     movieId: s.movieId || 0,
@@ -48,9 +53,12 @@ export async function getShowtimes(params: { movieId: number; cinemaId: number; 
       movie: params.movieId,
       cinema: params.cinemaId,
     };
-    if (params.date) query.date = params.date; // YYYY-MM-DD
+    // Only add date if it's not an empty string (empty string means "all dates")
+    if (params.date && params.date.trim() !== '') query.date = params.date; // YYYY-MM-DD
     if (params.format) query.format = params.format; // _2D, _3D, XD
+    
     const resp = await api.get<BackendShowtimeDTO[]>('/showtimes', { params: query });
+    
     // Backend may return three shapes:
     // - list of dates (ShowtimeDto with only `date` populated) -> map to empty startTime but keep date
     // - list of showtimes for a date+format (date,time,format) -> map to startTime ISO

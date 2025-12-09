@@ -62,6 +62,7 @@ function mapMovie(m: BackendMovieDTO): Movie {
     trailerUrl: m.trailerUrl,
     languages: m.languages,
     formats: m.formats,
+    cast: m.cast, // Reparto de la película
     releaseDate: m.releaseDate,
     rating: m.rating,
     status: mapStatus(rawStatus),

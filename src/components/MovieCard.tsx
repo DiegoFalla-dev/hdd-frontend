@@ -86,7 +86,21 @@ const MovieCard: React.FC<MovieCardProps> = ({ pelicula, showEstrenoLabel = fals
 					<button
 						className="flex items-center gap-2 px-5 py-2 rounded-full font-bold text-white w-40 justify-center transform transition-transform duration-200 hover:-translate-y-1 hover:scale-105 hover:brightness-110"
 						style={{ background: 'var(--cinepal-primary)' }}
-						onClick={() => window.location.href = `/boletos?pelicula=${pelicula.id}`}
+						onClick={() => {
+							const user = authService.getCurrentUser();
+							const target = `/detalle-pelicula?pelicula=${pelicula.id}`;
+							if (user) {
+								navigate(target);
+								return;
+							}
+							// If not logged, open login modal and redirect after successful login
+							window.dispatchEvent(new CustomEvent('openProfileModal', { detail: { from: 'detalle-redirect', redirectTo: target } }));
+							const onLogin = () => {
+								navigate(target);
+								window.removeEventListener('auth:login', onLogin);
+							};
+							window.addEventListener('auth:login', onLogin);
+						}}
 					>
 						<ShoppingCart size={16} /> Comprar
 					</button>

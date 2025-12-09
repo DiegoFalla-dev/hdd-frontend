@@ -18,6 +18,7 @@ export interface Movie {
   languages?: string[];
   formats?: string[]; // 2D, 3D, IMAX
   rating?: number; // promedio
+  cast?: string[]; // Reparto de la película
 }
 
 export interface Paginated<T> {
