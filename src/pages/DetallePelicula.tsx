@@ -255,7 +255,7 @@ const DetallePelicula: React.FC = () => {
               <div>
                 <h3 className="font-bold mb-2">DURACIÓN</h3>
                 <p style={{ color: "#E3E1E2" }}>
-                  {pelicula.durationMinutes ? `${pelicula.durationMinutes} min` : 'No disponible'}
+                  {pelicula.duration || 'No disponible'}
                 </p>
               </div>
               

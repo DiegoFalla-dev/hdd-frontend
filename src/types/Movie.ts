@@ -8,7 +8,8 @@ export interface Movie {
   imagenCard?: string;
   synopsis?: string;
   genre?: string;
-  durationMinutes?: number;
+  duration?: string; // Human readable: "1h 52min", "2h", etc.
+  classification?: string; // Rating: +14, +18, APT, etc.
   bannerUrl?: string;
   posterUrl?: string;
   trailerUrl?: string;
