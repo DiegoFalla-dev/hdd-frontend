@@ -334,26 +334,34 @@ const DetallePelicula: React.FC = () => {
             <div>
               <h2 className="text-2xl font-bold mb-4">HORARIOS</h2>
               
-              <div className="mb-4">
-                <div className="flex gap-2 mb-4">
-                  {availableDates.map((day) => (
-                    <button 
-                      key={day.fullDate}
-                      onClick={() => setSelectedDay(day.fullDate)}
-                      className="px-4 py-2 rounded font-bold transition-colors"
-                      style={{
-                        backgroundColor: selectedDay === day.fullDate ? "#EFEFEE" : "transparent",
-                        color: selectedDay === day.fullDate ? "#141113" : "#E3E1E2",
-                        border: selectedDay === day.fullDate ? "none" : "1px solid #393A3A"
-                      }}
-                    >
-                      <div className="text-center">
-                        <div>{day.label}</div>
-                        <div className="text-xs">{day.date}</div>
-                      </div>
-                    </button>
-                  ))}
+              {pelicula.status === 'UPCOMING' ? (
+                <div className="mb-6 p-6 rounded-lg text-center" style={{ backgroundColor: "#393A3A" }}>
+                  <p className="text-lg" style={{ color: "#E3E1E2" }}>
+                    No hay funciones programadas para esta película
+                  </p>
                 </div>
+              ) : (
+                <>
+                  <div className="mb-4">
+                    <div className="flex gap-2 mb-4">
+                      {availableDates.map((day) => (
+                        <button 
+                          key={day.fullDate}
+                          onClick={() => setSelectedDay(day.fullDate)}
+                          className="px-4 py-2 rounded font-bold transition-colors"
+                          style={{
+                            backgroundColor: selectedDay === day.fullDate ? "#EFEFEE" : "transparent",
+                            color: selectedDay === day.fullDate ? "#141113" : "#E3E1E2",
+                            border: selectedDay === day.fullDate ? "none" : "1px solid #393A3A"
+                          }}
+                        >
+                          <div className="text-center">
+                            <div>{day.label}</div>
+                            <div className="text-xs">{day.date}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                 
                 <div className="flex gap-4 mb-4">
                   <div className="flex gap-2">
@@ -511,6 +519,8 @@ const DetallePelicula: React.FC = () => {
                   COMPRAR ENTRADAS
                 </button>
               </div>
+              </>
+              )}
             </div>
           </div>
         </div>
