@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import MovieCard from '../components/MovieCard';
 import FilterDropdown from '../components/FilterDropdown';
 import { useAllMovies } from '../hooks/useMovies';
+import { useFirstShowtime } from '../hooks/useFirstShowtime';
 import type { Movie, MovieStatus } from '../types/Movie';
+import type { Cinema } from '../types/Cinema';
 
 const TABS: { label: string; status: MovieStatus }[] = [
   { label: 'En cartelera', status: 'NOW_PLAYING' },
@@ -16,15 +18,89 @@ function filterByStatus(status: MovieStatus, source: Movie[]): Movie[] {
   return source.filter(m => m.status === status);
 }
 
+// Componente interno para manejar cada MovieCard con su showtime
+const MovieCardWithShowtime: React.FC<{ 
+  pelicula: Movie; 
+  activeTabIndex: number; 
+  index: number;
+  selectedCinemaId: number | null;
+}> = ({ pelicula, activeTabIndex, index, selectedCinemaId }) => {
+  const isPresale = activeTabIndex === 1; // Tab de Pre-venta
+  
+  // Solo obtener showtime si es preventa y hay un cine seleccionado
+  const { data: firstShowtime } = useFirstShowtime({
+    movieId: pelicula.id,
+    cinemaId: selectedCinemaId || undefined,
+    enabled: isPresale && !!selectedCinemaId
+  });
+  
+  // Extraer la fecha del showtime (puede venir en startTime o en date)
+  const showtimeDate = firstShowtime?.startTime 
+    ? new Date(firstShowtime.startTime).toISOString().split('T')[0]
+    : firstShowtime?.date || null;
+  
+  return (
+    <div className="transform hover:scale-105 transition-transform duration-300">
+      <MovieCard
+        pelicula={{
+          id: String(pelicula.id),
+          titulo: pelicula.title,
+          imagenCard: pelicula.posterUrl,
+          genero: pelicula.genre,
+          status: pelicula.status === 'NOW_PLAYING' ? 'CARTELERA' : pelicula.status === 'PRESALE' ? 'PREVENTA' : 'PROXIMO'
+        }}
+        showEstrenoLabel={activeTabIndex === 0 && index < 6}
+        showPreventaLabel={isPresale}
+        firstShowtimeDate={isPresale ? showtimeDate : null}
+      />
+      {/* Información de la película debajo del card */}
+      <div className="mt-3 space-y-1">
+        <h3 className="font-bold text-base text-white line-clamp-2">{pelicula.title}</h3>
+        <div className="flex items-center gap-2 text-sm text-neutral-400">
+          {pelicula.genre && <span>{pelicula.genre}</span>}
+          {pelicula.genre && (pelicula.classification || pelicula.duration) && <span>•</span>}
+          {pelicula.classification && <span className="font-semibold text-neutral-300">{pelicula.classification}</span>}
+          {pelicula.classification && pelicula.duration && <span>•</span>}
+          {pelicula.duration && <span>{pelicula.duration}</span>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Cartelera: React.FC = () => {
   const { data: moviesData = [], isLoading } = useAllMovies();
   const [selectedCategory, setSelectedCategory] = useState(TABS[0].label);
   const [visibleMovies, setVisibleMovies] = useState(6);
+  const [selectedCinemaId, setSelectedCinemaId] = useState<number | null>(null);
 
   const activeTabIndex = TABS.findIndex(t => t.label === selectedCategory);
   const allMovies = activeTabIndex >= 0 ? filterByStatus(TABS[activeTabIndex].status, moviesData) : [];
   const movies = allMovies.slice(0, visibleMovies);
   const hasMoreMovies = visibleMovies < allMovies.length;
+
+  // Cargar el cine seleccionado desde localStorage
+  useEffect(() => {
+    const loadSelectedCinema = () => {
+      const savedCinema = localStorage.getItem('selectedCine');
+      if (savedCinema) {
+        try {
+          const parsed = JSON.parse(savedCinema) as Cinema;
+          setSelectedCinemaId(parsed.id);
+        } catch (e) {
+          console.error('Error parsing selectedCine:', e);
+        }
+      }
+    };
+    
+    loadSelectedCinema();
+    
+    // Escuchar cambios en el localStorage (cuando se selecciona otro cine)
+    const onStorage = () => loadSelectedCinema();
+    window.addEventListener('storage', onStorage);
+    
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
@@ -68,30 +144,13 @@ const Cartelera: React.FC = () => {
               {isLoading ? (
                 <div className="col-span-full text-center">Cargando...</div>
               ) : movies.map((pelicula, index) => (
-                <div key={pelicula.id ?? index} className="transform hover:scale-105 transition-transform duration-300">
-                  <MovieCard
-                    pelicula={{
-                      id: String(pelicula.id),
-                      titulo: pelicula.title,
-                      imagenCard: pelicula.posterUrl,
-                      genero: pelicula.genre,
-                      status: pelicula.status === 'NOW_PLAYING' ? 'CARTELERA' : pelicula.status === 'PRESALE' ? 'PREVENTA' : 'PROXIMO'
-                    }}
-                    showEstrenoLabel={activeTabIndex === 0 && index < 6}
-                    showPreventaLabel={activeTabIndex === 1}
-                  />
-                  {/* Información de la película debajo del card */}
-                  <div className="mt-3 space-y-1">
-                    <h3 className="font-bold text-base text-white line-clamp-2">{pelicula.title}</h3>
-                    <div className="flex items-center gap-2 text-sm text-neutral-400">
-                      {pelicula.genre && <span>{pelicula.genre}</span>}
-                      {pelicula.genre && (pelicula.classification || pelicula.duration) && <span>•</span>}
-                      {pelicula.classification && <span className="font-semibold text-neutral-300">{pelicula.classification}</span>}
-                      {pelicula.classification && pelicula.duration && <span>•</span>}
-                      {pelicula.duration && <span>{pelicula.duration}</span>}
-                    </div>
-                  </div>
-                </div>
+                <MovieCardWithShowtime
+                  key={pelicula.id ?? index}
+                  pelicula={pelicula}
+                  activeTabIndex={activeTabIndex}
+                  index={index}
+                  selectedCinemaId={selectedCinemaId}
+                />
               ))}
             </div>
 
