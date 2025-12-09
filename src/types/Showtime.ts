@@ -10,4 +10,6 @@ export interface Showtime {
   totalSeats?: number;
   theaterName?: string;
   price?: number;
+  date?: string; // YYYY-MM-DD
+  time?: string; // HH:mm:ss
 }

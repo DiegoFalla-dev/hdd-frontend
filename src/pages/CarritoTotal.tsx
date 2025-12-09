@@ -286,18 +286,6 @@ const CarritoTotal: React.FC = () => {
       console.warn('Diferencia en grandTotal calculado vs preview', { computedGrand, expectedGrand });
     }
 
-    interface PaymentPayloadItem {
-      type: 'TICKET' | 'CONCESSION';
-      showtimeId?: number;
-      seatCode?: string;
-      ticketType?: string;
-      productId?: number;
-      name?: string;
-      quantity: number;
-      unitPrice: number;
-      totalPrice: number;
-    }
-
     // Build mapping seatCode -> ticketType using pendingOrder.entradas grouping
     let seatTypeMap: Record<string, string | undefined> = {};
     try {
@@ -323,27 +311,157 @@ const CarritoTotal: React.FC = () => {
       seatTypeMap = {};
     }
 
-    const items: PaymentPayloadItem[] = paymentItems.map(it => {
-      if (it.type === 'TICKET') {
-        return {
-          type: 'TICKET',
-          showtimeId: it.showtimeId,
-          seatCode: it.seatCode,
-          ticketType: it.seatCode ? seatTypeMap[it.seatCode] : undefined,
-          quantity: 1,
-          unitPrice: it.unitPrice,
-          totalPrice: it.totalPrice,
-        };
+    // Validar que el usuario esté autenticado
+    if (!user || !user.id) {
+      toast.error('Usuario no autenticado');
+      setIsProcessing(false);
+      return;
+    }
+
+    // Obtener o crear método de pago
+    let paymentMethodId: number;
+    
+    // Si hay un método seleccionado, usarlo
+    if (selectedPaymentMethodId) {
+      paymentMethodId = selectedPaymentMethodId;
+    } 
+    // Si no hay método seleccionado pero el formulario está visible y completo, crear uno nuevo
+    else if (showAddPaymentForm) {
+      if (!cardNumber.trim() || !cardName.trim() || !expiry.trim() || !cvv.trim()) {
+        toast.error('Por favor completa todos los datos de la tarjeta');
+        setIsProcessing(false);
+        return;
       }
-      return {
-        type: 'CONCESSION',
-        productId: it.productId,
-        name: it.name,
+
+      // Crear método de pago con los datos del formulario
+      try {
+        const newPaymentMethod = await paymentMethodService.createPaymentMethod({
+          type: 'CARD',
+          cardNumber: cardNumber.replace(/\s/g, ''),
+          cardHolder: cardName,
+          expiry: expiry,
+          cvv: cvv,
+          isDefault: paymentMethods.length === 0, // Si es el primer método, hacerlo predeterminado
+        });
+        paymentMethodId = newPaymentMethod.id;
+        toast.success('Método de pago registrado');
+        // Invalidar la query para actualizar la lista
+        queryClient.invalidateQueries({ queryKey: ['paymentMethods'] });
+        // Limpiar formulario y ocultarlo
+        setCardNumber('');
+        setCardName('');
+        setExpiry('');
+        setCvv('');
+        setShowAddPaymentForm(false);
+        setSelectedPaymentMethodId(paymentMethodId);
+      } catch (error) {
+        console.error('Error creando método de pago', error);
+        toast.error('Error al registrar el método de pago. Verifica los datos.');
+        setIsProcessing(false);
+        return;
+      }
+    } else {
+      toast.error('Por favor selecciona o agrega un método de pago');
+      setIsProcessing(false);
+      return;
+    }
+
+    // Obtener todos los showtimeIds únicos de los tickets
+    const ticketShowtimeIdsForSeats = Array.from(
+      new Set(
+        paymentItems
+          .filter(it => it.type === 'TICKET')
+          .map(it => it.showtimeId)
+      )
+    );
+
+    // Obtener datos de asientos para mapear seatCode -> seatId
+    let seatCodeToIdMap: Record<string, number> = {};
+    try {
+      // Fetch seats for all showtimes
+      const seatsPromises = ticketShowtimeIdsForSeats.map(async (showtimeId) => {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/showtimes/${showtimeId}/seats`);
+        if (!response.ok) throw new Error(`Failed to fetch seats for showtime ${showtimeId}`);
+        const seats: Seat[] = await response.json();
+        return seats;
+      });
+      
+      const allSeatsArrays = await Promise.all(seatsPromises);
+      const allSeats = allSeatsArrays.flat();
+      
+      // Crear mapa de seatCode (e.g., "A5") a seatId
+      allSeats.forEach(seat => {
+        const code = `${seat.row}${seat.number}`;
+        seatCodeToIdMap[code] = seat.id;
+      });
+    } catch (error) {
+      console.error('Error obteniendo datos de asientos', error);
+      toast.error('Error al obtener información de asientos');
+      setIsProcessing(false);
+      return;
+    }
+
+    // Obtener las entradas seleccionadas del pendingOrder para asignar precios correctos
+    let selectedEntradas: any[] = [];
+    try {
+      const pendingOrderRaw = localStorage.getItem('pendingOrder');
+      if (pendingOrderRaw) {
+        const pendingOrder = JSON.parse(pendingOrderRaw);
+        selectedEntradas = pendingOrder.entradas || [];
+      }
+    } catch (e) {
+      console.warn('No se pudieron obtener las entradas del pendingOrder', e);
+    }
+
+    // Expandir entradas a lista de precios individuales
+    const ticketPrices: number[] = [];
+    selectedEntradas.forEach((entrada: any) => {
+      for (let i = 0; i < entrada.cantidad; i++) {
+        ticketPrices.push(entrada.precio);
+      }
+    });
+
+    // Construir items en el formato esperado por el backend (solo TICKETS)
+    // El backend actual solo soporta tickets, no concesiones
+    const orderItems: CreateOrderItemDTO[] = paymentItems
+      .filter(it => it.type === 'TICKET')
+      .map((it, index) => {
+        const seatId = it.seatCode ? seatCodeToIdMap[it.seatCode] : undefined;
+        
+        if (!seatId) {
+          throw new Error(`No se pudo encontrar el ID del asiento para el código: ${it.seatCode}`);
+        }
+
+        // Usar el precio de la entrada seleccionada correspondiente al índice del asiento
+        // Si no hay precio disponible, usar el unitPrice del item o un default
+        const price = ticketPrices[index] || it.unitPrice || 10.00;
+        
+        if (!ticketPrices[index]) {
+          console.warn(`Seat ${it.seatCode} has no matched ticket price, using fallback: ${price}`);
+        }
+
+        return {
+          showtimeId: it.showtimeId!,
+          seatId: seatId,
+          price: price,
+          ticketType: it.seatCode ? seatTypeMap[it.seatCode] : undefined,
+        };
+      });
+
+    if (orderItems.length === 0) {
+      toast.error('No hay tickets válidos en la orden');
+      setIsProcessing(false);
+      return;
+    }
+
+    // Construir concesiones en el formato esperado por el backend
+    const orderConcessions = paymentItems
+      .filter(it => it.type === 'CONCESSION')
+      .map(it => ({
+        productId: it.productId!,
         quantity: it.quantity,
         unitPrice: it.unitPrice,
-        totalPrice: it.totalPrice,
-      };
-    });
+      }));
 
     // Validar que el usuario esté autenticado
     if (!user || !user.id) {

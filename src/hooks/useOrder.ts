@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import orderService from '../services/orderService';
-import type { OrderConfirmation } from '../types/OrderConfirmation';
+import type { OrderDTO } from '../services/orderService';
 
 export function useOrder(orderId: number | undefined) {
-  return useQuery<OrderConfirmation, Error>({
+  return useQuery<OrderDTO, Error>({
     queryKey: ['order', orderId],
     queryFn: () => {
       if (!orderId) throw new Error('ID de orden requerido');
@@ -14,8 +14,8 @@ export function useOrder(orderId: number | undefined) {
     refetchInterval: (data) => {
       if (!data) return 5000; // mientras carga
       // `data` may be typed differently by react-query; coerce safely
-      const d = data as unknown as OrderConfirmation | undefined;
-      return d?.paymentStatus === 'PENDING' ? 5000 : false;
+      const d = data as unknown as OrderDTO | undefined;
+      return d?.orderStatus === 'PENDING' ? 5000 : false;
     },
     refetchIntervalInBackground: true,
   });
