@@ -9,10 +9,11 @@ export const getAllCinemas = async (): Promise<Cinema[]> => {
         console.log('Respuesta de la API de cines:', response.data);
         return response.data;
     } catch (error) {
-        // If request was canceled (duplicate request cancellation), return empty result
+        // If request was canceled, re-throw the error instead of returning empty array
+        // This allows the caller to handle cancellation properly
         if (axios.isAxiosError(error) && (error.code === 'ERR_CANCELED' || error.name === 'CanceledError')) {
-            console.warn('getAllCinemas: request was canceled, returning empty list');
-            return [];
+            console.warn('getAllCinemas: request was canceled');
+            throw error; // Re-throw para que el componente pueda manejar la cancelación
         }
         console.error('Error detallado al obtener cines:', error);
         if (axios.isAxiosError(error)) {
