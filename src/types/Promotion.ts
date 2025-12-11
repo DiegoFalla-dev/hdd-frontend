@@ -1,20 +1,17 @@
-export interface Promotion {
-  code: string;
-  type: 'PERCENT' | 'FLAT';
-  value: number; // percent value or flat amount
-  maxDiscount?: number; // optional cap when percent
-  description?: string;
-}
-export type DiscountType = 'PERCENTAGE' | 'AMOUNT';
+export type DiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT';
 
 export interface Promotion {
-  id?: number;
+  id: number;
   code: string;
-  description?: string;
+  description: string;
   discountType: DiscountType;
   value: number; // porcentaje o monto fijo según discountType
-  expiresAt?: string; // ISO
-  active?: boolean;
+  startDate: string; // ISO format
+  endDate: string; // ISO format
+  minAmount: number | null;
+  maxUses: number | null;
+  currentUses: number;
+  isActive: boolean;
 }
 
 export interface PromotionValidationRequest {

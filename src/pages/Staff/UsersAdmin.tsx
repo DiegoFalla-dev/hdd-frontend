@@ -1,8 +1,9 @@
+// Removed duplicate UsersAdmin definition to avoid identifier redeclaration
 import { useEffect, useMemo, useState } from 'react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import ProtectedRoute from '../../components/ProtectedRoute';
-import { getAllUsers, createUser, updateUser, deleteUser, getUserPurchases, type User, type UserDTO, type UserPurchase } from '../../services/userService';
+import { getAllUsers, createUser, updateUser, deleteUser, getUserPurchases, validateUserAccount, type User, type UserDTO, type UserPurchase } from '../../services/userService';
 
 interface UserForm {
   firstName: string;
@@ -20,6 +21,8 @@ export default function UsersAdmin() {
   const [q, setQ] = useState<string>('');
   const [editing, setEditing] = useState<User | null>(null);
   const [viewingPurchases, setViewingPurchases] = useState<{ user: User; purchases: UserPurchase[] } | null>(null);
+  const [viewingPurchaseDetail, setViewingPurchaseDetail] = useState<UserPurchase | null>(null);
+  const [viewingDetails, setViewingDetails] = useState<User | null>(null);
   const [form, setForm] = useState<UserForm>({
     firstName: '',
     lastName: '',
@@ -167,6 +170,24 @@ export default function UsersAdmin() {
       roles: ['ROLE_USER']
     });
     setMessage('');
+  };
+
+  const onValidateAccount = async (u: User) => {
+    if (!window.confirm(`¿Estás seguro de validar la cuenta de ${u.firstName} ${u.lastName}?`)) return;
+    try {
+      await validateUserAccount(u.id);
+      setMessage(`Cuenta de ${u.firstName} ${u.lastName} validada correctamente`);
+      await load();
+      if (viewingDetails?.id === u.id) {
+        const updatedUser = users.find(user => user.id === u.id);
+        if (updatedUser) {
+          setViewingDetails({ ...updatedUser, isValid: true });
+        }
+      }
+    } catch (error: any) {
+      console.error('Error validating user account:', error);
+      setMessage(error.response?.data?.message || 'Error al validar cuenta de usuario');
+    }
   };
 
   const toggleRole = (role: string) => {
@@ -395,7 +416,7 @@ export default function UsersAdmin() {
                     <th className="text-left p-3">Nombre</th>
                     <th className="text-left p-3">Email</th>
                     <th className="text-left p-3">DNI</th>
-                    <th className="text-left p-3">Fecha Nacimiento</th>
+                    <th className="text-left p-3">Estado</th>
                     <th className="text-left p-3">Roles</th>
                     <th className="text-center p-3">Acciones</th>
                   </tr>
@@ -415,11 +436,21 @@ export default function UsersAdmin() {
                     filtered.map(user => {
                       return (
                         <tr key={user.id} style={{ borderBottom: '1px solid var(--cinepal-gray-600)' }}>
-                          <td className="p-3">{user.id}</td>
-                          <td className="p-3">{user.firstName} {user.lastName}</td>
-                          <td className="p-3">{user.email}</td>
-                          <td className="p-3">{user.nationalId || '-'}</td>
-                          <td className="p-3">{user.birthDate || '-'}</td>
+                          <td className="p-4 text-[#E3E1E2]/80 hover:bg-white/5 transition-colors">{user.id}</td>
+                          <td className="p-4 text-[#EFEFEE] font-semibold hover:bg-white/5 transition-colors">{user.firstName} {user.lastName}</td>
+                          <td className="p-4 text-[#E3E1E2]/80 hover:bg-white/5 transition-colors">{user.email}</td>
+                          <td className="p-4 text-[#E3E1E2]/80 hover:bg-white/5 transition-colors">{user.nationalId || '-'}</td>
+                          <td className="p-3">
+                            <span 
+                              className={`px-2 py-1 rounded text-xs font-semibold ${
+                                user.isValid 
+                                  ? 'bg-green-500/20 text-green-300' 
+                                  : 'bg-yellow-500/20 text-yellow-300'
+                              }`}
+                            >
+                              {user.isValid ? '✓ Validada' : '⚠ Pendiente'}
+                            </span>
+                          </td>
                           <td className="p-3">
                             <div className="flex gap-1 flex-wrap">
                               {Array.isArray(user.roles) && user.roles.map(role => (
@@ -437,20 +468,14 @@ export default function UsersAdmin() {
                             </div>
                           </td>
                           <td className="p-3">
-                            <div className="flex gap-2 justify-center">
+                            <div className="flex gap-2 justify-center flex-wrap">
                               <button
                                 className="px-3 py-1 rounded text-sm font-semibold"
-                                style={{ backgroundColor: 'var(--cinepal-primary-700)', color: 'var(--cinepal-bg-100)' }}
-                                onClick={() => onViewPurchases(user)}
+                                style={{ backgroundColor: '#3b82f6', color: 'white' }}
+                                onClick={() => setViewingDetails(user)}
+                                title="Ver detalles completos"
                               >
-                                Compras
-                              </button>
-                              <button
-                                className="px-3 py-1 rounded text-sm font-semibold"
-                                style={{ backgroundColor: 'var(--cinepal-bg-200)', color: 'var(--cinepal-gray-900)' }}
-                                onClick={() => onEdit(user)}
-                              >
-                                Editar
+                                Ver
                               </button>
                               <button
                                 className="px-3 py-1 rounded text-sm font-semibold"
@@ -510,33 +535,409 @@ export default function UsersAdmin() {
                       className="p-4 rounded"
                       style={{ backgroundColor: 'var(--cinepal-gray-800)' }}
                     >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-semibold text-lg">{purchase.movieTitle || 'Película sin título'}</p>
-                          <p className="text-sm opacity-80">{purchase.cinemaName || 'Cine no especificado'}</p>
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1">
+                          <p className="font-semibold text-lg">{purchase.movieTitle || 'Película no disponible'}</p>
                           <p className="text-sm opacity-80">
-                            {new Date(purchase.createdAt).toLocaleDateString('es-PE', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+                            {purchase.cinemaName || 'Cine no especificado'} - Sala {purchase.roomName || 'N/A'}
                           </p>
+                          <p className="text-sm opacity-80">
+                            Función: {purchase.showDate || 'N/A'} {purchase.showTime || ''}
+                          </p>
+                          {purchase.format && (
+                            <p className="text-xs opacity-60 mt-1">Formato: {purchase.format.replace(/^_/, '')}</p>
+                          )}
                         </div>
-                        <div className="text-right">
+                        <div className="text-right min-w-fit">
                           <p className="font-bold text-xl" style={{ color: 'var(--cinepal-primary)' }}>
                             S/ {purchase.totalAmount.toFixed(2)}
                           </p>
                           {purchase.status && (
-                            <p className="text-sm opacity-80">{purchase.status}</p>
+                            <p className="text-xs opacity-80 mt-1">{purchase.status}</p>
                           )}
+                          <p className="text-xs opacity-60 mt-2">
+                            {new Date(purchase.purchaseDate || purchase.createdAt || '').toLocaleDateString('es-PE')}
+                          </p>
+                          <button
+                            onClick={() => setViewingPurchaseDetail(purchase)}
+                            className="mt-3 px-3 py-1 rounded text-xs font-semibold bg-blue-600 hover:bg-blue-700 transition-colors"
+                          >
+                            Ver detalles
+                          </button>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Modal de detalles de compra */}
+        {viewingPurchaseDetail && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            onClick={() => setViewingPurchaseDetail(null)}
+          >
+            <div
+              className="rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+              style={{ backgroundColor: 'var(--cinepal-gray-700)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">
+                  Confirmación de Orden #{viewingPurchaseDetail.id}
+                </h2>
+                <button
+                  className="px-4 py-2 rounded font-semibold bg-red-600 hover:bg-red-700 transition-colors"
+                  onClick={() => setViewingPurchaseDetail(null)}
+                >
+                  Cerrar
+                </button>
+              </div>
+
+              {/* Detalles de la compra */}
+              <div className="space-y-4">
+                {/* Película y función */}
+                <div className="p-4 rounded" style={{ backgroundColor: 'var(--cinepal-gray-800)' }}>
+                  <h3 className="font-bold mb-3">Película y Función</h3>
+                  <p className="text-sm"><strong>Película:</strong> {viewingPurchaseDetail.movieTitle}</p>
+                  <p className="text-sm"><strong>Cine:</strong> {viewingPurchaseDetail.cinemaName} - Sala {viewingPurchaseDetail.roomName}</p>
+                  <p className="text-sm"><strong>Formato:</strong> {viewingPurchaseDetail.format?.replace(/^_/, '')}</p>
+                  <p className="text-sm"><strong>Fecha de función:</strong> {viewingPurchaseDetail.showDate} {viewingPurchaseDetail.showTime}</p>
+                </div>
+
+                {/* Entradas */}
+                {viewingPurchaseDetail.orderItems && viewingPurchaseDetail.orderItems.length > 0 && (
+                  <div className="p-4 rounded" style={{ backgroundColor: 'var(--cinepal-gray-800)' }}>
+                    <h3 className="font-bold mb-3">Entradas</h3>
+                    <div className="space-y-2">
+                      {viewingPurchaseDetail.orderItems.map((item: any, idx: number) => (
+                        <p key={idx} className="text-sm">
+                          {idx + 1}. Asiento {item.seat?.code || 'N/A'} - S/ {item.price?.toFixed(2) || '0.00'}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Dulcería */}
+                {viewingPurchaseDetail.orderConcessions && viewingPurchaseDetail.orderConcessions.length > 0 && (
+                  <div className="p-4 rounded" style={{ backgroundColor: 'var(--cinepal-gray-800)' }}>
+                    <h3 className="font-bold mb-3">Dulcería y Bebidas</h3>
+                    <div className="space-y-2">
+                      {viewingPurchaseDetail.orderConcessions.map((item: any, idx: number) => (
+                        <p key={idx} className="text-sm">
+                          {idx + 1}. {item.productName} x{item.quantity} - S/ {item.totalPrice?.toFixed(2) || '0.00'}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Totales */}
+                <div className="p-4 rounded border-t" style={{ backgroundColor: 'var(--cinepal-gray-800)', borderColor: 'rgba(255,255,255,0.1)' }}>
+                  <p className="text-sm"><strong>Subtotal:</strong> S/ {(viewingPurchaseDetail.totalAmount - (viewingPurchaseDetail.discountAmount || 0) - (viewingPurchaseDetail.fidelityDiscountAmount || 0)).toFixed(2)}</p>
+                  {(viewingPurchaseDetail.discountAmount || 0) > 0 && (
+                    <p className="text-sm text-green-400"><strong>Descuento Promoción:</strong> - S/ {viewingPurchaseDetail.discountAmount?.toFixed(2)}</p>
+                  )}
+                  {(viewingPurchaseDetail.fidelityDiscountAmount || 0) > 0 && (
+                    <p className="text-sm text-green-400"><strong>Descuento Fidelización:</strong> - S/ {viewingPurchaseDetail.fidelityDiscountAmount?.toFixed(2)}</p>
+                  )}
+                  <p className="text-lg font-bold mt-2"><strong>Total:</strong> S/ {viewingPurchaseDetail.totalAmount.toFixed(2)}</p>
+                </div>
+
+                {/* Estado y fecha */}
+                <div className="p-4 rounded" style={{ backgroundColor: 'var(--cinepal-gray-800)' }}>
+                  <p className="text-sm"><strong>Estado:</strong> {viewingPurchaseDetail.status || 'COMPLETED'}</p>
+                  <p className="text-sm"><strong>Fecha de compra:</strong> {new Date(viewingPurchaseDetail.purchaseDate || viewingPurchaseDetail.createdAt || '').toLocaleString('es-PE')}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de detalles del usuario */}
+        {viewingDetails && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            onClick={() => setViewingDetails(null)}
+          >
+            <div
+              className="rounded-xl p-6 max-w-5xl w-full max-h-[90vh] overflow-y-auto"
+              style={{ backgroundColor: 'var(--cinepal-gray-700)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6 sticky top-0 bg-inherit pb-4 border-b" style={{ borderColor: 'var(--cinepal-gray-600)' }}>
+                <h2 className="text-3xl font-bold flex items-center gap-3">
+                  <span className="text-3xl">👤</span>
+                  Detalles Completos del Usuario
+                </h2>
+                <button
+                  className="px-4 py-2 rounded font-semibold hover:scale-105 transition-transform"
+                  style={{ backgroundColor: 'var(--cinepal-gray-600)', color: 'var(--cinepal-bg-100)' }}
+                  onClick={() => setViewingDetails(null)}
+                >
+                  ✕ Cerrar
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Avatar y nombre */}
+                <div className="flex items-center gap-4 p-4 rounded-lg" style={{ backgroundColor: 'var(--cinepal-gray-800)' }}>
+                  {viewingDetails.avatar ? (
+                    <img 
+                      src={viewingDetails.avatar} 
+                      alt={`${viewingDetails.firstName} ${viewingDetails.lastName}`}
+                      className="w-24 h-24 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-4xl font-bold">
+                      {viewingDetails.firstName?.[0]}{viewingDetails.lastName?.[0]}
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <h3 className="text-3xl font-bold">{viewingDetails.firstName} {viewingDetails.lastName}</h3>
+                    <p className="text-gray-400 text-lg">@{viewingDetails.username || 'sin_usuario'}</p>
+                    <p className="text-gray-400">ID: {viewingDetails.id}</p>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <span 
+                      className={`px-4 py-2 rounded-lg text-sm font-bold text-center ${
+                        viewingDetails.isValid 
+                          ? 'bg-green-500/20 text-green-300 border border-green-500' 
+                          : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500'
+                      }`}
+                    >
+                      {viewingDetails.isValid ? '✓ VALIDADA' : '⚠ PENDIENTE'}
+                    </span>
+                    <span 
+                      className={`px-4 py-2 rounded-lg text-sm font-bold text-center ${
+                        viewingDetails.isActive 
+                          ? 'bg-blue-500/20 text-blue-300 border border-blue-500' 
+                          : 'bg-red-500/20 text-red-300 border border-red-500'
+                      }`}
+                    >
+                      {viewingDetails.isActive ? '✓ ACTIVA' : '✕ INACTIVA'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Información personal */}
+                <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--cinepal-gray-800)' }}>
+                  <h4 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span>📋</span> Información Personal
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-400 mb-1">Email</p>
+                      <p className="font-semibold text-blue-300">{viewingDetails.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400 mb-1">DNI / Cédula</p>
+                      <p className="font-semibold">{viewingDetails.nationalId || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400 mb-1">Género</p>
+                      <p className="font-semibold">{viewingDetails.gender || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400 mb-1">Fecha de Nacimiento</p>
+                      <p className="font-semibold">{viewingDetails.birthDate || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400 mb-1">Nombre de Usuario</p>
+                      <p className="font-semibold">@{viewingDetails.username || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400 mb-1">Cine Favorito</p>
+                      {viewingDetails.favoriteCinema?.name ? (
+                        <>
+                          <p className="font-semibold">{viewingDetails.favoriteCinema.name}</p>
+                          {viewingDetails.favoriteCinema.city && (
+                            <p className="text-xs text-gray-500">{viewingDetails.favoriteCinema.city}</p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="font-semibold">—</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Información de Facturación */}
+                <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--cinepal-gray-800)' }}>
+                  <h4 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span>📄</span> Información de Facturación
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-400 mb-1">RUC</p>
+                      <p className="font-semibold">{viewingDetails.ruc || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400 mb-1">Razón Social</p>
+                      <p className="font-semibold">{viewingDetails.razonSocial || '—'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Información de Fidelización */}
+                <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--cinepal-gray-800)' }}>
+                  <h4 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span>⭐</span> Información de Fidelización
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-400 mb-1">Puntos Acumulados</p>
+                      <p className="font-bold text-2xl text-yellow-400">{viewingDetails.fidelityPoints || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400 mb-1">Última Compra</p>
+                      <p className="font-semibold">
+                        {viewingDetails.lastPurchaseDate 
+                          ? new Date(viewingDetails.lastPurchaseDate).toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' })
+                          : '—'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Roles y Permisos */}
+                <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--cinepal-gray-800)' }}>
+                  <h4 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span>🔐</span> Roles y Permisos
+                  </h4>
+                  <div className="flex gap-2 flex-wrap">
+                    {Array.isArray(viewingDetails.roles) && viewingDetails.roles.map(role => (
+                      <span
+                        key={role}
+                        className="px-4 py-2 rounded-lg text-sm font-bold"
+                        style={{
+                          backgroundColor: role === 'ROLE_ADMIN' ? 'var(--cinepal-primary)' : role === 'ROLE_MANAGER' ? 'var(--cinepal-primary-700)' : 'var(--cinepal-gray-600)',
+                          color: 'var(--cinepal-bg-100)'
+                        }}
+                      >
+                        {formatRole(role)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Información de Seguridad */}
+                <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--cinepal-gray-800)' }}>
+                  <h4 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span>🛡️</span> Información de Seguridad
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-400 mb-1">Estado de Validación</p>
+                      <span className={`px-3 py-1 rounded text-sm font-bold ${viewingDetails.isValid ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}`}>
+                        {viewingDetails.isValid ? '✓ Validada' : '⚠ Pendiente'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400 mb-1">Dos Factores (2FA)</p>
+                      <span className={`px-3 py-1 rounded text-sm font-bold ${viewingDetails.isTwoFactorEnabled ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}`}>
+                        {viewingDetails.isTwoFactorEnabled ? '✓ Habilitado' : '✕ Deshabilitado'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400 mb-1">Token Activación Expira</p>
+                      <p className="font-semibold text-sm">
+                        {viewingDetails.activationTokenExpiry 
+                          ? new Date(viewingDetails.activationTokenExpiry).toLocaleDateString('es-PE', { year: 'numeric', month: 'short', day: 'numeric' })
+                          : '—'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botón de validar cuenta */}
+                {!viewingDetails.isValid && (
+                  <div className="p-4 rounded-lg border-2" style={{ 
+                    backgroundColor: viewingDetails.ruc && viewingDetails.razonSocial ? 'rgba(220, 38, 38, 0.1)' : 'rgba(239, 68, 68, 0.1)', 
+                    borderColor: viewingDetails.ruc && viewingDetails.razonSocial ? 'var(--cinepal-primary)' : '#ef4444' 
+                  }}>
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                      <div>
+                        {viewingDetails.ruc && viewingDetails.razonSocial ? (
+                          <>
+                            <h4 className="text-lg font-bold mb-1">✓ Cuenta Lista para Validar</h4>
+                            <p className="text-sm text-gray-400">Esta cuenta tiene RUC y Razón Social. Puede ser validada para facturación.</p>
+                          </>
+                        ) : (
+                          <>
+                            <h4 className="text-lg font-bold mb-1">⚠ Información Incompleta</h4>
+                            <p className="text-sm text-gray-400">
+                              {!viewingDetails.ruc && !viewingDetails.razonSocial 
+                                ? 'Falta RUC y Razón Social para validar esta cuenta'
+                                : !viewingDetails.ruc
+                                ? 'Falta RUC para validar esta cuenta'
+                                : 'Falta Razón Social para validar esta cuenta'}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                      <button
+                        disabled={!viewingDetails.ruc || !viewingDetails.razonSocial}
+                        className={`px-6 py-3 rounded-lg font-bold whitespace-nowrap transition-transform ${
+                          viewingDetails.ruc && viewingDetails.razonSocial
+                            ? 'bg-gradient-to-r from-green-600 to-green-700 text-white hover:scale-105 cursor-pointer'
+                            : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+                        }`}
+                        onClick={() => {
+                          if (viewingDetails.ruc && viewingDetails.razonSocial) {
+                            onValidateAccount(viewingDetails);
+                          }
+                        }}
+                      >
+                        {viewingDetails.ruc && viewingDetails.razonSocial ? '✓ Validar Cuenta Ahora' : '✗ No puede validarse'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {viewingDetails.isValid && (
+                  <div className="p-4 rounded-lg border-2" style={{ 
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)', 
+                    borderColor: '#22c55e' 
+                  }}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl">✓</span>
+                      <div>
+                        <h4 className="text-lg font-bold text-green-300">Cuenta Validada</h4>
+                        <p className="text-sm text-gray-400">Esta cuenta ha sido validada y está completamente activa</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Acciones */}
+                <div className="flex gap-3 pt-4 border-t flex-wrap" style={{ borderColor: 'var(--cinepal-gray-600)' }}>
+                  <button
+                    className="flex-1 min-w-[200px] px-4 py-3 rounded-lg font-semibold hover:scale-105 transition-transform"
+                    style={{ backgroundColor: 'var(--cinepal-primary-700)', color: 'var(--cinepal-bg-100)' }}
+                    onClick={() => {
+                      setViewingDetails(null);
+                      onViewPurchases(viewingDetails);
+                    }}
+                  >
+                    📦 Ver Historial de Compras
+                  </button>
+                  <button
+                    className="flex-1 min-w-[200px] px-4 py-3 rounded-lg font-semibold hover:scale-105 transition-transform"
+                    style={{ backgroundColor: 'var(--cinepal-bg-200)', color: 'var(--cinepal-gray-900)' }}
+                    onClick={() => {
+                      setViewingDetails(null);
+                      onEdit(viewingDetails);
+                    }}
+                  >
+                    ✏️ Editar Usuario
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

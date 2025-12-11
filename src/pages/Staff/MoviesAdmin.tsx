@@ -110,13 +110,11 @@ function MoviesAdmin() {
 
   return (
     <ProtectedRoute roles={["STAFF", "ADMIN"]}>
-      <div style={{ background: "var(--cinepal-gray-900)", color: "var(--cinepal-bg-100)" }} className="min-h-screen">
+      <div style={{ background: "linear-gradient(180deg, #141113 0%, #0b0b0b 100%)" }} className="min-h-screen">
         <Navbar variant="dark" />
         
         {/* Header */}
-        <div className="relative pt-24 pb-12 px-8" style={{ 
-          background: 'linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(127, 29, 29, 0.1) 100%)'
-        }}>
+        <div className="relative pt-24 pb-12 px-8 animate-fade-in">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center gap-4 mb-2">
               <div className="text-5xl">🎬</div>

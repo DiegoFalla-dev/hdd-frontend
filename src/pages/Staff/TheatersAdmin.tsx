@@ -101,23 +101,22 @@ export default function TheatersAdmin() {
 
   return (
     <ProtectedRoute roles={["STAFF", "ADMIN"]}>
-      <div style={{ background: "var(--cinepal-gray-900)", color: "var(--cinepal-bg-100)" }} className="min-h-screen">
+      <div style={{ background: "linear-gradient(180deg, #141113 0%, #0b0b0b 100%)" }} className="min-h-screen">
         <Navbar variant="dark" />
         
         {/* Header */}
-        <div className="relative pt-24 pb-12 px-8" style={{ 
-          background: 'linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(127, 29, 29, 0.1) 100%)'
-        }}>
+        <div className="relative pt-24 pb-12 px-8 animate-fade-in">
           <div className="max-w-7xl mx-auto">
-            <div className="flex items-center gap-4 mb-2">
+            <div className="flex items-center gap-6 mb-2">
               <div className="text-5xl">🎭</div>
-              <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">
+              <div className="flex-1">
+                <h1 className="text-5xl font-black bg-gradient-to-r from-[#BB2228] to-[#E3E1E2] bg-clip-text text-transparent">
                   Gestión de Salas
                 </h1>
-                <p className="text-gray-400 mt-1">Configura salas y capacidades por cine</p>
+                <p className="text-lg text-[#E3E1E2]/70 mt-2 font-semibold">Administra salas y configuración de asientos</p>
               </div>
             </div>
+            <div className="w-32 h-1.5 bg-gradient-to-r from-[#BB2228] to-[#8B191E] rounded-full mt-4"></div>
           </div>
         </div>
 

@@ -16,6 +16,7 @@ interface SeatSelectionState {
   applyReservationResult: (showtimeId: number, failed: string[]) => void;
   attachSession: (showtimeId: number, sessionId: string, expiresInMs?: number) => void;
   clearShowtime: (showtimeId: number) => void;
+  clearAll: () => void;
   loadFromStorage: (showtimeId: number) => void;
   purgeExpired: () => void;
 }
@@ -92,6 +93,14 @@ export const useSeatSelectionStore = create<SeatSelectionState>((set, get) => ({
     delete selections[showtimeId];
     writeStorage(selections);
     set({ selections: { ...selections } });
+  },
+  clearAll: () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+    set({ selections: {}, currentShowtimeId: undefined });
   },
   loadFromStorage: (showtimeId) => {
     const data = readStorage();

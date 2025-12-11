@@ -12,6 +12,8 @@ import { getShowtimes } from '../services/showtimeService';
 import { useAuth } from '../context/AuthContext';
 import { usePaymentMethods } from '../hooks/usePaymentMethods';
 import paymentMethodService from '../services/paymentMethodService';
+import { getUserById, updateBillingInfo } from '../services/userService';
+import { getAccessToken, clearOrderStorage } from '../utils/storage';
 import type { Seat } from '../types/Seat';
 import type { CreateOrderItemDTO } from '../services/orderService';
 // OrderConfirmation type not used here
@@ -28,6 +30,23 @@ const CarritoTotal: React.FC = () => {
   const [cvv, setCvv] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [userFidelityPoints, setUserFidelityPoints] = useState<number>(0);
+  const [fidelityRedeemUnits, setFidelityRedeemUnits] = useState<number>(1); // cada unidad = 100 pts
+  const [fidelityDiscountApplied, setFidelityDiscountApplied] = useState<number>(0);
+  const [fidelityPointsRedeemed, setFidelityPointsRedeemed] = useState<number>(0);
+  const [isRedeeming, setIsRedeeming] = useState(false);
+  const [showFidelityForm, setShowFidelityForm] = useState(false);
+  const [pointsToRedeem, setPointsToRedeem] = useState<number>(100);
+
+  // Datos del usuario para comprobantes
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [invoiceType, setInvoiceType] = useState<'BOLETA' | 'FACTURA'>('BOLETA');
+  const [billingRuc, setBillingRuc] = useState('');
+  const [billingRazonSocial, setBillingRazonSocial] = useState('');
+  const [billingSaving, setBillingSaving] = useState(false);
+  const [billingMessage, setBillingMessage] = useState<string | null>(null);
+  const [billingError, setBillingError] = useState<string | null>(null);
+  const [showBillingForm, setShowBillingForm] = useState(false);
 
   const cartSnapshot = useCartStore(s => s.cartSnapshot());
   const setTicketGroup = useCartStore(s => s.setTicketGroup);
@@ -38,7 +57,8 @@ const CarritoTotal: React.FC = () => {
   const queryClient = useQueryClient();
   const orderPreviewQuery = useOrderPreview(true);
   const orderConfirmMutation = useOrderConfirm();
-  const { validate: validatePromotion, isLoading: promoLoading, promotion, error: promoError } = usePromotionValidation();
+  const promoValidation = usePromotionValidation();
+  const { validate: validatePromotion, isLoading: promoLoading, promotion, error: promoError } = promoValidation;
   // const applyPromotion = useCartStore(s => s.applyPromotion);
   const clearPromotion = useCartStore(s => s.clearPromotion);
   const [promoCode, setPromoCode] = useState('');
@@ -53,6 +73,83 @@ const CarritoTotal: React.FC = () => {
       setShowAddPaymentForm(true);
     }
   }, [paymentMethods, selectedPaymentMethodId, showAddPaymentForm]);
+
+  // Cargar puntos de fidelización del usuario
+  useEffect(() => {
+    const fetchFidelityPoints = async () => {
+      if (!user?.id) return;
+      const token = getAccessToken();
+      if (!token) return;
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/users/${user.id}/fidelity-points`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUserFidelityPoints(data.fidelityPoints || 0);
+        }
+      } catch (error) {
+        console.warn('Error cargando puntos de fidelización:', error);
+      }
+    };
+    fetchFidelityPoints();
+  }, [user?.id]);
+
+  // Cargar datos completos del usuario para comprobantes
+  useEffect(() => {
+    const loadUser = async () => {
+      if (!user?.id) return;
+      try {
+        const data = await getUserById(user.id);
+        setUserProfile(data);
+        setBillingRuc(data?.ruc || '');
+        setBillingRazonSocial(data?.razonSocial || '');
+      } catch (err) {
+        console.error('No se pudo cargar datos de usuario', err);
+      }
+    };
+    loadUser();
+  }, [user?.id]);
+
+  const handleRedeemFidelity = async () => {
+    if (!user?.id) {
+      toast.error('Debes iniciar sesión para canjear puntos');
+      return;
+    }
+    const pointsToRedeem = fidelityRedeemUnits * 100;
+    if (pointsToRedeem > userFidelityPoints) {
+      toast.error('No tienes suficientes puntos para esta cantidad');
+      return;
+    }
+    setIsRedeeming(true);
+    try {
+      const token = getAccessToken();
+      const resp = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/users/${user.id}/redeem-points`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ points: pointsToRedeem }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || data.success === false) {
+        toast.error(data.message || 'No se pudo canjear puntos');
+        return;
+      }
+      const discount = parseFloat(data.discountAmount) || ((pointsToRedeem / 100) * 10);
+      setUserFidelityPoints(data.remainingPoints ?? Math.max(0, userFidelityPoints - pointsToRedeem));
+      setFidelityDiscountApplied(discount);
+      toast.success(`Canjeado: S/ ${discount.toFixed(2)} de descuento`);
+    } catch (err) {
+      console.error('Error canjeando puntos', err);
+      toast.error('Error al canjear puntos');
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
 
   const preview = orderPreviewQuery.data;
     // Prefetch del preview cuando se modifica el carrito (optimiza recalculo)
@@ -201,9 +298,50 @@ const CarritoTotal: React.FC = () => {
     return false;
   };
 
+  const handleSaveBillingData = async () => {
+    if (!user?.id) {
+      toast.error('Debes iniciar sesión');
+      return;
+    }
+    if (!billingRuc.trim() || !billingRazonSocial.trim()) {
+      setBillingError('RUC y Razón Social son requeridos');
+      return;
+    }
+    if (billingRuc.trim().length < 8) {
+      setBillingError('El RUC debe tener al menos 8 caracteres');
+      return;
+    }
+    setBillingError(null);
+    setBillingSaving(true);
+    try {
+      await updateBillingInfo(user.id, billingRuc.trim(), billingRazonSocial.trim());
+      setBillingMessage('Datos guardados. Tu cuenta no ha sido verificada, contacte con un asesor.');
+      setUserProfile((prev: any) => ({ ...prev, ruc: billingRuc.trim(), razonSocial: billingRazonSocial.trim() }));
+      toast.success('Información de facturación guardada');
+      setShowBillingForm(false);
+    } catch (err: any) {
+      console.error('Error guardando facturación', err);
+      setBillingError(err?.response?.data?.message || 'No se pudo guardar la información');
+    } finally {
+      setBillingSaving(false);
+    }
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (invoiceType === 'FACTURA') {
+      if (!userProfile?.isValid) {
+        toast.error('Tu cuenta no ha sido verificada, contacte con un asesor.');
+        return;
+      }
+      if (!userProfile?.ruc || !userProfile?.razonSocial) {
+        toast.error('Completa RUC y Razón Social para facturar.');
+        return;
+      }
+    }
+
     if (!validateCard()) {
       toast.warning('Revisa los datos de la tarjeta');
       return;
@@ -280,7 +418,9 @@ const CarritoTotal: React.FC = () => {
     const itemsRawTotal = paymentItems.reduce((sum, it) => sum + it.totalPrice, 0);
     const discount = preview?.discountTotal || 0;
     const expectedGrand = preview?.grandTotal || 0;
-    const computedGrand = Math.max(0, itemsRawTotal - discount);
+    // Cálculo correcto: (subtotal - descuento) * 1.18 para incluir IGV
+    const subtotalAfterDiscount = Math.max(0, itemsRawTotal - discount);
+    const computedGrand = subtotalAfterDiscount * 1.18;
     if (Math.abs(computedGrand - expectedGrand) > 0.01) {
       console.warn('Diferencia en grandTotal calculado vs preview', { computedGrand, expectedGrand });
     }
@@ -471,6 +611,8 @@ const CarritoTotal: React.FC = () => {
       items: orderItems,
       concessions: orderConcessions.length > 0 ? orderConcessions : undefined,
       promotionCode: cartSnapshot.promotion?.code || undefined,
+      fidelityPointsRedeemed: fidelityDiscountApplied > 0 ? fidelityPointsRedeemed || fidelityRedeemUnits * 100 : undefined,
+      fidelityDiscountAmount: fidelityDiscountApplied > 0 ? fidelityDiscountApplied : undefined,
     };
 
     console.log('Payload enviado al backend:', JSON.stringify(payload, null, 2));
@@ -525,63 +667,385 @@ const CarritoTotal: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-3xl mx-auto bg-white shadow rounded p-6">
-        <h2 className="text-2xl font-semibold mb-4">Pago y Confirmación</h2>
+    <div className="min-h-screen py-12 animate-fade-in" style={{ background: "linear-gradient(180deg, #141113 0%, #0b0b0b 100%)" }}>
+      <div className="max-w-3xl mx-auto card-glass shadow-2xl rounded-2xl p-10">
+        <h2 className="text-4xl font-bold mb-8 bg-gradient-to-r from-[#BB2228] to-[#E3E1E2] bg-clip-text text-transparent">Resumen de Compra</h2>
         {/* Preview dinámico */}
-        <div className="mb-6 border rounded p-4 bg-gray-50">
-          <h3 className="text-lg font-semibold mb-2">Resumen de Orden (Preview)</h3>
-          {previewLoading && <p className="text-sm text-gray-500">Calculando...</p>}
-          {previewError && <p className="text-sm text-red-500">Error obteniendo preview</p>}
+        <div className="mb-8 border rounded-xl p-6 backdrop-blur-sm" style={{ backgroundColor: 'rgba(57,58,58,0.2)', borderColor: 'rgba(255,255,255,0.1)' }}>
+          <h3 className="text-xl font-bold mb-4 text-[#E3E1E2]">📝 Detalle del Pedido</h3>
+          {previewLoading && <p className="text-sm text-[#E3E1E2]/70">Calculando...</p>}
+          {previewError && <p className="text-sm text-red-400">Error obteniendo preview</p>}
           {preview && !previewLoading && !previewError && (
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span>Entradas</span><span>S/ {preview.ticketsSubtotal.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span>Dulcería</span><span>S/ {preview.concessionsSubtotal.toFixed(2)}</span></div>
-              {preview.discountTotal > 0 && (
-                <div className="flex justify-between text-green-600"><span>Descuento</span><span>- S/ {preview.discountTotal.toFixed(2)}</span></div>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between text-[#E3E1E2]">
+                <span>🎫 Entradas</span>
+                <span className="font-bold">S/ {preview.ticketsSubtotal.toFixed(2)}</span>
+              </div>
+              {preview.concessionsSubtotal > 0 && (
+                <div className="flex justify-between text-[#E3E1E2]">
+                  <span>🍿 Dulcería</span>
+                  <span className="font-bold">S/ {preview.concessionsSubtotal.toFixed(2)}</span>
+                </div>
               )}
-              {/* IGV línea - siempre mostrar */}
-              <div className="flex justify-between"><span>IGV (18%)</span><span>S/ {(preview.taxTotal ?? 0).toFixed(2)}</span></div>
-              <div className="flex justify-between font-semibold border-t pt-2"><span>Total a Pagar</span><span>S/ {preview.grandTotal.toFixed(2)}</span></div>
+              {preview.discountTotal > 0 && (
+                <div className="flex justify-between font-bold text-green-400">
+                  <span>🎉 Descuento promocional</span>
+                  <span>- S/ {preview.discountTotal.toFixed(2)}</span>
+                </div>
+              )}
+              {fidelityDiscountApplied > 0 && (
+                <div className="flex justify-between font-bold text-amber-400">
+                  <span>⭐ Descuento por puntos</span>
+                  <span>- S/ {fidelityDiscountApplied.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm text-[#E3E1E2]/60">
+                <span>IGV (18%)</span>
+                <span>S/ {(preview.taxTotal ?? 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-xl border-t pt-3 mt-2 bg-gradient-to-r from-[#BB2228] to-[#8B191E] bg-clip-text text-transparent" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+                <span>💰 Total a Pagar</span>
+                <span>S/ {Math.max(0, (preview.grandTotal ?? 0) - fidelityDiscountApplied).toFixed(2)}</span>
+              </div>
               {preview.promotion && (
-                <p className="text-xs text-gray-600">Promoción aplicada: {preview.promotion.code} ({preview.promotion.type === 'PERCENT' ? preview.promotion.value + '%' : 'S/ ' + preview.promotion.value})</p>
+                <p className="text-xs text-green-400 mt-2">✓ Promoción aplicada: {preview.promotion.code} ({preview.promotion.discountType === 'PERCENTAGE' ? preview.promotion.value + '%' : 'S/ ' + preview.promotion.value})</p>
               )}
             </div>
           )}
         </div>
         {/* Código de promoción */}
-        <div className="mb-6 border rounded p-4 bg-gray-50">
-          <h3 className="text-sm font-semibold mb-2">Código de Promoción</h3>
-            <div className="flex gap-2">
+        <div className="mb-8 border rounded-xl p-6 backdrop-blur-sm" style={{ backgroundColor: 'rgba(57,58,58,0.2)', borderColor: 'rgba(255,255,255,0.1)' }}>
+          <h3 className="text-lg font-bold mb-4 text-[#E3E1E2]">🎫 ¿Tienes un código promocional?</h3>
+            <div className="flex gap-3">
               <input
                 value={promoCode}
                 onChange={(e) => setPromoCode(e.target.value)}
-                placeholder="PROMO2025"
-                className="flex-1 border px-2 py-1 rounded"
+                placeholder="Ingresa tu código"
+                className="flex-1 border px-4 py-3 rounded-xl input-focus-glow bg-[#141113]/50 text-white"
+                style={{ borderColor: promoValidation.response && !promoValidation.response.isValid ? '#EF4444' : 'rgba(255,255,255,0.1)' }}
+                disabled={!!cartSnapshot.promotion}
               />
               <button
                 type="button"
-                onClick={() => validatePromotion(promoCode, preview?.grandTotal || 0)}
-                disabled={promoLoading || !promoCode.trim()}
-                className="px-3 py-1 rounded bg-indigo-600 text-white text-sm"
+                onClick={() => {
+                  const subtotal = (preview?.ticketsSubtotal || 0) + (preview?.concessionsSubtotal || 0);
+                  validatePromotion(promoCode, subtotal);
+                }}
+                disabled={promoLoading || !promoCode.trim() || !!cartSnapshot.promotion}
+                className="px-6 py-3 rounded-xl text-white font-bold transition-all hover:scale-105"
+                style={{ 
+                  backgroundColor: (promoLoading || !promoCode.trim() || !!cartSnapshot.promotion) ? '#4B5563' : '#BB2228',
+                  cursor: (promoLoading || !promoCode.trim() || !!cartSnapshot.promotion) ? 'not-allowed' : 'pointer',
+                  opacity: (promoLoading || !promoCode.trim() || !!cartSnapshot.promotion) ? 0.5 : 1
+                }}
               >
                 {promoLoading ? 'Validando...' : 'Aplicar'}
               </button>
-              {cartSnapshot.promotion && (
+              {(cartSnapshot.promotion || (promoValidation.response && !promoValidation.response.isValid)) && (
                 <button
                   type="button"
-                  onClick={() => { clearPromotion(); setPromoCode(''); }}
-                  className="px-3 py-1 rounded bg-gray-300 text-sm"
-                >Quitar</button>
+                  onClick={() => { 
+                    clearPromotion(); 
+                    setPromoCode(''); 
+                    promoValidation.reset(); 
+                  }}
+                  className="px-4 py-3 rounded-xl font-bold transition-all hover:scale-110"
+                  style={{ backgroundColor: '#E3E1E2', color: '#393A3A' }}
+                  title="Limpiar"
+                >✕</button>
               )}
             </div>
             {promoError && <p className="text-xs text-red-500 mt-1">Promoción inválida</p>}
-            {promotion && <p className="text-xs text-green-600 mt-1">Aplicada: {promotion.code}</p>}
+            {promotion && <p className="text-xs text-green-600 mt-1">✓ Aplicada: {promotion.code}</p>}
+            {promoValidation.response && !promoValidation.response.isValid && (
+              <div className="mt-3 text-sm bg-red-50 border-l-4 border-red-600 rounded p-3 shadow-sm">
+                <p className="font-semibold text-red-700 mb-2">
+                  {promoValidation.response.message || 'Promoción no válida'}
+                </p>
+                {promoValidation.response.errorType === 'USAGE_LIMIT_EXCEEDED' && (
+                  <p className="text-xs text-red-600 mt-1">
+                    💡 Este código promocional agotó sus usos. Intenta con otro código.
+                  </p>
+                )}
+                {promoValidation.response.errorType === 'SINGLE_USE_EXPIRED' && (
+                  <p className="text-xs text-red-600 mt-1">
+                    💡 Este código ya fue utilizado. Intenta con otro código.
+                  </p>
+                )}
+                {promoValidation.response.errorType === 'DATE_RANGE_EXPIRED' && (
+                  <p className="text-xs text-red-600 mt-1">
+                    💡 Este código ha expirado. Intenta con otro código válido.
+                  </p>
+                )}
+                {promoValidation.response.requiredAmount && (
+                  <p className="mt-2 text-red-600 text-xs">Monto mínimo requerido: {promoValidation.response.requiredAmount}</p>
+                )}
+              </div>
+            )}
+        </div>
+
+        {/* Puntos de Fidelización */}
+        {userFidelityPoints > 0 && fidelityDiscountApplied === 0 && (
+          <div className="mb-6">
+            <div className="border rounded-lg p-5" style={{ backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }}>
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-base font-semibold mb-2" style={{ color: '#92400E' }}>Puntos de Fidelización</h3>
+                  <p className="text-sm" style={{ color: '#78350F' }}>
+                    Tienes <span className="font-bold">{userFidelityPoints} puntos</span> disponibles
+                  </p>
+                  <p className="text-sm mt-1" style={{ color: '#92400E' }}>
+                    Descuento disponible: <span className="font-bold">S/ {((userFidelityPoints / 100) * 10).toFixed(2)}</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowFidelityForm(!showFidelityForm)}
+                  className="px-5 py-2.5 rounded-lg text-white text-sm font-semibold hover:shadow-lg transition-all"
+                  style={{ backgroundColor: showFidelityForm ? '#92400E' : '#f59e0b' }}
+                >
+                  {showFidelityForm ? 'Cerrar' : 'Canjear'}
+                </button>
+              </div>
+            </div>
+            
+            {/* Formulario de canje inline */}
+            {showFidelityForm && (
+              <div className="mt-4 border rounded-lg p-5" style={{ backgroundColor: 'white', borderColor: '#FDE68A' }}>
+                <h4 className="text-sm font-semibold mb-4" style={{ color: '#393A3A' }}>¿Cuántos puntos deseas canjear?</h4>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium mb-2" style={{ color: '#78350F' }}>
+                      Puntos (múltiplos de 10)
+                    </label>
+                    <input
+                      type="number"
+                      min="10"
+                      max={userFidelityPoints}
+                      step="10"
+                      value={pointsToRedeem}
+                      onChange={(e) => setPointsToRedeem(Math.max(10, Math.min(userFidelityPoints, parseInt(e.target.value) || 10)))}
+                      className="w-full px-4 py-2.5 rounded-lg text-lg font-semibold"
+                      style={{ border: '2px solid #FDE68A', color: '#393A3A' }}
+                    />
+                  </div>
+                  
+                  <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg p-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span style={{ color: '#78350F' }}>Puntos a canjear:</span>
+                      <strong style={{ color: '#92400E' }}>{pointsToRedeem} pts</strong>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span style={{ color: '#78350F' }}>Descuento:</span>
+                      <strong className="text-lg" style={{ color: '#f59e0b' }}>S/ {((pointsToRedeem / 100) * 10).toFixed(2)}</strong>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span style={{ color: '#78350F' }}>Puntos restantes:</span>
+                      <strong style={{ color: '#92400E' }}>{Math.max(0, userFidelityPoints - pointsToRedeem)} pts</strong>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowFidelityForm(false)}
+                      className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all"
+                      style={{ backgroundColor: '#E3E1E2', color: '#393A3A' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!user?.id) {
+                          toast.error('Debes iniciar sesión');
+                          return;
+                        }
+                        if (pointsToRedeem > userFidelityPoints || pointsToRedeem < 10 || pointsToRedeem % 10 !== 0) {
+                          toast.error('Cantidad de puntos inválida');
+                          return;
+                        }
+                        setIsRedeeming(true);
+                        try {
+                          const token = getAccessToken();
+                          const resp = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/users/${user.id}/redeem-points`, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({ points: pointsToRedeem }),
+                          });
+                          const data = await resp.json();
+                          if (!resp.ok || data.success === false) {
+                            toast.error(data.message || 'No se pudo canjear puntos');
+                            return;
+                          }
+                          const discount = parseFloat(data.discountAmount) || ((pointsToRedeem / 100) * 10);
+                          setUserFidelityPoints(data.remainingPoints ?? Math.max(0, userFidelityPoints - pointsToRedeem));
+                          setFidelityPointsRedeemed(pointsToRedeem);
+                          setFidelityRedeemUnits(Math.max(0, Math.round(pointsToRedeem / 100)));
+                          setFidelityDiscountApplied(discount);
+                          setShowFidelityForm(false);
+                          toast.success(`¡Canjeado: S/ ${discount.toFixed(2)} de descuento!`);
+                        } catch (err) {
+                          console.error('Error canjeando puntos', err);
+                          toast.error('Error al canjear puntos');
+                        } finally {
+                          setIsRedeeming(false);
+                        }
+                      }}
+                      disabled={isRedeeming || pointsToRedeem > userFidelityPoints || pointsToRedeem < 10}
+                      className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold transition-all"
+                      style={{ 
+                        backgroundColor: (isRedeeming || pointsToRedeem > userFidelityPoints || pointsToRedeem < 10) ? '#9CA3AF' : '#f59e0b',
+                        cursor: (isRedeeming || pointsToRedeem > userFidelityPoints || pointsToRedeem < 10) ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {isRedeeming ? 'Canjeando...' : `Canjear ${pointsToRedeem} puntos`}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Comprobante: Boleta / Factura */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-3" style={{ color: '#141113' }}>Comprobante</h3>
+          <div className="flex gap-3 mb-3">
+            <button
+              type="button"
+              onClick={() => setInvoiceType('BOLETA')}
+              className="flex-1 py-2.5 rounded-lg font-semibold transition-all"
+              style={{
+                backgroundColor: invoiceType === 'BOLETA' ? '#BB2228' : '#E5E7EB',
+                color: invoiceType === 'BOLETA' ? 'white' : '#111827',
+                border: invoiceType === 'BOLETA' ? '2px solid #BB2228' : '1px solid #E5E7EB'
+              }}
+            >
+              Boleta
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (userProfile?.isValid) {
+                  setInvoiceType('FACTURA');
+                }
+              }}
+              disabled={!userProfile?.isValid}
+              className="flex-1 py-2.5 rounded-lg font-semibold transition-all"
+              style={{
+                backgroundColor: userProfile?.isValid && invoiceType === 'FACTURA' ? '#BB2228' : '#E5E7EB',
+                color: userProfile?.isValid && invoiceType === 'FACTURA' ? 'white' : '#4B5563',
+                border: userProfile?.isValid && invoiceType === 'FACTURA' ? '2px solid #BB2228' : '1px solid #E5E7EB',
+                cursor: userProfile?.isValid ? 'pointer' : 'not-allowed',
+                opacity: userProfile?.isValid ? 1 : 0.6
+              }}
+            >
+              Factura
+            </button>
+          </div>
+
+          {!userProfile?.isValid && (
+            <div className="text-sm text-red-600 mb-2">
+              Tu cuenta no ha sido verificada, contacte con un asesor. Sólo podrás emitir boleta.
+              <div>
+                <button
+                  type="button"
+                  onClick={() => { setInvoiceType('BOLETA'); setShowBillingForm(true); }}
+                  className="text-amber-600 underline text-xs mt-1"
+                >
+                  Validar datos para factura
+                </button>
+              </div>
+            </div>
+          )}
+
+          {invoiceType === 'BOLETA' && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-700 space-y-1">
+              <div><span className="font-semibold">DNI:</span> {userProfile?.nationalId || 'No disponible'}</div>
+              <div><span className="font-semibold">Nombre:</span> {userProfile ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() : 'No disponible'}</div>
+            </div>
+          )}
+
+          {invoiceType === 'FACTURA' && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+              {!userProfile?.isValid && (
+                <p className="text-sm text-gray-700">Completa los datos para la factura. No será permanente.</p>
+              )}
+              {billingMessage && (
+                <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded p-2">{billingMessage}</div>
+              )}
+              {billingError && (
+                <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-2">{billingError}</div>
+              )}
+              {!showBillingForm && (
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 text-sm text-gray-700">
+                    <div><span className="font-semibold">RUC:</span> {userProfile?.ruc || 'No configurado'}</div>
+                    <div><span className="font-semibold">Razón Social:</span> {userProfile?.razonSocial || 'No configurada'}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowBillingForm(true)}
+                    className="px-4 py-2 rounded bg-amber-500 text-white text-sm font-semibold"
+                  >
+                    {userProfile?.ruc && userProfile?.razonSocial ? 'Editar' : 'Validar datos'}
+                  </button>
+                </div>
+              )}
+
+              {showBillingForm && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">RUC</label>
+                    <input
+                      value={billingRuc}
+                      onChange={(e) => setBillingRuc(e.target.value)}
+                      className="w-full border px-3 py-2 rounded"
+                      placeholder="Ej: 20123456789"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Razón Social</label>
+                    <input
+                      value={billingRazonSocial}
+                      onChange={(e) => setBillingRazonSocial(e.target.value)}
+                      className="w-full border px-3 py-2 rounded"
+                      placeholder="Ej: Mi Empresa S.A.C."
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveBillingData}
+                      disabled={billingSaving}
+                      className="flex-1 py-2 rounded text-white font-semibold"
+                      style={{ backgroundColor: billingSaving ? '#9CA3AF' : '#22c55e' }}
+                    >
+                      {billingSaving ? 'Guardando...' : 'Guardar'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowBillingForm(false); setBillingError(null); }}
+                      className="flex-1 py-2 rounded font-semibold"
+                      style={{ backgroundColor: '#E5E7EB', color: '#111827' }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Métodos de pago */}
         <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-3">Método de Pago</h3>
+          <h3 className="text-lg font-semibold mb-4" style={{ color: '#141113' }}>Método de Pago</h3>
           
           {/* Lista de métodos de pago registrados */}
           {paymentMethods && paymentMethods.length > 0 && (
@@ -596,14 +1060,15 @@ const CarritoTotal: React.FC = () => {
                       setSelectedPaymentMethodId(pm.id);
                       setShowAddPaymentForm(false);
                     }}
-                    className={`border rounded p-4 cursor-pointer transition-all relative ${
-                      isSelected 
-                        ? 'border-indigo-600 bg-indigo-50' 
-                        : 'border-gray-300 hover:border-indigo-400'
-                    }`}
+                    className="border rounded-lg p-4 cursor-pointer transition-all relative"
+                    style={{
+                      borderColor: isSelected ? '#BB2228' : '#E3E1E2',
+                      backgroundColor: isSelected ? '#FEF2F2' : 'white',
+                      borderWidth: isSelected ? '2px' : '1px'
+                    }}
                   >
                     {isDefault && (
-                      <span className="absolute top-2 right-2 text-xs font-semibold text-indigo-600 bg-indigo-100 px-2 py-1 rounded">
+                      <span className="absolute top-2 right-2 text-xs font-semibold px-2 py-1 rounded" style={{ color: '#BB2228', backgroundColor: '#FEE2E2' }}>
                         Recomendado
                       </span>
                     )}
@@ -712,20 +1177,42 @@ const CarritoTotal: React.FC = () => {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="pt-4 border-t">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm text-gray-600">Total a pagar</p>
-                <p className="text-xl font-semibold">S/ {(preview?.grandTotal ?? 0).toFixed(2)}</p>
-              </div>
-              <button
-                type="submit"
-                disabled={isProcessing || previewLoading || previewError || orderConfirmMutation.isPending}
-                className={"px-4 py-2 rounded text-white " + (isProcessing || previewLoading || previewError || orderConfirmMutation.isPending ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600')}
-              >
-                {isProcessing || orderConfirmMutation.isPending ? 'Confirmando...' : previewLoading ? 'Calculando...' : previewError ? 'Error' : 'Confirmar y Pagar'}
-              </button>
-            </div>
+          <div className="pt-6 mt-6" style={{ borderTop: '2px solid #E3E1E2' }}>
+            <button
+              type="submit"
+              disabled={isProcessing || previewLoading || previewError || orderConfirmMutation.isPending}
+              className="w-full py-4 rounded-lg text-white text-lg font-bold transition-all"
+              style={{ 
+                backgroundColor: (isProcessing || previewLoading || previewError || orderConfirmMutation.isPending) ? '#9CA3AF' : '#BB2228',
+                cursor: (isProcessing || previewLoading || previewError || orderConfirmMutation.isPending) ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {isProcessing || orderConfirmMutation.isPending ? 'Procesando pago...' : previewLoading ? 'Calculando...' : previewError ? 'Error' : `Confirmar y Pagar S/ ${Math.max(0, (preview?.grandTotal ?? 0) - fidelityDiscountApplied).toFixed(2)}`}
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => {
+                // Limpiar stores de Zustand
+                useCartStore.getState().clearCart();
+                useCartStore.getState().clearPromotion();
+                useSeatSelectionStore.getState().clearAll();
+                
+                // Limpiar localStorage
+                clearOrderStorage();
+                
+                // Navegar al inicio
+                navigate('/');
+              }}
+              className="w-full mt-3 py-3 rounded-lg text-sm font-semibold transition-all"
+              style={{ 
+                backgroundColor: '#E3E1E2',
+                color: '#393A3A',
+                cursor: 'pointer'
+              }}
+            >
+              Cancelar y volver al inicio
+            </button>
           </div>
         </form>
 

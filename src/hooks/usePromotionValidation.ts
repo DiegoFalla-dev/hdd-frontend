@@ -27,6 +27,9 @@ export function usePromotionValidation() {
     error: mutation.error,
     response: mutation.data,
     promotion: mutation.data?.promotion,
+    errorType: mutation.data?.errorType, // Pasar el tipo de error
+    message: mutation.data?.message, // Pasar el mensaje de error específico
+    isValid: mutation.data?.isValid, // Pasar el estado de validación
     reset: mutation.reset,
   };
 }

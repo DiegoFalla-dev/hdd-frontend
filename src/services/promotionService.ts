@@ -6,6 +6,21 @@ export interface PromotionValidationResponse {
   promotion?: Promotion;
   message?: string;
   requiredAmount?: string;
+  errorType?: string; // Tipo de error específico: SINGLE_USE_EXPIRED, USAGE_LIMIT_EXCEEDED, etc.
+}
+
+/**
+ * Obtiene todas las promociones disponibles
+ * @returns Lista de promociones
+ */
+export async function getAllPromotions(): Promise<Promotion[]> {
+  try {
+    const resp = await api.get<Promotion[]>('/promotions');
+    return resp.data;
+  } catch (error) {
+    console.error('Error fetching promotions:', error);
+    return [];
+  }
 }
 
 /**
@@ -38,4 +53,4 @@ export async function validatePromotion(code: string, amount: number): Promise<P
   }
 }
 
-export default { validatePromotion };
+export default { validatePromotion, getAllPromotions };

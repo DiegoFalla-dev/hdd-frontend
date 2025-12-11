@@ -42,28 +42,38 @@ const MovieCardWithShowtime: React.FC<{
   const isProximo = activeTabIndex === 2; // Tab de Próximos estrenos
   
   return (
-    <div className="transform hover:scale-105 transition-transform duration-300">
-      <MovieCard
-        pelicula={{
-          id: String(pelicula.id),
-          titulo: pelicula.title,
-          imagenCard: pelicula.posterUrl,
-          genero: pelicula.genre,
-          status: pelicula.status === 'NOW_PLAYING' ? 'CARTELERA' : pelicula.status === 'PRESALE' ? 'PREVENTA' : 'PROXIMO'
-        }}
-        showEstrenoLabel={activeTabIndex === 0 && index < 6}
-        showPreventaLabel={isPresale}
-        showProximoLabel={isProximo}
-        firstShowtimeDate={isPresale ? showtimeDate : null}
-      />
-      {/* Información de la película debajo del card */}
-      <div className="mt-3 space-y-1">
-        <h3 className="font-bold text-base text-white line-clamp-2">{pelicula.title}</h3>
-        <div className="flex items-center gap-2 text-sm text-neutral-400">
-          {pelicula.genre && <span>{pelicula.genre}</span>}
-          {pelicula.genre && (pelicula.classification || pelicula.duration) && <span>•</span>}
-          {pelicula.classification && <span className="font-semibold text-neutral-300">{pelicula.classification}</span>}
-          {pelicula.classification && pelicula.duration && <span>•</span>}
+    <div className="group">
+      <div className="transform hover:scale-105 transition-all duration-300 hover:-translate-y-2">
+        <MovieCard
+          pelicula={{
+            id: String(pelicula.id),
+            titulo: pelicula.title,
+            imagenCard: pelicula.posterUrl,
+            genero: pelicula.genre,
+            status: pelicula.status === 'NOW_PLAYING' ? 'CARTELERA' : pelicula.status === 'PRESALE' ? 'PREVENTA' : 'PROXIMO'
+          }}
+          showEstrenoLabel={activeTabIndex === 0 && index < 6}
+          showPreventaLabel={isPresale}
+          showProximoLabel={isProximo}
+          firstShowtimeDate={isPresale ? showtimeDate : null}
+        />
+      </div>
+      {/* Información de la película debajo del card con hover effect */}
+      <div className="mt-3 space-y-1 px-1">
+        <h3 className="font-bold text-base text-white line-clamp-2 group-hover:text-[#BB2228] transition-colors duration-300">
+          {pelicula.title}
+        </h3>
+        <div className="flex items-center gap-2 text-sm text-neutral-400 flex-wrap">
+          {pelicula.genre && (
+            <span className="px-2 py-0.5 rounded-full bg-white/5 group-hover:bg-[#BB2228]/20 transition-colors duration-300">
+              {pelicula.genre}
+            </span>
+          )}
+          {pelicula.classification && (
+            <span className="font-semibold text-neutral-300 px-2 py-0.5 rounded bg-neutral-700/50">
+              {pelicula.classification}
+            </span>
+          )}
           {pelicula.duration && <span>{pelicula.duration}</span>}
         </div>
       </div>
@@ -115,15 +125,18 @@ const Cartelera: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pt-16 bg-neutral-900 text-neutral-100">
+    <div className="min-h-screen pt-16 text-neutral-100" style={{ background: 'linear-gradient(180deg, #141113 0%, #0b0b0b 100%)' }}>
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 animate-fade-in">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar izquierdo */}
+          {/* Sidebar izquierdo con efectos modernos */}
           <aside className="lg:col-span-1">
-            <div className="sticky top-24 bg-neutral-800/40 backdrop-blur rounded-lg p-6 border border-neutral-700">
-              <h3 className="text-lg font-semibold mb-4">Filtrar Por:</h3>
+            <div className="sticky top-24 card-glass p-6 animate-slide-up">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <span className="w-1 h-6 bg-gradient-to-b from-[#BB2228] to-[#8B191E] rounded-full"></span>
+                Filtrar Por
+              </h3>
               <div className="space-y-4">
                 <FilterDropdown
                   options={TABS}
@@ -137,37 +150,52 @@ const Cartelera: React.FC = () => {
 
           {/* Contenido principal */}
           <section className="lg:col-span-3">
-            <div className="mb-6">
-              <h2 className="text-4xl font-extrabold tracking-tight mb-2">Películas</h2>
-              <p className="text-neutral-300">Descubre las mejores películas en cartelera</p>
+            {/* Header mejorado con degradado */}
+            <div className="mb-8 pb-4 border-b border-white/5 animate-slide-up">
+              <h2 className="text-5xl font-black tracking-tight mb-3 bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
+                Películas
+              </h2>
+              <p className="text-neutral-400 text-lg">Descubre las mejores películas en cartelera</p>
             </div>
 
-            {/* Grid de películas */}
+            {/* Grid de películas con animación escalonada */}
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {isLoading ? (
-                <div className="col-span-full text-center">Cargando...</div>
+                <div className="col-span-full flex justify-center items-center py-20">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 border-4 border-[#BB2228] border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-neutral-400 font-semibold">Cargando películas...</p>
+                  </div>
+                </div>
               ) : movies.map((pelicula, index) => (
-                <MovieCardWithShowtime
+                <div 
                   key={pelicula.id ?? index}
-                  pelicula={pelicula}
-                  activeTabIndex={activeTabIndex}
-                  index={index}
-                  selectedCinemaId={selectedCinemaId}
-                />
+                  className="animate-scale-in"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                >
+                  <MovieCardWithShowtime
+                    pelicula={pelicula}
+                    activeTabIndex={activeTabIndex}
+                    index={index}
+                    selectedCinemaId={selectedCinemaId}
+                  />
+                </div>
               ))}
             </div>
 
+            {/* Botón "Ver más" mejorado */}
             {hasMoreMovies && (
-              <div className="flex justify-center mt-10">
+              <div className="flex justify-center mt-12 animate-fade-in">
                 <button
                   onClick={loadMoreMovies}
-                  className="inline-flex items-center gap-3 text-white font-semibold px-6 py-3 rounded-full shadow-lg hover:scale-105 transition-transform duration-200"
-                  style={{ background: 'linear-gradient(90deg, var(--cinepal-primary), var(--cinepal-primary-700))' }}
+                  className="btn-primary-gradient btn-shine inline-flex items-center gap-3 text-white font-bold px-8 py-4 rounded-full shadow-2xl hover:scale-105 transition-all duration-300"
                 >
-                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                    <img src="https://i.imgur.com/K9o09F6.png" alt="Logo" />
+                  <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                    </svg>
                   </div>
-                  <span>Ver más películas</span>
+                  <span className="text-lg">Ver más películas</span>
                 </button>
               </div>
             )}

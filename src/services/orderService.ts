@@ -2,21 +2,75 @@ import api from './apiClient';
 import type { OrderPreview } from '../types/OrderPreview';
 
 // Estructura de respuesta del backend (OrderDTO)
+// Tipos mínimos para cubrir las vistas actuales
+export interface OrderUserDTO {
+  id: number;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  nationalId?: string;
+  email?: string;
+  ruc?: string;
+  razonSocial?: string;
+}
+
+export interface OrderShowtimeDTO {
+  movieTitle?: string;
+  cinemaName?: string;
+  theaterName?: string;
+  date?: string;   // YYYY-MM-DD
+  time?: string;   // HH:mm:ss
+  format?: string; // e.g. 2D, 3D
+}
+
+export interface OrderMovieDTO {
+  title?: string;
+  duration?: number; // minutos
+  image?: string;
+  posterUrl?: string;
+}
+
+export interface OrderItemDTO {
+  seatCode?: string;
+  seatId?: number;
+  price?: number;
+  ticketType?: string; // code/name segun backend
+  showtime?: OrderShowtimeDTO;
+  movie?: OrderMovieDTO;
+}
+
+export interface OrderConcessionDTO {
+  productName?: string;
+  quantity?: number;
+  unitPrice?: number;
+  totalPrice?: number;
+}
+
 export interface OrderDTO {
   id: number;
-  user: any; // Simplified for now
+  user: OrderUserDTO; // Comprador
   orderDate: string;
+  createdAt?: string;   // Alias para orderDate
+  orderStatus: string;
+  paymentMethod: any;
   totalAmount: number;
   grandTotal?: number;  // Alias para totalAmount
-  createdAt?: string;   // Alias para orderDate
-  paymentMethod: any;
-  orderStatus: string;
+  subtotalAmount?: number;
+  taxAmount?: number;
+  discountAmount?: number;
+  fidelityDiscountAmount?: number;
   invoiceNumber?: string;
   invoicePdfUrl?: string;
   qrCodeUrl?: string;
-  orderItems: any[];
-  orderConcessions?: any[]; // Productos de dulcería
-  promotion?: any;
+  invoiceType?: 'BOLETA' | 'FACTURA'; // Tipo de comprobante seleccionado
+  // Detalle
+  orderItems: OrderItemDTO[];
+  orderConcessions?: OrderConcessionDTO[];
+  promotion?: { code?: string; discountAmount?: number } | any;
+  // Campos usados por Confirmacion para QR
+  purchaseDate?: string;
+  items?: any[];
+  movie?: OrderMovieDTO;
 }
 
 // Resumen de compras para listado (historial)
@@ -24,6 +78,7 @@ export interface OrderSummary {
   id: number;
   purchaseNumber?: string; // número único tipo CIN-...
   movieTitle?: string;
+  movieDuration?: number; // minutos
   cinemaName?: string;
   roomName?: string;
   showDate?: string; // YYYY-MM-DD
@@ -35,6 +90,10 @@ export interface OrderSummary {
   purchaseDate: string; // ISO timestamp
   orderItems?: any[]; // Entradas con asientos
   orderConcessions?: any[]; // Productos de dulcería
+  // Descuentos aplicados
+  promotion?: { code?: string; discountAmount?: number } | any;
+  discountAmount?: number;
+  fidelityDiscountAmount?: number;
 }
 // Payloads hacia backend (ajustar nombres a DTO reales del backend si difieren)
 export interface OrderPreviewRequest {
@@ -57,6 +116,9 @@ export interface OrderConfirmRequest {
   paymentMethodId: number;
   items: CreateOrderItemDTO[];
   promotionCode?: string;
+  // Descuento por fidelización (opcional)
+  fidelityPointsRedeemed?: number;
+  fidelityDiscountAmount?: number;
 }
 
 export async function previewOrder(payload: OrderPreviewRequest): Promise<OrderPreview> {

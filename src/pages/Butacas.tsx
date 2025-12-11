@@ -320,10 +320,10 @@ const Butacas: React.FC = () => {
 
   const getSeatColor = (status: string) => {
     switch (status) {
-      case 'available': return 'bg-white border-gray-400';
-      case 'occupied': return 'bg-gray-600 border-gray-600 cursor-not-allowed';
-      case 'selected': return 'bg-blue-500 border-blue-500';
-      default: return 'bg-white border-gray-400';
+      case 'available': return 'bg-gradient-to-br from-gray-100 to-gray-200 border-gray-300 hover:from-gray-200 hover:to-gray-300 hover:scale-110 hover:shadow-lg text-gray-800';
+      case 'occupied': return 'bg-gradient-to-br from-neutral-700 to-neutral-800 border-neutral-700 cursor-not-allowed opacity-50 text-neutral-500';
+      case 'selected': return 'bg-gradient-to-br from-[#BB2228] to-[#8B191E] border-[#BB2228] scale-110 shadow-xl text-white animate-pulse';
+      default: return 'bg-gradient-to-br from-gray-100 to-gray-200 border-gray-300 text-gray-800';
     }
   };
 
@@ -331,107 +331,131 @@ const Butacas: React.FC = () => {
   const rows = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q'];
 
   return (
-    <div style={{ background: "var(--cineplus-black)", color: "var(--cineplus-gray-light)" }} className="min-h-screen">
-      {/* Header */}
-      <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: "var(--cineplus-gray-dark)" }}>
-        <h1 className="text-xl font-bold">Entradas</h1>
+    <div className="min-h-screen text-white" style={{ background: 'linear-gradient(180deg, #141113 0%, #0b0b0b 100%)' }}>
+      {/* Header mejorado */}
+      <div className="flex justify-between items-center p-6 border-b border-white/5 backdrop-blur-sm" style={{ background: 'rgba(57, 58, 58, 0.3)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-1.5 h-8 bg-gradient-to-b from-[#BB2228] to-[#8B191E] rounded-full"></div>
+          <h1 className="text-2xl font-black">Selección de Asientos</h1>
+        </div>
         <button 
-          className="text-gray-400 hover:text-white"
+          className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-lg"
           onClick={() => window.history.back()}
         >
-          <FiX size={24} />
+          <FiX size={28} />
         </button>
       </div>
 
-      <div className="flex">
+      <div className="flex flex-col lg:flex-row">
         {/* Contenido principal - Selección de asientos */}
-        <div className="flex-1 p-8">
+        <div className="flex-1 p-8 animate-fade-in">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold mb-8 text-center">SELECCIONA TU ASIENTO</h2>
+            <h2 className="text-4xl font-black mb-8 text-center bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
+              SELECCIONA TU ASIENTO
+            </h2>
             
-            {/* Pantalla */}
-            <div className="mb-8 text-center">
-              <div className="inline-block bg-gray-300 text-black px-8 py-2 rounded-full font-bold mb-4">
-                PANTALLA
+            {/* Pantalla con diseño mejorado */}
+            <div className="mb-12 text-center">
+              <div className="relative inline-block">
+                <div className="bg-gradient-to-b from-gray-200 via-gray-300 to-gray-400 text-black px-12 py-3 rounded-full font-black text-lg shadow-2xl mb-2">
+                  PANTALLA
+                </div>
+                <div className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#BB2228] to-transparent opacity-50"></div>
               </div>
             </div>
 
-            {/* Matriz de asientos */}
-            <div className="mb-8 flex justify-center items-start gap-4">
-              {/* Etiquetas de filas */}
-              <div className="grid gap-1" style={{ 
-                gridTemplateRows: `repeat(${matrix.rows}, 1fr)`,
-                height: `${matrix.rows * 28}px`
-              }}>
-                {rows.slice(0, matrix.rows).map((row) => (
-                  <div key={row} className="w-6 h-7 flex items-center justify-center text-sm font-bold">
-                    {row}
-                  </div>
-                ))}
-              </div>
-              
-              {/* Matriz de asientos */}
-              <div className="grid gap-1" style={{ 
-                gridTemplateColumns: `repeat(${matrix.cols}, 1fr)`,
-                maxWidth: `${matrix.cols * 32}px`
-              }}>
-                {seats.map((seat) => (
-                  <button
-                    key={seat.id}
-                    onClick={() => handleSeatClick(seat.id)}
-                    className={`w-7 h-7 border-2 rounded text-xs font-bold transition-colors ${getSeatColor(seat.status)}`}
-                    disabled={seat.status === 'occupied'}
-                    title={`Asiento ${seat.id}`}
-                  >
-                    {seat.number}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Leyenda */}
-            <div className="flex justify-center gap-8 mb-8">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-white border-2 border-gray-400 rounded"></div>
-                <span className="text-sm">Disponible</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-gray-600 border-2 border-gray-600 rounded"></div>
-                <span className="text-sm">No disponible</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-blue-500 border-2 border-blue-500 rounded"></div>
-                <span className="text-sm">Seleccionado</span>
+            {/* Matriz de asientos con card */}
+            <div className="card-glass p-6 rounded-2xl mb-8">
+              <div className="flex justify-center items-start gap-4">
+                {/* Etiquetas de filas */}
+                <div className="grid gap-1" style={{ 
+                  gridTemplateRows: `repeat(${matrix.rows}, 1fr)`,
+                  height: `${matrix.rows * 28}px`
+                }}>
+                  {rows.slice(0, matrix.rows).map((row) => (
+                    <div key={row} className="w-6 h-7 flex items-center justify-center text-sm font-bold text-neutral-400">
+                      {row}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Matriz de asientos */}
+                <div className="grid gap-1.5" style={{ 
+                  gridTemplateColumns: `repeat(${matrix.cols}, 1fr)`,
+                  maxWidth: `${matrix.cols * 32}px`
+                }}>
+                  {seats.map((seat) => (
+                    <button
+                      key={seat.id}
+                      onClick={() => handleSeatClick(seat.id)}
+                      className={`w-7 h-7 border-2 rounded-md text-xs font-bold transition-all duration-300 transform ${getSeatColor(seat.status)}`}
+                      disabled={seat.status === 'occupied'}
+                      title={`Asiento ${seat.id}`}
+                    >
+                      {seat.number}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Información de selección */}
+            {/* Leyenda mejorada */}
+            <div className="flex justify-center gap-6 mb-8 card-glass p-4 rounded-xl max-w-2xl mx-auto">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-300 rounded-md shadow-sm"></div>
+                <span className="text-sm font-semibold">Disponible</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-gradient-to-br from-neutral-700 to-neutral-800 border-2 border-neutral-700 rounded-md opacity-50"></div>
+                <span className="text-sm font-semibold">Ocupado</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-gradient-to-br from-[#BB2228] to-[#8B191E] border-2 border-[#BB2228] rounded-md shadow-lg"></div>
+                <span className="text-sm font-semibold">Seleccionado</span>
+              </div>
+            </div>
+
+            {/* Información de selección mejorada */}
             {selectedSeatCodes.length > 0 && (
-              <div className="text-center">
-                <p className="text-lg font-bold">
-                  Asientos seleccionados: {selectedSeatCodes.join(', ')}
+              <div className="text-center card-glass p-6 rounded-xl animate-slide-up">
+                <p className="text-xl font-black mb-2">
+                  Asientos seleccionados: <span className="text-[#BB2228]">{selectedSeatCodes.join(', ')}</span>
                 </p>
-                <p className="text-sm text-gray-400">
-                  {selectedSeatCodes.length} de {totalEntradas} asientos seleccionados {seatsLoading ? '(cargando asientos...)' : ''}
-                </p>
+                <div className="flex items-center justify-center gap-4 text-sm text-neutral-400">
+                  <span className="flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    {selectedSeatCodes.length} de {totalEntradas} asientos
+                  </span>
+                  {seatsLoading && <span className="text-yellow-400">(cargando...)</span>}
+                </div>
                 {showtimeId && seatSelectionStore.selections[showtimeId]?.failedCodes?.length ? (
-                  <p className="text-xs text-red-400">
+                  <p className="text-xs text-red-400 mt-2 px-3 py-1 bg-red-500/10 rounded-lg inline-block">
                     Fallidos: {seatSelectionStore.selections[showtimeId].failedCodes?.join(', ')}
                   </p>
                 ) : null}
                 {remainingMs != null && remainingMs > 0 && (
-                  <p className="text-xs text-yellow-400 mt-1">
-                    Tiempo restante: {Math.floor(remainingMs/1000)}s
-                  </p>
+                  <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                    <svg className="w-4 h-4 text-yellow-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm text-yellow-400 font-semibold">
+                      Tiempo restante: {Math.floor(remainingMs/1000)}s
+                    </span>
+                  </div>
                 )}
               </div>
             )}
           </div>
         </div>
 
-        {/* Panel lateral derecho - Resumen */}
-        <div className="w-80 p-6 border-l" style={{ borderColor: "var(--cineplus-gray-dark)", background: "var(--cineplus-gray-dark)" }}>
-          <h3 className="text-lg font-bold mb-6">RESUMEN</h3>
+        {/* Panel lateral derecho - Resumen mejorado */}
+        <div className="w-full lg:w-96 p-6 border-l border-white/5 animate-slide-up" style={{ background: 'linear-gradient(180deg, rgba(57, 58, 58, 0.3), rgba(57, 58, 58, 0.1))' }}>
+          <h3 className="text-2xl font-black mb-6 flex items-center gap-2">
+            <span className="w-1 h-6 bg-gradient-to-b from-[#BB2228] to-[#8B191E] rounded-full"></span>
+            RESUMEN
+          </h3>
           
           {/* Información de la película */}
           {pelicula && (
@@ -526,7 +550,11 @@ const Butacas: React.FC = () => {
             {/* CONFIRMAR ASIENTOS - reserva/confirmación */}
             {showtimeId && selectedSeatCodes.length === totalEntradas && (
               <button
-                className={`mt-0 w-full py-2 rounded text-sm font-semibold transition-colors ${confirmed ? 'bg-green-500 text-white' : 'border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-black'}`}
+                className={`mt-0 w-full py-3 rounded-xl text-sm font-bold transition-all duration-300 shadow-lg ${
+                  confirmed 
+                    ? 'bg-gradient-to-r from-green-500 to-green-600 text-white' 
+                    : 'btn-secondary-outline hover:scale-105'
+                }`}
                 disabled={isProcessing || confirmed}
                 onClick={async () => {
                   if (!showtimeId) return;
@@ -596,10 +624,10 @@ const Butacas: React.FC = () => {
 
             {/* CONTINUAR: muestra el subtotal derivado del precio del showtime por asiento */}
             <div 
-              className={`mt-4 p-4 rounded flex items-center justify-between ${
+              className={`mt-4 p-5 rounded-xl flex items-center justify-between transition-all duration-300 shadow-lg ${
                 selectedSeatCodes.length === totalEntradas
-                  ? 'bg-white text-black cursor-pointer' 
-                  : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  ? 'btn-primary-gradient cursor-pointer hover:scale-105' 
+                  : 'bg-neutral-800/50 text-neutral-500 cursor-not-allowed'
               }`}
               onClick={() => {
                 if (selectedSeatCodes.length === totalEntradas) {
@@ -632,14 +660,22 @@ const Butacas: React.FC = () => {
                 }
               }}
             >
-              <div className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded ${
-                  selectedSeatCodes.length === totalEntradas ? 'bg-black' : 'bg-gray-400'
-                }`}></div>
-                <span className="font-bold">S/ {seatsTotal.toFixed(2)}</span>
+              <div className="flex items-center gap-3">
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                  selectedSeatCodes.length === totalEntradas ? 'bg-white/20' : 'bg-gray-600'
+                }`}>
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span className="font-black text-lg">S/ {seatsTotal.toFixed(2)}</span>
               </div>
-              <span className="font-bold">
+              <span className="font-black text-lg flex items-center gap-2">
                 CONTINUAR
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
               </span>
             </div>
           </div>

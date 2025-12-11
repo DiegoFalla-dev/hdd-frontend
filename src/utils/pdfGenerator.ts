@@ -1,313 +1,499 @@
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
-import type { OrderSummary } from '../services/orderService';
-
-// Colores de la paleta CINEPLUS
-const COLORS = {
-  primary: { r: 187, g: 34, b: 40 },      // #BB2228 - rojo brillante
-  primaryDark: { r: 92, g: 18, b: 20 },   // #5C1214 - rojo oscuro
-  gray700: { r: 57, g: 58, b: 58 },       // #393A3A
-  gray900: { r: 20, g: 17, b: 19 },       // #141113
-  bg100: { r: 239, g: 239, b: 238 },      // #EFEFEE
-};
+import type { OrderDTO } from '../services/orderService';
+import api from '../services/apiClient';
 
 const LOGO_URL = 'https://i.imgur.com/K9o09F6.png';
 
-export const generateOrderPDF = async (order: OrderSummary) => {
-  try {
-    // Generar QR code con ALTA CALIDAD
-    let qrDataUrl = '';
-    try {
-      // Payload con información completa para validación
-      const qrPayload = JSON.stringify({
-        orderId: order.id,
-        total: order.totalAmount,
-        date: order.purchaseDate,
-        items: order.items?.length || 0,
-      });
-      
-      qrDataUrl = await QRCode.toDataURL(qrPayload, {
-        width: 512, // Alta resolución (antes era 100)
-        margin: 2,
-        color: {
-          dark: '#141113', // Negro CINEPLUS
-          light: '#FFFFFF',
-        },
-        errorCorrectionLevel: 'H', // Máxima corrección de errores (30%)
-      });
-    } catch (err) {
-      console.error('Error generando QR:', err);
-    }
+/**
+ * Mapeo manual de ticket-{id} a nombres
+ * Este mapeo debería venir del backend, pero como fallback aquí está
+ */
+const ticketTypeMapping: Record<string, string> = {
+  'ticket-1': 'PROMO ONLINE',
+  'ticket-2': 'Silla de ruedas',
+  'ticket-3': '50% DCTO BANCO RIPLEY',
+  'ticket-4': 'Persona con discapacidad',
+  'ticket-5': 'Niño',   
+  'ticket-6': 'Adulto',  
+};
 
-    const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 40;
-    let y = margin;
-    
-    // HEADER - Fondo con color primario
-    pdf.setFillColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
-    pdf.rect(0, 0, pageWidth, 110, 'F');
-    
-    // Logo de la empresa
+/**
+ * Extrae el nombre del tipo de entrada desde el código
+ * Primero intenta el mapeo manual, luego retorna el valor tal cual
+ */
+const getTicketTypeName = (ticketTypeStr: string | undefined | { name?: string; code?: string }): string => {
+  if (!ticketTypeStr) return 'Regular';
+  if (typeof ticketTypeStr === 'object') return ticketTypeStr.name || ticketTypeStr.code || 'Regular';
+  
+  // Buscar en el mapeo manual
+  if (ticketTypeMapping[ticketTypeStr]) {
+    return ticketTypeMapping[ticketTypeStr];
+  }
+  
+  // Si es string, retorna tal cual
+  return ticketTypeStr || 'Regular';
+};
+
+/**
+ * Genera PDF idéntico a Confirmacion.tsx
+ * ESTA FUNCIÓN DEBE PRODUCIR EXACTAMENTE EL MISMO RESULTADO
+ */
+export const generateOrderPDF = async (confirmation: OrderDTO) => {
+  // Si el usuario no viene en la orden, intentar obtenerlo del usuario actual
+  if (!confirmation.user && confirmation.id) {
     try {
-      pdf.addImage(LOGO_URL, 'PNG', margin, 15, 60, 60);
+      const userResponse = await api.get(`/users/${confirmation.userId || 'current'}`);
+      if (userResponse.data) {
+        confirmation.user = userResponse.data;
+      }
     } catch (e) {
-      console.error('Error cargando logo:', e);
+      console.error('Error cargando datos del usuario:', e);
     }
-    
-    // Texto del header
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(20);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('CINEPLUS', margin + 70, 40);
-    
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text('Tu experiencia cinematográfica premium', margin + 70, 58);
-    
-    // QR Code en header derecha con MEJOR CALIDAD
-    if (qrDataUrl) {
-      pdf.addImage(qrDataUrl, 'PNG', pageWidth - 130, 10, 110, 110);
-    }
-    
-    y = 125;
-    
-    // INFORMACIÓN DE LA ORDEN
-    pdf.setTextColor(COLORS.gray900.r, COLORS.gray900.g, COLORS.gray900.b);
-    pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('COMPROBANTE DE PAGO', margin, y);
-    
-    y += 25;
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    
-    // Datos de la orden en dos columnas
-    const fecha = new Date(order.purchaseDate).toLocaleString('es-PE', { 
-      dateStyle: 'long', 
-      timeStyle: 'short' 
+  }
+  // Generar QR
+  let qrDataUrl: string | null = null;
+  try {
+    const payload = JSON.stringify({ 
+      orderId: confirmation.id, 
+      total: confirmation.totalAmount,
+      date: confirmation.purchaseDate,
+      items: confirmation.orderItems?.length || 0,
     });
+    qrDataUrl = await QRCode.toDataURL(payload, {
+      width: 512,
+      margin: 2,
+      color: {
+        dark: '#141113',
+        light: '#FFFFFF',
+      },
+      errorCorrectionLevel: 'H',
+    });
+  } catch (e) {
+    console.error('Error generando QR:', e);
+  }
+  const COLORS = {
+    primary: { r: 187, g: 34, b: 40 },
+    primaryDark: { r: 92, g: 18, b: 20 },
+    textDefault: { r: 57, g: 58, b: 58 },
+    textStrong: { r: 20, g: 17, b: 19 },
+    bgLight: { r: 239, g: 239, b: 238 },
+  };
+
+  const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const margin = 40;
+  let y = margin;
+
+  // HEADER
+  const headerHeight = 100;
+  pdf.setFillColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
+  pdf.rect(0, 0, pageWidth, headerHeight, 'F');
+
+  const qrSize = 80;
+  const qrX = pageWidth - margin - qrSize;
+  const qrY = (headerHeight - qrSize) / 2;
+  if (qrDataUrl) {
+    pdf.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
+  }
+
+  const logoSize = qrSize * 0.8;
+  const logoY = (headerHeight - logoSize) / 2;
+  try {
+    pdf.addImage(LOGO_URL, 'PNG', margin, logoY, logoSize, logoSize);
+  } catch (e) {
+    console.error('Error cargando logo:', e);
+  }
+
+  const textX = margin + logoSize + 12;
+  const textCenterY = headerHeight / 2;
+  
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFontSize(18);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('CINEPLUS', textX, textCenterY - 5);
+
+  pdf.setFontSize(9);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text('Tu experiencia cinematográfica premium', textX, textCenterY + 10);
+
+  y = headerHeight + 20;
+
+  const isFactura = confirmation.invoiceType === 'FACTURA';
+  const comprobanteType = isFactura ? 'FACTURA ELECTRÓNICA' : 'BOLETA DE VENTA ELECTRÓNICA';
+
+  pdf.setTextColor(COLORS.textStrong.r, COLORS.textStrong.g, COLORS.textStrong.b);
+  pdf.setFontSize(16);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text(comprobanteType, pageWidth / 2, y, { align: 'center' });
+
+  y += 25;
+  pdf.setFontSize(10);
+  pdf.setFont('helvetica', 'normal');
+
+  const fecha = confirmation.orderDate || confirmation.createdAt
+    ? new Date(confirmation.orderDate || confirmation.createdAt).toLocaleString('es-PE', {
+        dateStyle: 'long',
+        timeStyle: 'short'
+      })
+    : new Date().toLocaleString('es-PE', { dateStyle: 'long', timeStyle: 'short' });
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
+  pdf.text('N° Orden:', margin, y);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+  pdf.text(`${confirmation.id}`, margin + 70, y);
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
+  pdf.text('Estado:', pageWidth / 2 + 20, y);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+  const estado = confirmation.orderStatus === 'COMPLETED' ? 'CANCELADO' : confirmation.orderStatus || 'COMPLETADO';
+  pdf.text(estado, pageWidth / 2 + 90, y);
+
+  y += 15;
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
+  pdf.text('Fecha:', margin, y);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+  pdf.text(fecha, margin + 70, y);
+
+  y += 20;
+  pdf.setFontSize(10);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
+  pdf.text(isFactura ? 'Cliente:' : 'Comprador:', margin, y);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+  
+  // Log para debugging
+  console.log('Usuario en PDF:', confirmation.user);
+  
+  if (isFactura) {
+    const razonSocial = confirmation.user?.razonSocial || 'N/A';
+    const ruc = confirmation.user?.ruc || 'N/A';
+    pdf.text(`${razonSocial} - RUC: ${ruc}`, margin + 80, y);
+  } else {
+    const firstName = confirmation.user?.firstName || '';
+    const lastName = confirmation.user?.lastName || '';
+    const nombre = [firstName, lastName].filter(Boolean).join(' ').trim() || confirmation.user?.username || 'N/A';
+    const dni = confirmation.user?.nationalId || 'N/A';
     
-    // Primera columna
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
-    pdf.text('N° Orden:', margin, y);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(COLORS.gray700.r, COLORS.gray700.g, COLORS.gray700.b);
-    pdf.text(`${order.id}`, margin + 70, y);
+    console.log('Comprador BOLETA:', { firstName, lastName, nombre, dni });
     
-    // Segunda columna
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
-    pdf.text('Estado:', pageWidth / 2 + 20, y);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(COLORS.gray700.r, COLORS.gray700.g, COLORS.gray700.b);
-    pdf.text(order.status, pageWidth / 2 + 90, y);
-    
-    y += 15;
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
-    pdf.text('Fecha:', margin, y);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(COLORS.gray700.r, COLORS.gray700.g, COLORS.gray700.b);
-    pdf.text(fecha, margin + 70, y);
-    
-    y += 20;
-    pdf.setDrawColor(187, 34, 40); // Color primario para líneas
-    pdf.setLineWidth(1.5);
-    pdf.line(margin, y, pageWidth - margin, y);
-    
-    // DATOS DE LA PELÍCULA
-    y += 20;
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
-    pdf.text('PELÍCULA Y FUNCIÓN', margin, y);
-    
-    y += 18;
-    pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(COLORS.gray700.r, COLORS.gray700.g, COLORS.gray700.b);
-    
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
-    pdf.text('Película:', margin, y);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(COLORS.gray700.r, COLORS.gray700.g, COLORS.gray700.b);
-    const movieTitleWrapped = pdf.splitTextToSize(order.movieTitle || 'N/A', pageWidth - 2 * margin - 70);
-    pdf.text(movieTitleWrapped, margin + 70, y);
-    y += movieTitleWrapped.length > 1 ? 15 : 12;
-    
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
-    pdf.text('Cine:', margin, y);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(COLORS.gray700.r, COLORS.gray700.g, COLORS.gray700.b);
-    pdf.text(order.cinemaName || 'N/A', margin + 70, y);
-    
+    pdf.text(`${nombre}`, margin + 80, y);
     y += 12;
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
-    pdf.text('Sala:', margin, y);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(COLORS.gray700.r, COLORS.gray700.g, COLORS.gray700.b);
-    pdf.text(order.roomName || 'N/A', margin + 70, y);
-    
-    y += 15;
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
-    pdf.text('Función:', margin, y);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(COLORS.gray700.r, COLORS.gray700.g, COLORS.gray700.b);
-    const funcionFecha = new Date(order.showtimeDate || order.purchaseDate).toLocaleString('es-PE', {
-      weekday: 'long',
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-    const funcionWrapped = pdf.splitTextToSize(funcionFecha, pageWidth - 2 * margin - 70);
-    pdf.text(funcionWrapped, margin + 70, y);
-    y += funcionWrapped.length > 1 ? 15 : 12;
-    
-    y += 10;
-    pdf.setDrawColor(187, 34, 40);
-    pdf.setLineWidth(1);
-    pdf.line(margin, y, pageWidth - margin, y);
-    
-    // SECCIÓN DE ENTRADAS
-    y += 20;
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
-    pdf.text('ENTRADAS', margin, y);
-    
-    y += 15;
-    pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'normal');
-    
-    if (order.orderItems && order.orderItems.length > 0) {
-      order.orderItems.forEach((item, idx) => {
-        const seatCode = item.seat?.code || item.seat?.id || 'N/A';
-        pdf.setTextColor(COLORS.gray700.r, COLORS.gray700.g, COLORS.gray700.b);
-        pdf.text(`${idx + 1}. Asiento: ${seatCode}`, margin, y);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
-        pdf.text(`S/ ${item.price?.toFixed(2) || '0.00'}`, pageWidth - margin - 60, y, { align: 'right' });
-        y += 12;
-      });
-    } else {
-      pdf.setTextColor(COLORS.gray700.r, COLORS.gray700.g, COLORS.gray700.b);
-      pdf.text('Sin entradas registradas', margin, y);
-      y += 12;
+    pdf.text(`DNI: ${dni}`, margin + 80, y);
+  }
+
+  y += 20;
+  pdf.setDrawColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
+  pdf.setLineWidth(1.5);
+  pdf.line(margin, y, pageWidth - margin, y);
+
+  y += 20;
+  const imageX = pageWidth - margin - 70;
+  const imageY = y;
+  const imageSize = 80;
+
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
+  pdf.text('PELÍCULA Y FUNCIÓN', margin, y);
+
+  y += 18;
+  pdf.setFontSize(9);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
+  pdf.text('Película:', margin, y);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+  const movieTitle = confirmation.orderItems?.[0]?.movie?.title || confirmation.movie?.title || confirmation.orderItems?.[0]?.showtime?.movieTitle || 'Película N/A';
+  const movieWrapped = pdf.splitTextToSize(movieTitle, imageX - margin - 15);
+  pdf.text(movieWrapped, margin + 70, y);
+  y += movieWrapped.length > 1 ? 15 : 12;
+
+  const cinemaName = confirmation.orderItems?.[0]?.showtime?.cinemaName || 'N/A';
+  const theaterName = confirmation.orderItems?.[0]?.showtime?.theaterName || 'N/A';
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
+  pdf.text('Cine:', margin, y);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+  pdf.text(`${cinemaName} - Sala ${theaterName}`, margin + 70, y);
+  y += 12;
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
+  pdf.text('Formato:', margin, y);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+  const format = (confirmation.orderItems?.[0]?.showtime?.format || 'N/A').replace(/^_/, '');
+  pdf.text(format, margin + 70, y);
+  y += 12;
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
+  pdf.text('Duración:', margin, y);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+  const duration = confirmation.orderItems?.[0]?.movie?.duration || confirmation.movie?.duration;
+  const durationText = duration ? `${duration} min` : 'N/A';
+  pdf.text(durationText, margin + 70, y);
+  y += 12;
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
+  pdf.text('Horario:', margin, y);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+  const showtime = confirmation.orderItems?.[0]?.showtime?.time || 'N/A';
+  const showtimeDate = confirmation.orderItems?.[0]?.showtime?.date || 'N/A';
+  const horariFull = `${showtimeDate} ${showtime}`;
+  pdf.text(horariFull, margin + 70, y);
+
+  try {
+    const movieImage = confirmation.orderItems?.[0]?.movie?.posterUrl || confirmation.orderItems?.[0]?.movie?.image || confirmation.movie?.posterUrl || confirmation.movie?.image;
+    if (movieImage) {
+      pdf.addImage(movieImage, 'PNG', imageX, imageY - 5, imageSize, imageSize);
     }
-    
-    y += 5;
-    
-    // SECCIÓN DE CONCESIONES (Dulcería)
-    if (order.orderConcessions && order.orderConcessions.length > 0) {
-      pdf.setLineWidth(0.5);
-      pdf.setDrawColor(200, 200, 200);
-      pdf.line(margin, y, pageWidth - margin, y);
-      
-      y += 15;
-      pdf.setFontSize(12);
+  } catch (e) {
+    console.error('Error cargando imagen de película:', e);
+  }
+
+  y = Math.max(y + 15, imageY + imageSize + 10);
+
+  y += 10;
+  pdf.setDrawColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
+  pdf.setLineWidth(1);
+  pdf.line(margin, y, pageWidth - margin, y);
+
+  y += 20;
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
+  pdf.text('ENTRADAS DE CINE', margin, y);
+
+  y += 15;
+  pdf.setFontSize(9);
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
+  pdf.text('#', margin, y);
+  pdf.text('Descripción', margin + 20, y);
+  pdf.text('Asiento', margin + 280, y);
+  pdf.text('Precio', pageWidth - margin - 60, y, { align: 'right' });
+  
+  y += 3;
+  pdf.setLineWidth(0.5);
+  pdf.setDrawColor(200, 200, 200);
+  pdf.line(margin, y, pageWidth - margin, y);
+  y += 10;
+
+  pdf.setFont('helvetica', 'normal');
+
+  if (confirmation.orderItems && confirmation.orderItems.length > 0) {
+    confirmation.orderItems.forEach((item, idx) => {
+      const seatType = item.seat?.seatType || 'Regular';
+      const seatCode = item.seat?.code || item.seat?.id || 'N/A';
+      const ticketTypeName = getTicketTypeName(item.ticketType) || 'Regular';
+
+      console.log(`Entrada ${idx}:`, {
+        ticketType: item.ticketType,
+        ticketTypeName,
+        seatCode,
+        seatType,
+        price: item.price,
+      });
+
+      pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+      pdf.text(`${idx + 1}`, margin, y);
+      pdf.text(`${ticketTypeName} (${seatType})`, margin + 20, y);
+      pdf.text(seatCode, margin + 280, y);
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
-      pdf.text('DULCERÍA Y BEBIDAS', margin, y);
-      
-      y += 15;
-      pdf.setFontSize(9);
+      pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
+      pdf.text(`S/ ${item.price?.toFixed(2) || '0.00'}`, pageWidth - margin - 60, y, { align: 'right' });
       pdf.setFont('helvetica', 'normal');
-      
-      order.orderConcessions.forEach((concession, idx) => {
-        pdf.setTextColor(COLORS.gray700.r, COLORS.gray700.g, COLORS.gray700.b);
-        pdf.text(`${idx + 1}. ${concession.productName}`, margin, y);
-        pdf.text(`x${concession.quantity}`, margin + 180, y);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
-        pdf.text(`S/ ${concession.totalPrice?.toFixed(2) || '0.00'}`, pageWidth - margin - 60, y, { align: 'right' });
-        pdf.setFont('helvetica', 'normal');
-        y += 12;
-      });
-      
-      y += 5;
-    }
-    
-    // Línea antes de resumen
+      y += 12;
+    });
+  } else {
+    pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+    pdf.text('Sin entradas registradas', margin + 20, y);
+    y += 12;
+  }
+
+  y += 5;
+
+  if (confirmation.orderConcessions && confirmation.orderConcessions.length > 0) {
     pdf.setLineWidth(0.5);
     pdf.setDrawColor(200, 200, 200);
     pdf.line(margin, y, pageWidth - margin, y);
-    
-    // RESUMEN DE TOTALES
-    y += 20;
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
-    pdf.text('RESUMEN DE COMPRA', margin, y);
-    
-    y += 20;
-    const total = order.totalAmount;
-    const subtotalBeforeTax = total / 1.18;
-    const igv = total - subtotalBeforeTax;
-    
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(COLORS.gray700.r, COLORS.gray700.g, COLORS.gray700.b);
-    
-    const rightCol = pageWidth - margin - 100;
-    
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
-    pdf.text('Subtotal:', margin, y);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(COLORS.gray700.r, COLORS.gray700.g, COLORS.gray700.b);
-    pdf.text(`S/ ${subtotalBeforeTax.toFixed(2)}`, rightCol, y, { align: 'right' });
-    
-    y += 15;
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
-    pdf.text('IGV (18%):', margin, y);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(COLORS.gray700.r, COLORS.gray700.g, COLORS.gray700.b);
-    pdf.text(`S/ ${igv.toFixed(2)}`, rightCol, y, { align: 'right' });
-    
-    y += 18;
-    pdf.setLineWidth(2);
-    pdf.setDrawColor(187, 34, 40);
-    pdf.line(rightCol - 95, y, rightCol, y);
-    
+
     y += 15;
     pdf.setFontSize(12);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
-    pdf.text('TOTAL PAGADO:', margin, y);
-    pdf.setFontSize(16);
-    pdf.text(`S/ ${total.toFixed(2)}`, rightCol, y, { align: 'right' });
-    
-    // FOOTER
-    y = pageHeight - 80;
-    pdf.setFillColor(COLORS.bg100.r, COLORS.bg100.g, COLORS.bg100.b);
-    pdf.rect(0, y - 10, pageWidth, 80, 'F');
-    
-    y += 10;
+    pdf.text('DULCERÍA Y BEBIDAS', margin, y);
+
+    y += 15;
     pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(COLORS.gray700.r, COLORS.gray700.g, COLORS.gray700.b);
-    pdf.text('Gracias por tu compra en CINEPLUS', pageWidth / 2, y, { align: 'center' });
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
+    pdf.text('#', margin, y);
+    pdf.text('Producto', margin + 20, y);
+    pdf.text('Cant.', margin + 280, y);
+    pdf.text('P. Unit.', margin + 340, y);
+    pdf.text('Total', pageWidth - margin - 60, y, { align: 'right' });
     
-    y += 12;
-    pdf.setFontSize(8);
-    pdf.text('www.cineplus.com | atencionalcliente@cineplus.com | (01) 555-CINE', pageWidth / 2, y, { align: 'center' });
-    
+    y += 3;
+    pdf.setLineWidth(0.5);
+    pdf.setDrawColor(200, 200, 200);
+    pdf.line(margin, y, pageWidth - margin, y);
     y += 10;
-    pdf.text('Presenta este comprobante en taquilla para recoger tus entradas', pageWidth / 2, y, { align: 'center' });
-    
-    pdf.save(`comprobante_orden_${order.id}.pdf`);
-  } catch (error) {
-    console.error('Error generando PDF:', error);
-    throw error;
+
+    pdf.setFont('helvetica', 'normal');
+
+    confirmation.orderConcessions.forEach((concession, idx) => {
+      pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+      pdf.text(`${idx + 1}`, margin, y);
+      pdf.text(concession.productName, margin + 20, y);
+      pdf.text(`${concession.quantity}`, margin + 280, y);
+      pdf.text(`S/ ${concession.unitPrice?.toFixed(2) || '0.00'}`, margin + 340, y);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
+      pdf.text(`S/ ${concession.totalPrice?.toFixed(2) || '0.00'}`, pageWidth - margin - 60, y, { align: 'right' });
+      pdf.setFont('helvetica', 'normal');
+      y += 12;
+    });
+
+    y += 5;
   }
+
+  pdf.setLineWidth(0.5);
+  pdf.setDrawColor(200, 200, 200);
+  pdf.line(margin, y, pageWidth - margin, y);
+
+  y += 20;
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
+  pdf.text('RESUMEN DE COMPRA', margin, y);
+
+  y += 15;
+  const ticketsSubtotal = confirmation.orderItems?.reduce((sum, item) => sum + (item.price || 0), 0) || 0;
+  const concessionsSubtotal = confirmation.orderConcessions?.reduce((sum, c) => sum + (c.totalPrice || 0), 0) || 0;
+  const subtotalBeforeTax = confirmation.subtotalAmount || (ticketsSubtotal + concessionsSubtotal);
+  const igv = confirmation.taxAmount || ((confirmation.totalAmount || 0) - subtotalBeforeTax);
+  const total = confirmation.totalAmount;
+
+  pdf.setFontSize(9);
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
+  pdf.text('Concepto', margin, y);
+  pdf.text('Monto', pageWidth - margin - 60, y, { align: 'right' });
+  
+  y += 3;
+  pdf.setLineWidth(0.5);
+  pdf.setDrawColor(200, 200, 200);
+  pdf.line(margin, y, pageWidth - margin, y);
+  y += 12;
+
+  pdf.setFontSize(10);
+  pdf.setFont('helvetica', 'normal');
+  const rightCol = pageWidth - margin - 60;
+
+  pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+  pdf.text('Subtotal Entradas:', margin, y);
+  pdf.text(`S/ ${ticketsSubtotal.toFixed(2)}`, rightCol, y, { align: 'right' });
+  y += 12;
+
+  pdf.text('Subtotal Dulcería:', margin, y);
+  pdf.text(`S/ ${concessionsSubtotal.toFixed(2)}`, rightCol, y, { align: 'right' });
+  y += 12;
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Subtotal:', margin, y);
+  pdf.text(`S/ ${subtotalBeforeTax.toFixed(2)}`, rightCol, y, { align: 'right' });
+  pdf.setFont('helvetica', 'normal');
+  y += 12;
+
+  const fidelityDiscount = confirmation.fidelityDiscountAmount || 0;
+  
+  // LÓGICA DE DESCUENTOS:
+  // 1. Si hay promotion (con promotion_id), mostrar descuento de promoción
+  // 2. Si NO hay promotion pero hay fidelityDiscountAmount, mostrar descuento de fidelización
+  // 3. Si no hay ninguno, no mostrar descuentos
+  
+  console.log('Descuentos en PDF:', {
+    hasPromotion: !!confirmation.promotion,
+    promotion: confirmation.promotion,
+    fidelityDiscount,
+  });
+  
+  // Mostrar descuento por promoción (si existe promotion_id)
+  if (confirmation.promotion && confirmation.promotion.id) {
+    const promotionCode = confirmation.promotion.code || 'PROMOCIÓN APLICADA';
+    const promotionValue = confirmation.promotion.value || confirmation.promotion.discountAmount || 0;
+    
+    if (promotionValue > 0) {
+      pdf.setTextColor(34, 197, 94); // Verde para descuento
+      pdf.text(`Descuento (${promotionCode})`, margin, y);
+      pdf.text(`- S/ ${promotionValue.toFixed(2)}`, rightCol, y, { align: 'right' });
+      pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+      y += 12;
+    }
+  } 
+  // Si NO hay promoción pero hay descuento por fidelización
+  else if (fidelityDiscount > 0) {
+    pdf.setTextColor(34, 197, 94); // Verde para descuento
+    pdf.text('Descuento Fidelización', margin, y);
+    pdf.text(`- S/ ${fidelityDiscount.toFixed(2)}`, rightCol, y, { align: 'right' });
+    pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+    y += 12;
+  }
+  // Si no hay promoción ni fidelización, no mostrar descuentos
+
+  pdf.text('IGV (18%):', margin, y);
+  pdf.text(`S/ ${igv.toFixed(2)}`, rightCol, y, { align: 'right' });
+  y += 15;
+
+  pdf.setLineWidth(1);
+  pdf.setDrawColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
+  pdf.line(margin, y, pageWidth - margin, y);
+  y += 15;
+
+  pdf.setFontSize(14);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
+  pdf.text('TOTAL A PAGAR:', margin, y);
+  pdf.setFontSize(16);
+  pdf.text(`S/ ${total.toFixed(2)}`, rightCol, y, { align: 'right' });
+
+  y = pageHeight - 80;
+  pdf.setFillColor(COLORS.bgLight.r, COLORS.bgLight.g, COLORS.bgLight.b);
+  pdf.rect(0, y - 10, pageWidth, 80, 'F');
+
+  y += 10;
+  pdf.setFontSize(9);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+  pdf.text('Gracias por tu compra en CINEPLUS', pageWidth / 2, y, { align: 'center' });
+
+  y += 12;
+  pdf.setFontSize(8);
+  pdf.text('www.cineplus.com | atencionalcliente@cineplus.com | (01) 555-CINE', pageWidth / 2, y, { align: 'center' });
+
+  y += 10;
+  pdf.text('Presenta este comprobante en taquilla para recoger tus entradas', pageWidth / 2, y, { align: 'center' });
+
+  pdf.save(`comprobante_orden_${confirmation.id}.pdf`);
 };

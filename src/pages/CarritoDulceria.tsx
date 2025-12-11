@@ -224,42 +224,38 @@ const CarritoDulceria: React.FC = () => {
   }
 
   return (
-    <div style={{ background: "var(--cineplus-black)", color: "var(--cineplus-gray-light)" }} className="min-h-screen">
+    <div style={{ background: "linear-gradient(180deg, #141113 0%, #0b0b0b 100%)", color: "var(--cineplus-gray-light)" }} className="min-h-screen animate-fade-in">
       {/* Header */}
-      <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: "var(--cineplus-gray-dark)" }}>
-        <h1 className="text-xl font-bold">Alimentos y bebidas</h1>
+      {/* Header mejorado */}
+      <div className="flex justify-between items-center p-6 border-b border-white/5 backdrop-blur-sm" style={{ background: 'rgba(57, 58, 58, 0.3)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-1.5 h-8 bg-gradient-to-b from-[#BB2228] to-[#8B191E] rounded-full"></div>
+          <h1 className="text-2xl font-black">Selección de Dulcería</h1>
+        </div>
         <button 
-          className="text-gray-400 hover:text-white"
+          className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-lg"
           onClick={() => window.history.back()}
         >
-          <FiX size={24} />
+          <FiX size={28} />
         </button>
       </div>
 
       <div className="flex">
         {/* Contenido principal */}
         <div className="flex-1 p-8">
-          <div className="max-w-4xl mx-auto">
-            {/* Banner de dulcería */}
-            <div className="mb-8">
-              <img 
-                src="https://i.imgur.com/STQ6A0v.png" 
-                alt="Banner Dulcería" 
-                className="w-full max-w-4xl mx-auto rounded-lg shadow-lg"
-              />
-            </div>
+          <div className="max-w-4xl mx-auto animate-slide-up">
 
             {/* Tabs de categorías */}
-            <div className="flex justify-center mb-8">
-              <div className="flex border-b border-gray-600">
+            <div className="flex justify-center mb-10">
+              <div className="card-glass flex rounded-xl p-2 gap-2">
                 {categories.map((category) => (
                   <button
                     key={category.key}
                     onClick={() => setActiveCategory(category.key)}
-                    className={`px-8 py-3 font-semibold transition-all border-b-2 ${
+                    className={`px-8 py-3 font-bold text-sm transition-all duration-300 rounded-lg ${
                       activeCategory === category.key
-                        ? 'border-red-600 text-white'
-                        : 'border-transparent text-gray-400 hover:text-white'
+                        ? 'btn-primary-gradient shadow-lg scale-105'
+                        : 'text-[#E3E1E2]/70 hover:text-white hover:bg-white/5'
                     }`}
                   >
                     {category.label}
@@ -270,24 +266,28 @@ const CarritoDulceria: React.FC = () => {
 
             {/* Grid de productos */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {productos[activeCategory].map((producto) => (
-                <div key={producto.id} className="bg-gray-800 rounded-lg overflow-hidden hover:bg-gray-700 transition-colors">
-                  <div className="h-48 bg-gradient-to-br from-orange-200 to-red-200 flex items-center justify-center relative">
-                    <img src={producto.imagen || "/4x3.png"} alt={producto.nombre} className="w-full h-full object-cover" />
-                    <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-bold">
-                      20%
+              {productos[activeCategory].map((producto, index) => (
+                <div key={producto.id} 
+                  className="card-glass rounded-2xl overflow-hidden hover:scale-105 transition-all duration-300 hover:shadow-2xl animate-scale-in"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <div className="h-48 relative overflow-hidden group">
+                    <img src={producto.imagen || "/4x3.png"} alt={producto.nombre} className="w-full h-full object-cover img-hover-zoom" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#141113] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute top-3 left-3 badge-gradient-red px-3 py-1 rounded-lg text-xs font-bold animate-pulse">
+                      20% OFF
                     </div>
                   </div>
                   <div className="p-4">
-                    <h3 className="font-bold text-sm mb-2 text-white">{producto.nombre.toUpperCase()}</h3>
-                    <p className="text-xs text-gray-400 mb-3">{producto.descripcion}</p>
+                    <h3 className="font-bold text-sm mb-2 text-white line-clamp-1">{producto.nombre.toUpperCase()}</h3>
+                    <p className="text-xs text-[#E3E1E2]/70 mb-3 line-clamp-2">{producto.descripcion}</p>
                     <div className="flex items-center justify-between">
                       <span className="text-lg font-bold text-white">S/ {producto.precio.toFixed(2)}</span>
                       <button
                         onClick={() => agregarProducto(producto)}
-                        className="bg-red-600 hover:bg-red-700 text-white p-2 rounded transition-colors"
+                        className="bg-gradient-to-br from-[#BB2228] to-[#8B191E] hover:scale-110 text-white p-2 rounded-xl transition-transform shadow-lg"
                       >
-                        <FiPlus size={16} />
+                        <FiPlus size={18} />
                       </button>
                     </div>
                   </div>
@@ -296,18 +296,24 @@ const CarritoDulceria: React.FC = () => {
             </div>
 
             {productos[activeCategory].length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-lg text-gray-400">
-                  No hay productos disponibles en esta categoría
-                </p>
+              <div className="text-center py-16 animate-fade-in">
+                <div className="card-glass inline-block p-8 rounded-2xl">
+                  <div className="text-6xl mb-4 opacity-50">🍿</div>
+                  <p className="text-lg text-[#E3E1E2]">
+                    No hay productos disponibles en esta categoría
+                  </p>
+                </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Panel lateral derecho - Resumen */}
-        <div className="w-80 p-6 border-l" style={{ borderColor: "var(--cineplus-gray-dark)", background: "var(--cineplus-gray-dark)" }}>
-          <h3 className="text-lg font-bold mb-6">RESUMEN</h3>
+        {/* Panel lateral derecho - Resumen mejorado */}
+        <div className="w-full lg:w-96 p-6 border-l border-white/5 animate-slide-up" style={{ background: 'linear-gradient(180deg, rgba(57, 58, 58, 0.3), rgba(57, 58, 58, 0.1))' }}>
+          <h3 className="text-2xl font-black mb-6 flex items-center gap-2">
+            <span className="w-1 h-6 bg-gradient-to-b from-[#BB2228] to-[#8B191E] rounded-full"></span>
+            RESUMEN
+          </h3>
           
           {/* Información de la película */}
           {selection?.movieTitle && (
@@ -417,45 +423,49 @@ const CarritoDulceria: React.FC = () => {
 
           {/* Total y botón continuar */}
           <div className="mt-auto">
-            <div className="space-y-3">
-              <div className="p-4 rounded bg-white text-black">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-black rounded"></div>
-                    <span className="font-bold">S/ {totalGeneral.toFixed(2)}</span>
+            <div className="space-y-4">
+              <div className="card-glass p-6 rounded-xl">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#BB2228] to-[#8B191E] flex items-center justify-center">
+                      <span className="text-white text-xs">💰</span>
+                    </div>
+                    <span className="font-bold text-2xl text-white">S/ {totalGeneral.toFixed(2)}</span>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      className="px-4 py-2 bg-green-600 text-white rounded font-semibold"
-                      onClick={() => {
-                        // Proceed to payment
-                        navigate('/pago');
-                      }}
-                    >PAGAR</button>
-                    <button
-                      className="px-4 py-2 border border-gray-600 text-gray-200 rounded font-semibold"
-                      onClick={async () => {
-                        // Cancel pending order: release seats, clear selection and cart, remove pendingOrder
-                        const raw = localStorage.getItem('pendingOrder');
-                        if (raw) {
-                          try {
-                            const pending = JSON.parse(raw);
-                            if (pending?.showtimeId && pending?.seats && pending.seats.length) {
-                              try {
-                                await seatService.releaseTemporarySeats(pending.showtimeId, pending.seats);
-                              } catch (e) {
-                                // ignore release errors
-                              }
-                              seatSelectionStore.clearShowtime(pending.showtimeId);
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    className="flex-1 btn-primary-gradient py-4 rounded-xl font-bold text-base hover:scale-105 transition-transform shadow-lg"
+                    onClick={() => {
+                      navigate('/pago');
+                    }}
+                  >
+                    💳 PAGAR
+                  </button>
+                  <button
+                    className="flex-1 btn-secondary-outline py-4 rounded-xl font-bold text-base hover:scale-105 transition-transform"
+                    onClick={async () => {
+                      const raw = localStorage.getItem('pendingOrder');
+                      if (raw) {
+                        try {
+                          const pending = JSON.parse(raw);
+                          if (pending?.showtimeId && pending?.seats && pending.seats.length) {
+                            try {
+                              await seatService.releaseTemporarySeats(pending.showtimeId, pending.seats);
+                            } catch (e) {
+                              // ignore release errors
                             }
-                          } catch {}
-                        }
-                        clearCart();
-                        localStorage.removeItem('pendingOrder');
-                        navigate(selection?.movieId ? `/detalle-pelicula?pelicula=${selection.movieId}` : '/');
-                      }}
-                    >CANCELAR</button>
-                  </div>
+                            seatSelectionStore.clearShowtime(pending.showtimeId);
+                          }
+                        } catch {}
+                      }
+                      clearCart();
+                      localStorage.removeItem('pendingOrder');
+                      navigate(selection?.movieId ? `/detalle-pelicula?pelicula=${selection.movieId}` : '/');
+                    }}
+                  >
+                    ❌ CANCELAR
+                  </button>
                 </div>
               </div>
             </div>

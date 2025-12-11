@@ -66,30 +66,22 @@ export default function StaffDashboard() {
     { 
       label: 'Películas', 
       value: moviesCount, 
-      icon: '🎬',
-      color: 'from-red-500 to-red-600',
-      bgCard: 'var(--cinepal-gray-800)'
+      icon: '🎬'
     },
     { 
       label: 'Cines', 
       value: cinemasCount, 
-      icon: '🏢',
-      color: 'from-red-600 to-red-700',
-      bgCard: 'var(--cinepal-gray-800)'
+      icon: '🏢'
     },
     { 
       label: 'Funciones', 
       value: showtimesCount, 
-      icon: '🎞️',
-      color: 'from-red-500 to-orange-600',
-      bgCard: 'var(--cinepal-gray-800)'
+      icon: '🎞️'
     },
     { 
       label: 'Usuarios', 
       value: usersCount, 
-      icon: '👥',
-      color: 'from-red-600 to-pink-600',
-      bgCard: 'var(--cinepal-gray-800)'
+      icon: '👥'
     }
   ];
 
@@ -98,51 +90,52 @@ export default function StaffDashboard() {
       title: 'Gestionar Películas',
       description: 'Administra el catálogo de películas',
       icon: '🎬',
-      path: 'movies',
-      gradient: 'from-red-600 to-red-700'
+      path: 'movies'
     },
     {
       title: 'Gestionar Salas',
       description: 'Configura salas y capacidades',
       icon: '🎭',
-      path: 'theaters',
-      gradient: 'from-red-700 to-red-800'
+      path: 'theaters'
     },
     {
       title: 'Gestionar Funciones',
       description: 'Programa horarios de películas',
       icon: '🎞️',
-      path: 'showtimes',
-      gradient: 'from-red-600 to-orange-600'
+      path: 'showtimes'
     },
     {
       title: 'Gestionar Usuarios',
       description: 'Administra usuarios del sistema',
       icon: '👥',
-      path: 'users',
-      gradient: 'from-red-600 to-pink-600'
+      path: 'users'
+    },
+    {
+      title: 'Gestionar Promociones',
+      description: 'Crea y administra códigos promocionales',
+      icon: '🎟️',
+      path: 'promotions'
     }
   ];
 
   return (
     <ProtectedRoute roles={["STAFF", "ADMIN"]}>
-      <div style={{ background: "var(--cinepal-gray-900)", color: "var(--cinepal-bg-100)" }} className="min-h-screen">
+      <div style={{ background: "linear-gradient(180deg, #141113 0%, #0b0b0b 100%)" }} className="min-h-screen">
         <Navbar variant="dark" />
         
-        {/* Header con gradiente */}
-        <div className="relative pt-24 pb-12 px-8" style={{ 
-          background: 'linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(127, 29, 29, 0.1) 100%)'
-        }}>
+        {/* Header Premium */}
+        <div className="relative pt-24 pb-12 px-8 animate-fade-in">
           <div className="max-w-7xl mx-auto">
-            <div className="flex items-center gap-4 mb-2">
-              <div className="text-5xl">⚡</div>
-              <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">
+            <div className="flex items-center gap-6 mb-2">
+              <div className="text-6xl">⚡</div>
+              <div className="flex-1">
+                <h1 className="text-5xl font-black bg-gradient-to-r from-[#BB2228] to-[#E3E1E2] bg-clip-text text-transparent">
                   Panel de Administración
                 </h1>
-                <p className="text-gray-400 mt-1">Gestión completa del sistema CinePlus</p>
+                <p className="text-lg text-[#E3E1E2]/70 mt-2 font-semibold">Gestión completa del sistema CinePlus</p>
               </div>
             </div>
+            <div className="w-32 h-1.5 bg-gradient-to-r from-[#BB2228] to-[#8B191E] rounded-full mt-4"></div>
           </div>
         </div>
 
@@ -152,40 +145,30 @@ export default function StaffDashboard() {
             {stats.map((stat, idx) => (
               <div
                 key={idx}
-                className="rounded-xl p-6 relative overflow-hidden group hover:scale-105 transition-transform duration-300"
-                style={{ 
-                  backgroundColor: stat.bgCard,
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)'
-                }}
+                className="card-glass rounded-2xl p-8 relative overflow-hidden group hover:scale-105 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 animate-scale-in"
+                style={{ animationDelay: `${idx * 0.1}s` }}
               >
-                {/* Gradiente de fondo sutil */}
-                <div 
-                  className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-5 group-hover:opacity-10 transition-opacity`}
-                />
-                
                 <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-3xl">{stat.icon}</span>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#BB2228] to-[#8B191E] flex items-center justify-center text-3xl">
+                      {stat.icon}
+                    </div>
                     {loading && (
-                      <div className="animate-pulse bg-gray-600 h-4 w-12 rounded"/>
+                      <div className="animate-pulse bg-[#E3E1E2]/20 h-6 w-16 rounded-lg"/>
                     )}
                   </div>
-                  <div className="text-sm text-gray-400 mb-1">{stat.label}</div>
-                  <div className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                  <div className="text-sm text-[#E3E1E2]/60 mb-2 font-semibold">{stat.label}</div>
+                  <div className="text-4xl font-black bg-gradient-to-r from-[#EFEFEE] to-[#E3E1E2] bg-clip-text text-transparent">
                     {loading ? '...' : stat.value}
                   </div>
                 </div>
-
-                {/* Borde gradiente */}
-                <div 
-                  className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.color}`}
-                />
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#BB2228] to-[#8B191E]"/>
               </div>
             ))}
           </div>
 
           {/* Sección de gestión */}
-          <div className="mb-8">
+          <div className="mb-12">
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
               <span className="text-2xl">🎯</span>
               Módulos de Gestión
@@ -196,41 +179,34 @@ export default function StaffDashboard() {
                 <Link
                   key={idx}
                   to={card.path}
-                  className="group rounded-xl p-8 relative overflow-hidden hover:scale-105 transition-all duration-300"
-                  style={{ 
-                    backgroundColor: 'var(--cinepal-gray-800)',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)'
-                  }}
+                  className="card-glass rounded-2xl p-8 relative overflow-hidden group hover:scale-105 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 animate-scale-in"
+                  style={{ animationDelay: `${idx * 0.1}s` }}
                 >
-                  {/* Gradiente de fondo */}
                   <div 
-                    className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
+                    className={`absolute inset-0 bg-gradient-to-br from-[#BB2228] to-[#8B191E] opacity-5 group-hover:opacity-15 transition-opacity duration-300`}
                   />
                   
-                  {/* Contenido */}
                   <div className="relative z-10">
                     <div className="flex items-start justify-between mb-4">
                       <span className="text-5xl group-hover:scale-110 transition-transform duration-300">
                         {card.icon}
                       </span>
-                      <div 
-                        className={`w-10 h-10 rounded-full bg-gradient-to-br ${card.gradient} opacity-20 group-hover:opacity-40 transition-opacity flex items-center justify-center`}
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#BB2228] to-[#8B191E] opacity-30 group-hover:opacity-60 transition-opacity flex items-center justify-center group-hover:scale-110"
                       >
                         <span className="text-white text-xl">→</span>
                       </div>
                     </div>
                     
-                    <h3 className="text-xl font-bold mb-2 group-hover:text-white transition-colors">
+                    <h3 className="text-2xl font-black mb-2 text-[#EFEFEE] group-hover:text-white transition-colors">
                       {card.title}
                     </h3>
-                    <p className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors">
+                    <p className="text-[#E3E1E2]/70 text-sm group-hover:text-[#E3E1E2]/90 transition-colors font-semibold">
                       {card.description}
                     </p>
                   </div>
 
-                  {/* Borde gradiente en hover */}
                   <div 
-                    className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${card.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left`}
+                    className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#BB2228] to-[#8B191E] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left`}
                   />
                 </Link>
               ))}
@@ -238,10 +214,7 @@ export default function StaffDashboard() {
           </div>
 
           {/* Acceso rápido */}
-          <div className="rounded-xl p-6" style={{ 
-            backgroundColor: 'var(--cinepal-gray-800)',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)'
-          }}>
+          <div className="card-glass rounded-2xl p-8 animate-slide-up">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <span>⚡</span>
               Accesos Rápidos
@@ -249,41 +222,25 @@ export default function StaffDashboard() {
             <div className="flex flex-wrap gap-3">
               <Link 
                 to="movies" 
-                className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
-                style={{ 
-                  backgroundColor: 'var(--cinepal-gray-700)',
-                  color: 'var(--cinepal-bg-100)'
-                }}
+                className="btn-primary-gradient px-6 py-3 rounded-xl text-sm font-bold transition-all hover:scale-105 hover:-translate-y-1 hover:shadow-lg"
               >
                 + Nueva Película
               </Link>
               <Link 
                 to="theaters" 
-                className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
-                style={{ 
-                  backgroundColor: 'var(--cinepal-gray-700)',
-                  color: 'var(--cinepal-bg-100)'
-                }}
+                className="btn-primary-gradient px-6 py-3 rounded-xl text-sm font-bold transition-all hover:scale-105 hover:-translate-y-1 hover:shadow-lg"
               >
                 + Nueva Sala
               </Link>
               <Link 
                 to="showtimes" 
-                className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
-                style={{ 
-                  backgroundColor: 'var(--cinepal-gray-700)',
-                  color: 'var(--cinepal-bg-100)'
-                }}
+                className="btn-primary-gradient px-6 py-3 rounded-xl text-sm font-bold transition-all hover:scale-105 hover:-translate-y-1 hover:shadow-lg"
               >
                 + Nueva Función
               </Link>
               <Link 
                 to="users" 
-                className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
-                style={{ 
-                  backgroundColor: 'var(--cinepal-gray-700)',
-                  color: 'var(--cinepal-bg-100)'
-                }}
+                className="btn-primary-gradient px-6 py-3 rounded-xl text-sm font-bold transition-all hover:scale-105 hover:-translate-y-1 hover:shadow-lg"
               >
                 + Nuevo Usuario
               </Link>

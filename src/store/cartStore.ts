@@ -206,11 +206,14 @@ export const useCartStore = create<CartState>((set, get) => {
       const promo = get().appliedPromotion;
       if (!promo) return 0;
       const base = get().ticketsSubtotal() + get().concessionsSubtotal();
-      if (promo.type === 'PERCENT') {
+      // Usa discountType en lugar de type, y PERCENTAGE en lugar de PERCENT
+      if (promo.discountType === 'PERCENTAGE') {
+        // Para descuentos porcentuales: calcula el % del subtotal
         const raw = (base * promo.value) / 100;
-        return promo.maxDiscount ? Math.min(raw, promo.maxDiscount) : raw;
+        return raw;
       }
-      if (promo.type === 'FLAT') {
+      if (promo.discountType === 'FIXED_AMOUNT') {
+        // Para descuentos de monto fijo: resta el monto pero no puede ser mayor que el subtotal
         return Math.min(promo.value, base);
       }
       return 0;

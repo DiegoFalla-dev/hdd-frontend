@@ -236,20 +236,20 @@ const DetallePelicula: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{ background: "#141113", color: "#EFEFEE" }} className="min-h-screen pt-16">
+      <div className="min-h-screen pt-16 text-white" style={{ background: 'linear-gradient(180deg, #141113 0%, #0b0b0b 100%)' }}>
         <Navbar />
         <div className="max-w-6xl mx-auto p-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1">
-              <div className="w-full h-96 rounded-lg animate-pulse mb-6" style={{ backgroundColor: "#393A3A" }}></div>
+              <div className="w-full h-96 rounded-xl animate-pulse bg-gradient-to-br from-neutral-800 to-neutral-900 mb-6"></div>
               <div className="space-y-4">
-                <div className="w-32 h-4 rounded animate-pulse" style={{ backgroundColor: "#393A3A" }}></div>
-                <div className="w-24 h-4 rounded animate-pulse" style={{ backgroundColor: "#393A3A" }}></div>
+                <div className="w-32 h-4 rounded animate-pulse bg-neutral-800"></div>
+                <div className="w-24 h-4 rounded animate-pulse bg-neutral-800"></div>
               </div>
             </div>
             <div className="lg:col-span-2">
-              <div className="w-3/4 h-10 rounded mb-4 animate-pulse" style={{ backgroundColor: "#393A3A" }}></div>
-              <div className="w-full h-64 rounded-lg mb-6 animate-pulse" style={{ backgroundColor: "#393A3A" }}></div>
+              <div className="w-3/4 h-10 rounded mb-4 animate-pulse bg-neutral-800"></div>
+              <div className="w-full h-96 rounded-xl mb-6 animate-pulse bg-gradient-to-br from-neutral-800 to-neutral-900"></div>
             </div>
           </div>
         </div>
@@ -260,10 +260,18 @@ const DetallePelicula: React.FC = () => {
 
   if (!pelicula) {
     return (
-      <div style={{ background: "#141113", color: "#EFEFEE" }} className="min-h-screen pt-16">
+      <div className="min-h-screen pt-16 text-white" style={{ background: 'linear-gradient(180deg, #141113 0%, #0b0b0b 100%)' }}>
         <Navbar />
         <div className="p-8 text-center">
-          <h2 className="text-2xl font-bold mb-4">Película no encontrada</h2>
+          <div className="card-glass p-12 rounded-xl max-w-md mx-auto">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#BB2228] to-[#8B191E] flex items-center justify-center mx-auto mb-4">
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Película no encontrada</h2>
+            <p className="text-neutral-400">La película que buscas no existe o ha sido eliminada</p>
+          </div>
         </div>
         <Footer />
       </div>
@@ -271,41 +279,44 @@ const DetallePelicula: React.FC = () => {
   }
 
   return (
-    <div style={{ background: "#141113", color: "#EFEFEE" }} className="min-h-screen pt-16">
+    <div className="min-h-screen pt-16 text-white" style={{ background: 'linear-gradient(180deg, #141113 0%, #0b0b0b 100%)' }}>
       <Navbar />
-      <div className="max-w-6xl mx-auto p-8">
+      <div className="max-w-6xl mx-auto p-8 animate-fade-in">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1">
-            <div className="mb-6">
+            <div className="mb-6 img-hover-zoom overflow-hidden rounded-xl">
               <img 
                 src={pelicula.posterUrl || '/placeholder.jpg'} 
                 alt={pelicula.title}
-                className="w-full rounded-lg shadow-lg"
+                className="w-full rounded-xl shadow-2xl transition-transform duration-300 hover:scale-105"
               />
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-4 card-glass p-6 rounded-xl animate-slide-up">
               <div className="flex items-center gap-2 flex-wrap">
                 {pelicula.genre && (
-                  <span className="px-2 py-1 rounded text-sm" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>
+                  <span className="badge-gradient-red">
                     {pelicula.genre}
                   </span>
                 )}
                 {pelicula.status && (
-                  <span className="px-2 py-1 rounded text-sm" style={{ backgroundColor: "#BB2228", color: "#EFEFEE" }}>
-                    {pelicula.status === 'NOW_PLAYING' ? 'NOW PLAYING' : pelicula.status === 'UPCOMING' ? 'PRÓXIMAMENTE' : pelicula.status}
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-[#BB2228] to-[#8B191E] shadow-lg">
+                    {pelicula.status === 'NOW_PLAYING' ? 'EN CARTELERA' : pelicula.status === 'UPCOMING' ? 'PRÓXIMAMENTE' : pelicula.status}
                   </span>
                 )}
               </div>
               
               <div>
-                <h3 className="font-bold mb-2">FORMATOS DISPONIBLES</h3>
+                <h3 className="font-bold mb-3 text-sm flex items-center gap-2">
+                  <span className="w-1 h-4 bg-gradient-to-b from-[#BB2228] to-[#8B191E] rounded-full"></span>
+                  FORMATOS DISPONIBLES
+                </h3>
                 {formatsToShow.length === 0 ? (
-                  <span className="px-3 py-1 rounded" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>N/D</span>
+                  <span className="px-3 py-1.5 rounded-lg bg-neutral-800/50 text-neutral-400 text-sm">N/D</span>
                 ) : (
                   <div className="flex gap-2 flex-wrap">
                     {formatsToShow.map(f => (
-                      <span key={f} className="px-3 py-1 rounded" style={{ backgroundColor: "#393A3A", color: "#EFEFEE" }}>{formatLabel(f)}</span>
+                      <span key={f} className="px-3 py-1.5 rounded-lg bg-gradient-to-br from-neutral-800 to-neutral-900 border border-neutral-700 text-white text-sm font-semibold shadow-md">{formatLabel(f)}</span>
                     ))}
                   </div>
                 )}
@@ -348,13 +359,15 @@ const DetallePelicula: React.FC = () => {
           </div>
           
           <div className="lg:col-span-2">
-            <div className="mb-6">
-              <h1 className="text-4xl font-bold mb-4">{pelicula.title.toUpperCase()}</h1>
-              <div className="relative mb-6">
+            <div className="mb-6 animate-slide-up">
+              <h1 className="text-5xl font-black mb-6 bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
+                {pelicula.title.toUpperCase()}
+              </h1>
+              <div className="relative mb-6 rounded-xl overflow-hidden shadow-2xl">
                 {showTrailer && pelicula.trailerUrl ? (
-                  <div className="relative w-full h-64">
+                  <div className="relative w-full h-96">
                     <iframe
-                      className="w-full h-full rounded-lg"
+                      className="w-full h-full"
                       src={pelicula.trailerUrl.includes('youtube.com') || pelicula.trailerUrl.includes('youtu.be')
                         ? pelicula.trailerUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')
                         : pelicula.trailerUrl}
@@ -365,66 +378,87 @@ const DetallePelicula: React.FC = () => {
                     ></iframe>
                     <button
                       onClick={() => setShowTrailer(false)}
-                      className="absolute top-2 right-2 bg-black bg-opacity-70 text-white px-3 py-1 rounded hover:bg-opacity-90 transition-all text-sm"
+                      className="absolute top-4 right-4 bg-black/80 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-black transition-all text-sm font-semibold shadow-lg"
                     >
-                      Cerrar
+                      ✕ Cerrar
                     </button>
                   </div>
                 ) : (
-                  <>
+                  <div className="relative group">
                     <img 
                       src={pelicula.posterUrl || '/placeholder.jpg'} 
                       alt={pelicula.title}
-                      className="w-full h-64 object-cover rounded-lg"
+                      className="w-full h-96 object-cover"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
                     {pelicula.trailerUrl && (
                       <button 
                         onClick={() => setShowTrailer(true)}
-                        className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg hover:bg-opacity-70 transition-all"
+                        className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 group-hover:bg-black/50 transition-all duration-300"
                       >
-                        <FiPlay size={48} className="text-white" />
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#BB2228] to-[#8B191E] flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition-transform duration-300">
+                          <FiPlay size={36} className="text-white ml-1" />
+                        </div>
+                        <span className="mt-4 text-white font-bold text-lg opacity-0 group-hover:opacity-100 transition-opacity">Ver Tráiler</span>
                       </button>
                     )}
                     {!pelicula.trailerUrl && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
-                        <FiPlay size={48} className="text-gray-500" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-20 h-20 rounded-full bg-neutral-800/50 flex items-center justify-center">
+                          <FiPlay size={36} className="text-gray-500" />
+                        </div>
                       </div>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
-              <p className="text-sm leading-relaxed" style={{ color: "#E3E1E2" }}>
-                {pelicula.synopsis}
-              </p>
+              <div className="card-glass p-6 rounded-xl">
+                <h3 className="font-bold mb-3 text-lg flex items-center gap-2">
+                  <span className="w-1 h-5 bg-gradient-to-b from-[#BB2228] to-[#8B191E] rounded-full"></span>
+                  SINOPSIS
+                </h3>
+                <p className="text-base leading-relaxed text-neutral-300">
+                  {pelicula.synopsis}
+                </p>
+              </div>
             </div>
             
-            <div>
-              <h2 className="text-2xl font-bold mb-4">HORARIOS</h2>
+            <div className="card-glass p-6 rounded-xl animate-slide-up" style={{ animationDelay: '0.2s' }}>
+              <h2 className="text-3xl font-black mb-6 flex items-center gap-3">
+                <span className="w-1.5 h-8 bg-gradient-to-b from-[#BB2228] to-[#8B191E] rounded-full"></span>
+                HORARIOS
+              </h2>
               
               {pelicula.status === 'UPCOMING' ? (
-                <div className="mb-6 p-6 rounded-lg text-center" style={{ backgroundColor: "#393A3A" }}>
-                  <p className="text-lg" style={{ color: "#E3E1E2" }}>
+                <div className="mb-6 p-8 rounded-xl text-center card-glass">
+                  <svg className="w-16 h-16 mx-auto mb-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-lg text-neutral-300">
                     No hay funciones programadas para esta película
+                  </p>
+                  <p className="text-sm text-neutral-500 mt-2">
+                    Vuelve pronto para ver los horarios disponibles
                   </p>
                 </div>
               ) : (
                 <>
-                  <div className="mb-4">
-                    <div className="flex gap-2 mb-4">
+                  <div className="mb-6">
+                    <h3 className="font-semibold mb-3 text-sm text-neutral-400">SELECCIONA UN DÍA</h3>
+                    <div className="flex gap-3 mb-6 overflow-x-auto pb-2">
                       {availableDates.map((day) => (
                         <button 
                           key={day.fullDate}
                           onClick={() => setSelectedDay(day.fullDate)}
-                          className="px-4 py-2 rounded font-bold transition-colors"
-                          style={{
-                            backgroundColor: selectedDay === day.fullDate ? "#EFEFEE" : "transparent",
-                            color: selectedDay === day.fullDate ? "#141113" : "#E3E1E2",
-                            border: selectedDay === day.fullDate ? "none" : "1px solid #393A3A"
-                          }}
+                          className={`px-5 py-3 rounded-xl font-bold transition-all duration-300 flex-shrink-0 ${
+                            selectedDay === day.fullDate 
+                              ? 'btn-primary-gradient shadow-lg transform scale-105' 
+                              : 'bg-neutral-800/50 border border-neutral-700 hover:border-[#BB2228] hover:bg-neutral-800'
+                          }`}
                         >
                           <div className="text-center">
-                            <div>{day.label}</div>
-                            <div className="text-xs">{day.date}</div>
+                            <div className="text-sm">{day.label}</div>
+                            <div className="text-xs opacity-80">{day.date}</div>
                           </div>
                         </button>
                       ))}
@@ -543,12 +577,11 @@ const DetallePelicula: React.FC = () => {
                 </button>
                 
                 <button 
-                  className="w-full py-3 rounded font-bold transition-colors"
-                  style={{
-                    backgroundColor: isReadyToBuy && selectedCinemaData ? "#BB2228" : "#393A3A",
-                    color: isReadyToBuy && selectedCinemaData ? "#EFEFEE" : "#E3E1E2",
-                    cursor: isReadyToBuy && selectedCinemaData ? "pointer" : "not-allowed"
-                  }}
+                  className={`w-full py-4 rounded-xl font-bold text-lg transition-all duration-300 shadow-lg ${
+                    isReadyToBuy && selectedCinemaData 
+                      ? 'btn-primary-gradient btn-shine hover:scale-105' 
+                      : 'bg-neutral-800/50 text-neutral-500 cursor-not-allowed'
+                  }`}
                   disabled={!isReadyToBuy || !selectedCinemaData}
                   onClick={() => {
                     if (!(isReadyToBuy && selectedCinemaData)) return;
