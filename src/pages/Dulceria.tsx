@@ -9,6 +9,7 @@ import { useConcessions } from '../hooks/useConcessions';
 import { useCinemas } from '../hooks/useCinemas';
 import { useShowtimeSelectionStore } from '../store/showtimeSelectionStore';
 import { useCartStore } from '../store/cartStore';
+import { useAuth } from '../context/AuthContext';
 
 type ProductsByCategory = {
   COMBOS: ConcessionProduct[];
@@ -19,6 +20,7 @@ type ProductsByCategory = {
 
 export default function Dulceria() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const selection = useShowtimeSelectionStore(s => s.selection);
   const [selectedCine, setSelectedCine] = useState<Cinema | null>(null);
   const [productos, setProductos] = useState<ProductsByCategory | null>(null);
@@ -58,14 +60,34 @@ export default function Dulceria() {
   // Efecto para inicializar la carga de cines y productos
   useEffect(() => {
     if (!cines || cines.length === 0) return;
+    
     // Preferir cine del showtime selection (flujo de compra) si existe
     if (selection?.cinemaId) {
       const found = cines.find(c => c.id === selection.cinemaId);
       if (found) { setSelectedCine(found); return; }
     }
+    
+    // Si está logueado, intentar cargar cine guardado localmente
+    if (user) {
+      try {
+        const savedCine = localStorage.getItem('selectedCine');
+        if (savedCine) {
+          const parsedCine = JSON.parse(savedCine);
+          // Buscar cine por nombre
+          const found = cines.find(c => c.name === parsedCine.name);
+          if (found) { 
+            setSelectedCine(found);
+            return; 
+          }
+        }
+      } catch (e) {
+        console.warn('Error parsing saved cinema:', e);
+      }
+    }
+    
     // Si no hay selección previa mostrar modal
     setShowCineModal(true);
-  }, [cines, selection]);
+  }, [cines, selection, user]);
 
   // Eliminado listener a localStorage; migración a store.
 
