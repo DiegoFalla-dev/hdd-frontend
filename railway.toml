@@ -1,0 +1,10 @@
+# Railway configuration for custom build and start commands
+# Docs: https://docs.railway.app/deploy/configure#builds-and-starts
+
+[build]
+# Skip build step (handled by custom start)
+command = "echo Skipping build step"
+
+[start]
+# Custom start command: build and preview in one step
+command = "npm run build && npm run preview -- --host 0.0.0.0 --port $PORT"
