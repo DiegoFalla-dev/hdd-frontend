@@ -15,12 +15,25 @@ const LOGO_URL = 'https://i.imgur.com/K9o09F6.png';
 
 export const generateOrderPDF = async (order: OrderSummary) => {
   try {
-    // Generar QR code
+    // Generar QR code con ALTA CALIDAD
     let qrDataUrl = '';
     try {
-      qrDataUrl = await QRCode.toDataURL(`ORDER-${order.id}`, {
-        width: 100,
-        margin: 1,
+      // Payload con información completa para validación
+      const qrPayload = JSON.stringify({
+        orderId: order.id,
+        total: order.totalAmount,
+        date: order.purchaseDate,
+        items: order.items?.length || 0,
+      });
+      
+      qrDataUrl = await QRCode.toDataURL(qrPayload, {
+        width: 512, // Alta resolución (antes era 100)
+        margin: 2,
+        color: {
+          dark: '#141113', // Negro CINEPLUS
+          light: '#FFFFFF',
+        },
+        errorCorrectionLevel: 'H', // Máxima corrección de errores (30%)
       });
     } catch (err) {
       console.error('Error generando QR:', err);
@@ -53,9 +66,9 @@ export const generateOrderPDF = async (order: OrderSummary) => {
     pdf.setFont('helvetica', 'normal');
     pdf.text('Tu experiencia cinematográfica premium', margin + 70, 58);
     
-    // QR Code en header derecha
+    // QR Code en header derecha con MEJOR CALIDAD
     if (qrDataUrl) {
-      pdf.addImage(qrDataUrl, 'PNG', pageWidth - 120, 15, 95, 95);
+      pdf.addImage(qrDataUrl, 'PNG', pageWidth - 130, 10, 110, 110);
     }
     
     y = 125;

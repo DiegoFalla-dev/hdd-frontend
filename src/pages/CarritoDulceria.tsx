@@ -149,7 +149,9 @@ const CarritoDulceria: React.FC = () => {
           if (savedEntradasFromPending) setEntradas(savedEntradasFromPending);
           // Asegurar que el carrito de pago tenga el grupo de tickets
           if (pendingRaw.showtimeId && pendingRaw.seats && pendingRaw.seats.length) {
-            setTicketGroup(pendingRaw.showtimeId, pendingRaw.seats, pendingRaw.pricePerSeat || 0);
+            // Calcular el total real de las entradas: suma de precio × cantidad
+            const totalFromEntradas = savedEntradasFromPending.reduce((sum: number, e: any) => sum + (e.precio * e.cantidad), 0);
+            setTicketGroup(pendingRaw.showtimeId, pendingRaw.seats, pendingRaw.pricePerSeat || 0, totalFromEntradas);
           }
         } else {
           // fallback: Asientos confirmados: usar seatSelectionStore si showtimeId presente
@@ -169,7 +171,9 @@ const CarritoDulceria: React.FC = () => {
             const savedEntradasFromPending = pendingRaw.entradas || JSON.parse(localStorage.getItem('selectedEntradas') || '[]');
             if (savedEntradasFromPending) setEntradas(savedEntradasFromPending);
             if (pendingRaw.showtimeId && pendingRaw.seats && pendingRaw.seats.length) {
-              setTicketGroup(pendingRaw.showtimeId, pendingRaw.seats, pendingRaw.pricePerSeat || 0);
+              // Calcular el total real de las entradas
+              const totalFromEntradas = savedEntradasFromPending.reduce((sum: number, e: any) => sum + (e.precio * e.cantidad), 0);
+              setTicketGroup(pendingRaw.showtimeId, pendingRaw.seats, pendingRaw.pricePerSeat || 0, totalFromEntradas);
             }
           } catch (e) { /* swallow */ }
         }

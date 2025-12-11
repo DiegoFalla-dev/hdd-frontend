@@ -1,13 +1,41 @@
 import api from './apiClient';
 import type { Promotion } from '../types/Promotion';
 
-// Se asume endpoint de validación: GET /promotions/validate?code=XYZ
-// Ajustar si backend difiere (e.g. POST /promotions/validate)
+export interface PromotionValidationResponse {
+  isValid: boolean;
+  promotion?: Promotion;
+  message?: string;
+  requiredAmount?: string;
+}
 
-export async function validatePromotion(code: string): Promise<Promotion> {
-  if (!code.trim()) throw new Error('Código vacío');
-  const resp = await api.get<Promotion>(`/promotions/validate`, { params: { code } });
-  return resp.data;
+/**
+ * Valida una promoción contra un monto total.
+ * @param code - Código de promoción
+ * @param amount - Monto total a validar (en soles)
+ * @returns Objeto con validación y detalles de la promoción
+ */
+export async function validatePromotion(code: string, amount: number): Promise<PromotionValidationResponse> {
+  if (!code.trim()) {
+    return { 
+      isValid: false, 
+      message: 'Código de promoción requerido' 
+    };
+  }
+
+  try {
+    const resp = await api.get<PromotionValidationResponse>('/promotions/validate', { 
+      params: { 
+        code, 
+        amount: amount.toFixed(2) 
+      } 
+    });
+    return resp.data;
+  } catch (error) {
+    return { 
+      isValid: false, 
+      message: 'Error validando promoción' 
+    };
+  }
 }
 
 export default { validatePromotion };

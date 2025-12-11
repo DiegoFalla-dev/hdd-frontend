@@ -7,12 +7,15 @@ export interface OrderDTO {
   user: any; // Simplified for now
   orderDate: string;
   totalAmount: number;
+  grandTotal?: number;  // Alias para totalAmount
+  createdAt?: string;   // Alias para orderDate
   paymentMethod: any;
   orderStatus: string;
   invoiceNumber?: string;
   invoicePdfUrl?: string;
   qrCodeUrl?: string;
   orderItems: any[];
+  orderConcessions?: any[]; // Productos de dulcería
   promotion?: any;
 }
 

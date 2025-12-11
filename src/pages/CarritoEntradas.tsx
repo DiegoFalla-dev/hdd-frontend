@@ -37,23 +37,30 @@ const Carrito: React.FC = () => {
   const tiposEntrada = useMemo(() => {
     if (!ticketTypes) return { general: [], convenios: [] };
     
+    console.log('🎫 TicketTypes recibidos del backend:', ticketTypes);
+    console.log('🎫 Total ticketTypes:', ticketTypes.length);
+    
     const general = ticketTypes
       .filter(tt => tt.active && !tt.code.includes('DCTO'))
       .map(tt => ({
-        id: tt.code.toLowerCase().replace(/_/g, '-'),
+        id: `ticket-${tt.id}`, // Usar el ID del backend para garantizar unicidad
         code: tt.code,
         nombre: tt.name,
         precio: tt.price
       }));
     
+    console.log('✅ General mapeados:', general.length, general);
+    
     const convenios = ticketTypes
       .filter(tt => tt.active && tt.code.includes('DCTO'))
       .map(tt => ({
-        id: tt.code.toLowerCase().replace(/_/g, '-'),
+        id: `ticket-${tt.id}`, // Usar el ID del backend para garantizar unicidad
         code: tt.code,
         nombre: tt.name,
         precio: tt.price
       }));
+    
+    console.log('✅ Convenios mapeados:', convenios.length, convenios);
     
     return { general, convenios };
   }, [ticketTypes]);

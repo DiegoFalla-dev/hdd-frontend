@@ -18,6 +18,7 @@ export interface JwtResponse {
   username?: string;
   firstName?: string;
   lastName?: string;
+  fullName?: string;
   email?: string;
   roles?: string[];
   avatar?: string | null;
@@ -26,6 +27,8 @@ export interface JwtResponse {
   phoneNumber?: string;
   gender?: string;
   favoriteCinema?: string;
+  fidelityPoints?: number;
+  lastPurchaseDate?: string;
 }
 
 export interface RegisterRequest {

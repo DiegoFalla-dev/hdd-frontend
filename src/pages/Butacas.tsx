@@ -240,16 +240,21 @@ const Butacas: React.FC = () => {
 
   const selectedSeatCodes = showtimeId ? (seatSelectionStore.selections[showtimeId]?.seatCodes || []) : [];
 
-  // derive unit price for display: prefer explicit showtime selection price, then matching showtime from query
-  const unitPrice = Number(showtimeSelection?.price ?? matchingShowtime?.price ?? 0);
+  // Calcular el total real de entradas: suma de (precio × cantidad) para cada tipo
+  // Ejemplo: 2 adultos (45.20) + 1 niño (20.00) = 90.40 + 20.00 = 110.40
+  const totalFromEntradas = entradas.reduce((acc, e) => acc + e.precio * e.cantidad, 0);
+  
+  // Para compatibilidad, mantener unitPrice como fallback
+  const fallbackUnitPrice = Number(showtimeSelection?.price ?? matchingShowtime?.price ?? 0);
+  const unitPrice = fallbackUnitPrice;
   const seatsCountForTotal = totalEntradas || selectedSeatCodes.length || 0;
   // prefer client-side 'entradas' (selected ticket types/prices) when available, otherwise fall back to showtime price
-  const seatsTotal = total > 0 ? total : unitPrice * seatsCountForTotal;
+  const seatsTotal = totalFromEntradas > 0 ? totalFromEntradas : unitPrice * seatsCountForTotal;
 
   // Concessions and totals (read-only summary)
   const concessions = useCartStore(s => s.concessions);
   const TAX_RATE = 0.18;
-  const ticketsSubtotal = total > 0 ? total : seatsTotal;
+  const ticketsSubtotal = totalFromEntradas > 0 ? totalFromEntradas : seatsTotal;
   const concessionsSubtotal = Array.isArray(concessions) ? concessions.reduce((acc, c) => acc + (((c as any).precio ?? (c as any).price ?? 0) * ((c as any).cantidad ?? (c as any).quantity ?? 1)), 0) : 0;
   const igvTotal = Number(((ticketsSubtotal + concessionsSubtotal) * TAX_RATE).toFixed(2));
   const grandTotal = Number((ticketsSubtotal + concessionsSubtotal + igvTotal).toFixed(2));
@@ -573,7 +578,7 @@ const Butacas: React.FC = () => {
                     // debug: log pendingConfirmed so we can inspect sessionId presence
                     try { console.debug('pendingConfirmed persisted', pendingConfirmed); } catch {}
                     if (pendingConfirmed.showtimeId && pendingConfirmed.seats && pendingConfirmed.seats.length) {
-                      setTicketGroup(pendingConfirmed.showtimeId, pendingConfirmed.seats, pendingConfirmed.pricePerSeat || 0);
+                      setTicketGroup(pendingConfirmed.showtimeId, pendingConfirmed.seats, pendingConfirmed.pricePerSeat || 0, totalFromEntradas);
                     }
                     seatSelectionStore.clearShowtime(showtimeId);
                     // small pause to show green feedback
@@ -621,7 +626,7 @@ const Butacas: React.FC = () => {
                   try { console.debug('pending persisted (CONTINUAR)', pending); } catch {}
                   // also populate cart ticket group for payment summary
                   if (pending.showtimeId && pending.seats && pending.seats.length) {
-                    setTicketGroup(pending.showtimeId, pending.seats, pending.pricePerSeat || 0);
+                    setTicketGroup(pending.showtimeId, pending.seats, pending.pricePerSeat || 0, totalFromEntradas);
                   }
                   navigate('/dulceria-carrito');
                 }

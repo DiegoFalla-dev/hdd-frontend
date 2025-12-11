@@ -12,7 +12,6 @@ import { getShowtimes } from '../services/showtimeService';
 import { useAuth } from '../context/AuthContext';
 import { usePaymentMethods } from '../hooks/usePaymentMethods';
 import paymentMethodService from '../services/paymentMethodService';
-import { useSeats } from '../hooks/useSeats';
 import type { Seat } from '../types/Seat';
 import type { CreateOrderItemDTO } from '../services/orderService';
 // OrderConfirmation type not used here
@@ -481,7 +480,20 @@ const CarritoTotal: React.FC = () => {
         // Invalidate any future order list / caches
         queryClient.invalidateQueries({ queryKey: ['order', confirmation.id] });
         queryClient.invalidateQueries({ queryKey: ['orders'] });
+        
+        // Limpiar completamente el carrito y datos temporales
+        clearCart(); // Limpia ticketGroups y concessions del store
         clearPromotion();
+        
+        // Limpiar localStorage
+        try {
+          localStorage.removeItem('pendingOrder');
+          localStorage.removeItem('selectedEntradas');
+          localStorage.removeItem('cartStore');
+        } catch (e) {
+          console.warn('Error limpiando localStorage:', e);
+        }
+        
         setIsProcessing(false);
         setSuccess(true);
         setTimeout(() => {
@@ -524,11 +536,13 @@ const CarritoTotal: React.FC = () => {
           {preview && !previewLoading && !previewError && (
             <div className="space-y-2 text-sm">
               <div className="flex justify-between"><span>Entradas</span><span>S/ {preview.ticketsSubtotal.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span>Concesiones</span><span>S/ {preview.concessionsSubtotal.toFixed(2)}</span></div>
-              {/* IGV / tax line */}
-              <div className="flex justify-between"><span>IGV (18%)</span><span>S/ {(preview.taxTotal ?? Math.max(0, (preview.ticketsSubtotal + preview.concessionsSubtotal - preview.discountTotal) * 0.18)).toFixed(2)}</span></div>
-              <div className="flex justify-between"><span>Descuento</span><span className="text-green-600">- S/ {preview.discountTotal.toFixed(2)}</span></div>
-              <div className="flex justify-between font-semibold border-t pt-2"><span>Total</span><span>S/ {preview.grandTotal.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Dulcería</span><span>S/ {preview.concessionsSubtotal.toFixed(2)}</span></div>
+              {preview.discountTotal > 0 && (
+                <div className="flex justify-between text-green-600"><span>Descuento</span><span>- S/ {preview.discountTotal.toFixed(2)}</span></div>
+              )}
+              {/* IGV línea - siempre mostrar */}
+              <div className="flex justify-between"><span>IGV (18%)</span><span>S/ {(preview.taxTotal ?? 0).toFixed(2)}</span></div>
+              <div className="flex justify-between font-semibold border-t pt-2"><span>Total a Pagar</span><span>S/ {preview.grandTotal.toFixed(2)}</span></div>
               {preview.promotion && (
                 <p className="text-xs text-gray-600">Promoción aplicada: {preview.promotion.code} ({preview.promotion.type === 'PERCENT' ? preview.promotion.value + '%' : 'S/ ' + preview.promotion.value})</p>
               )}
@@ -547,7 +561,7 @@ const CarritoTotal: React.FC = () => {
               />
               <button
                 type="button"
-                onClick={() => validatePromotion(promoCode)}
+                onClick={() => validatePromotion(promoCode, preview?.grandTotal || 0)}
                 disabled={promoLoading || !promoCode.trim()}
                 className="px-3 py-1 rounded bg-indigo-600 text-white text-sm"
               >

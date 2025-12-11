@@ -17,6 +17,7 @@ export function useMovies(params: MoviesParams): UseQueryResult<Paginated<Movie>
     queryKey: ['movies', params],
     queryFn: () => fetchMovies(params),
     staleTime: 2 * 60 * 1000, // 2 min for movie listings
+    retry: 2, // Retry moderado para búsquedas
   });
 }
 
@@ -26,5 +27,7 @@ export function useAllMovies(): UseQueryResult<Movie[]> {
     queryKey: ['movies', 'all'],
     queryFn: () => fetchAllMovies(),
     staleTime: 5 * 60 * 1000, // cache longer
+    retry: 3, // Retry agresivo para cartelera principal
+    refetchOnMount: 'always', // Siempre refetch para cartelera actualizada
   });
 }

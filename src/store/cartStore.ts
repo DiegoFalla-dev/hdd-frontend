@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { ConcessionProduct } from '../types/ConcessionProduct';
 import type { Promotion } from '../types/Promotion';
+import { calculatePriceBreakdown, IGV_RATE } from '../utils/priceCalculation';
 
 const STORAGE_KEY = 'cartStore';
 
@@ -20,6 +21,7 @@ export interface CartTicketGroup {
   showtimeId: number;
   seatCodes: string[]; // e.g. ["A10","A11"] ya confirmados
   unitPrice: number; // precio por asiento (homogéneo); puede evolucionar a mapa por código
+  totalPrice?: number; // precio total ya calculado (para casos con múltiples tipos de entrada)
 }
 
 export interface CartConcessionItem {
@@ -52,7 +54,7 @@ interface CartState {
   ticketGroups: CartTicketGroup[];
   concessions: CartConcessionItem[];
   appliedPromotion?: Promotion; // DTO de promoción validada
-  setTicketGroup: (showtimeId: number, seatCodes: string[], unitPrice: number) => void;
+  setTicketGroup: (showtimeId: number, seatCodes: string[], unitPrice: number, totalPrice?: number) => void;
   removeSeatFromGroup: (showtimeId: number, seatCode: string) => void;
   clearTickets: () => void;
   addConcession: (product: ConcessionProduct, quantity?: number) => void;
@@ -82,7 +84,6 @@ interface CartState {
 
 export const useCartStore = create<CartState>((set, get) => {
   const persisted = loadFromStorage() || {};
-  const TAX_RATE = 0.18; // IGV 18%
   const persist = () => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ticketGroups: get().ticketGroups, concessions: get().concessions, appliedPromotion: get().appliedPromotion }));
@@ -95,17 +96,17 @@ export const useCartStore = create<CartState>((set, get) => {
     ticketGroups: (persisted.ticketGroups as CartTicketGroup[]) || [],
     concessions: (persisted.concessions as CartConcessionItem[]) || [],
     appliedPromotion: (persisted.appliedPromotion as Promotion) || undefined,
-    setTicketGroup: (showtimeId, seatCodes, unitPrice) => {
+    setTicketGroup: (showtimeId, seatCodes, unitPrice, totalPrice) => {
       set((s) => {
         const existing = s.ticketGroups.find((g) => g.showtimeId === showtimeId);
         if (existing) {
           return {
             ticketGroups: s.ticketGroups.map((g) =>
-              g.showtimeId === showtimeId ? { ...g, seatCodes: [...seatCodes], unitPrice } : g,
+              g.showtimeId === showtimeId ? { ...g, seatCodes: [...seatCodes], unitPrice, totalPrice } : g,
             ),
           };
         }
-        return { ticketGroups: [...s.ticketGroups, { showtimeId, seatCodes: [...seatCodes], unitPrice }] };
+        return { ticketGroups: [...s.ticketGroups, { showtimeId, seatCodes: [...seatCodes], unitPrice, totalPrice }] };
       });
       persist();
     },
@@ -186,7 +187,7 @@ export const useCartStore = create<CartState>((set, get) => {
     },
     ticketsSubtotal: () =>
       get().ticketGroups.reduce(
-        (sum, g) => sum + g.unitPrice * g.seatCodes.length,
+        (sum, g) => sum + (g.totalPrice ?? (g.unitPrice * g.seatCodes.length)),
         0,
       ),
     concessionsSubtotal: () =>
@@ -196,8 +197,10 @@ export const useCartStore = create<CartState>((set, get) => {
       ),
     // Tax amount (IGV) applied on subtotal after discounts
     taxTotal: () => {
-      const base = Math.max(0, get().ticketsSubtotal() + get().concessionsSubtotal() - get().discountTotal());
-      return parseFloat((base * TAX_RATE).toFixed(2));
+      const subtotal = get().ticketsSubtotal() + get().concessionsSubtotal();
+      const discount = get().discountTotal();
+      const breakdown = calculatePriceBreakdown(subtotal, discount);
+      return breakdown.taxAmount;
     },
     discountTotal: () => {
       const promo = get().appliedPromotion;
@@ -213,9 +216,10 @@ export const useCartStore = create<CartState>((set, get) => {
       return 0;
     },
     grandTotal: () => {
-      const base = Math.max(0, get().ticketsSubtotal() + get().concessionsSubtotal() - get().discountTotal());
-      const tax = get().taxTotal();
-      return Math.max(0, parseFloat((base + tax).toFixed(2)));
+      const subtotal = get().ticketsSubtotal() + get().concessionsSubtotal();
+      const discount = get().discountTotal();
+      const breakdown = calculatePriceBreakdown(subtotal, discount);
+      return breakdown.grandTotal;
     },
     paymentItems: () => {
       const items: PaymentItem[] = [];
@@ -244,16 +248,24 @@ export const useCartStore = create<CartState>((set, get) => {
       }
       return items;
     },
-    cartSnapshot: () => ({
-      ticketGroups: get().ticketGroups,
-      concessions: get().concessions,
-      promotion: get().appliedPromotion,
-      ticketsSubtotal: get().ticketsSubtotal(),
-      concessionsSubtotal: get().concessionsSubtotal(),
-      discountTotal: get().discountTotal(),
-      taxTotal: get().taxTotal(),
-      grandTotal: get().grandTotal(),
-      paymentItems: get().paymentItems(),
-    }),
+    cartSnapshot: () => {
+      const ticketsSubtotal = get().ticketsSubtotal();
+      const concessionsSubtotal = get().concessionsSubtotal();
+      const subtotal = ticketsSubtotal + concessionsSubtotal;
+      const discountTotal = get().discountTotal();
+      const breakdown = calculatePriceBreakdown(subtotal, discountTotal);
+      
+      return {
+        ticketGroups: get().ticketGroups,
+        concessions: get().concessions,
+        promotion: get().appliedPromotion,
+        ticketsSubtotal, // Subtotal de entradas SIN IGV
+        concessionsSubtotal, // Subtotal de concesiones SIN IGV
+        discountTotal: breakdown.discountAmount,
+        taxTotal: breakdown.taxAmount, // IGV aplicado UNA SOLA VEZ
+        grandTotal: breakdown.grandTotal,
+        paymentItems: get().paymentItems(),
+      };
+    },
   };
 });

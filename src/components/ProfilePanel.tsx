@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { usePaymentMethods, useAddPaymentMethod, useDeletePaymentMethod, useSetDefaultPaymentMethod, useUpdatePaymentMethod } from '../hooks/usePaymentMethods';
 import authService, { type LoginRequest, type JwtResponse, type RegisterRequest } from '../services/authService';
+import { validateCardNumber, validateExpiry, formatCardNumber, formatExpiry, getCardType } from '../utils/cardValidator';
 import { useAuth } from '../context/AuthContext';
 import './ProfilePanel.css';
 import { getAllCinemas } from '../services/cinemaService';
@@ -16,7 +17,7 @@ import {
 } from 'react-icons/fa';
 
 // --- Definición de Vistas ---
-type ActiveView = 'mainProfile' | 'account' | 'purchases' | 'payment' | 'contact' | 'login' | 'register';
+type ActiveView = 'mainProfile' | 'account' | 'purchases' | 'payment' | 'contact' | 'login' | 'register' | 'fidelization';
 
 const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const { logout, login: authLogin } = useAuth();
@@ -73,38 +74,67 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   // Campos CARD
   const [cardNumber, setCardNumber] = useState('');
   const [holderName, setHolderName] = useState('');
-  const [expMonth, setExpMonth] = useState<number | ''>('');
-  const [expYear, setExpYear] = useState<number | ''>('');
+  const [expiry, setExpiry] = useState('');
+  const [cardValidationErrors, setCardValidationErrors] = useState<Record<string, string>>({});
   const [cvc, setCvc] = useState('');
   // Campos YAPE
   const [yapePhone, setYapePhone] = useState('');
   const [yapeCode, setYapeCode] = useState('');
   // General
   const [setDefault, setSetDefault] = useState(false);
+  const [fidelityPoints, setFidelityPoints] = useState(0);
 
   const handleAddPaymentMethod = (e: React.FormEvent) => {
     e.preventDefault();
-    
+    const errors: Record<string, string> = {};
+
     if (paymentType === 'CARD') {
-      if (!cardNumber || !holderName || !expMonth || !expYear || !cvc) return;
+      // Validar tarjeta
+      if (!cardNumber) {
+        errors.cardNumber = 'Número de tarjeta requerido';
+      } else if (!validateCardNumber(cardNumber)) {
+        errors.cardNumber = 'Número de tarjeta inválido';
+      }
+      
+      if (!holderName) {
+        errors.holderName = 'Nombre del titular requerido';
+      }
+      
+      if (!expiry) {
+        errors.expiry = 'Fecha de vencimiento requerida (MM/YY)';
+      } else if (!validateExpiry(expiry)) {
+        errors.expiry = 'Fecha de vencimiento inválida o expirada';
+      }
+      
+      if (!cvc || cvc.length < 3) {
+        errors.cvc = 'CVC debe tener al menos 3 dígitos';
+      }
+      
+      setCardValidationErrors(errors);
+      
+      if (Object.keys(errors).length > 0) return;
+      
+      // Parsear expiry
+      const [expMonth, expYear] = expiry.split('/').map(x => parseInt(x, 10));
+      
       addPaymentMethodMutation.mutate({ 
         type: 'CARD',
         cardNumber, 
         cardHolder: holderName, 
-        expMonth: Number(expMonth), 
-        expYear: Number(expYear), 
+        expMonth, 
+        expYear: expYear + 2000, // Convertir 24 a 2024
         cci: cvc,
         isDefault: setDefault 
       }, {
         onSuccess: () => {
           setCardNumber('');
           setHolderName('');
-          setExpMonth('');
-          setExpYear('');
+          setExpiry('');
           setCvc('');
           setSetDefault(false);
           setPaymentType('CARD');
           setShowAddForm(false);
+          setCardValidationErrors({});
         }
       });
     } else if (paymentType === 'YAPE') {
@@ -196,6 +226,13 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     })();
     return () => { mounted = false; };
   }, [userId]);
+
+  // Actualizar puntos de fidelización cuando el usuario se autentica
+  useEffect(() => {
+    if (currentUserData?.fidelityPoints) {
+      setFidelityPoints(currentUserData.fidelityPoints);
+    }
+  }, [currentUserData?.fidelityPoints]);
 
   const displayFullName =
     (apiFirstName || firstName) && (apiLastName || lastName) ? `${apiFirstName || firstName} ${apiLastName || lastName}` :
@@ -344,6 +381,10 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
         <button className="profile-action-item" onClick={() => setActiveView('payment')}>
           <FaCreditCard size={24} />
           <span>Método de pago</span>
+        </button>
+        <button className="profile-action-item" onClick={() => setActiveView('fidelization')}>
+          <FaStar size={24} />
+          <span>Fidelización</span>
         </button>
         <button className="profile-action-item" onClick={() => setActiveView('contact')}>
           <FaEnvelope size={24} />
@@ -770,42 +811,55 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                 <form onSubmit={handleAddPaymentMethod} style={{display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', boxSizing: 'border-box', overflow: 'hidden'}}>
                   {paymentType === 'CARD' ? (
                     <>
-                      <input 
-                        placeholder="Número de tarjeta" 
-                        value={cardNumber} 
-                        onChange={e=>setCardNumber(e.target.value)} 
-                        className="bg-neutral-800 px-4 py-3 rounded text-white" 
-                        style={{fontSize: 14, border: 'none', width: '100%', boxSizing: 'border-box'}} 
-                      />
-                      <input 
-                        placeholder="Titular" 
-                        value={holderName} 
-                        onChange={e=>setHolderName(e.target.value)} 
-                        className="bg-neutral-800 px-4 py-3 rounded text-white" 
-                        style={{fontSize: 14, border: 'none', width: '100%', boxSizing: 'border-box'}} 
-                      />
+                      <div>
+                        <input 
+                          placeholder="Número de tarjeta" 
+                          value={cardNumber} 
+                          onChange={e => setCardNumber(formatCardNumber(e.target.value))} 
+                          className="bg-neutral-800 px-4 py-3 rounded text-white" 
+                          style={{fontSize: 14, border: cardValidationErrors.cardNumber ? '2px solid #ef4444' : 'none', width: '100%', boxSizing: 'border-box'}} 
+                        />
+                        {cardValidationErrors.cardNumber && (
+                          <p style={{color: '#ef4444', fontSize: 12, marginTop: '4px'}}>{cardValidationErrors.cardNumber}</p>
+                        )}
+                      </div>
+                      <div>
+                        <input 
+                          placeholder="Titular" 
+                          value={holderName} 
+                          onChange={e => setHolderName(e.target.value)} 
+                          className="bg-neutral-800 px-4 py-3 rounded text-white" 
+                          style={{fontSize: 14, border: cardValidationErrors.holderName ? '2px solid #ef4444' : 'none', width: '100%', boxSizing: 'border-box'}} 
+                        />
+                        {cardValidationErrors.holderName && (
+                          <p style={{color: '#ef4444', fontSize: 12, marginTop: '4px'}}>{cardValidationErrors.holderName}</p>
+                        )}
+                      </div>
                       <div style={{display: 'flex', gap:'12px', width: '100%', boxSizing: 'border-box'}}>
-                        <input 
-                          placeholder="Mes (MM)" 
-                          value={expMonth} 
-                          onChange={e=>setExpMonth(e.target.value as any)} 
-                          className="bg-neutral-800 px-4 py-3 rounded text-white" 
-                          style={{fontSize: 14, border: 'none', flex: 1, minWidth: 0, boxSizing: 'border-box'}} 
-                        />
-                        <input 
-                          placeholder="Año (YY)" 
-                          value={expYear} 
-                          onChange={e=>setExpYear(e.target.value as any)} 
-                          className="bg-neutral-800 px-4 py-3 rounded text-white" 
-                          style={{fontSize: 14, border: 'none', flex: 1, minWidth: 0, boxSizing: 'border-box'}} 
-                        />
-                        <input 
-                          placeholder="CVC" 
-                          value={cvc} 
-                          onChange={e=>setCvc(e.target.value)} 
-                          className="bg-neutral-800 px-4 py-3 rounded text-white" 
-                          style={{fontSize: 14, border: 'none', flex: 1, minWidth: 0, boxSizing: 'border-box'}} 
-                        />
+                        <div style={{flex: 1}}>
+                          <input 
+                            placeholder="MM/YY" 
+                            value={expiry} 
+                            onChange={e => setExpiry(formatExpiry(e.target.value))} 
+                            className="bg-neutral-800 px-4 py-3 rounded text-white" 
+                            style={{fontSize: 14, border: cardValidationErrors.expiry ? '2px solid #ef4444' : 'none', width: '100%', boxSizing: 'border-box'}} 
+                          />
+                          {cardValidationErrors.expiry && (
+                            <p style={{color: '#ef4444', fontSize: 12, marginTop: '4px'}}>{cardValidationErrors.expiry}</p>
+                          )}
+                        </div>
+                        <div style={{flex: 1}}>
+                          <input 
+                            placeholder="CVC" 
+                            value={cvc} 
+                            onChange={e => setCvc(e.target.value.replace(/\D/g, '').slice(0, 4))} 
+                            className="bg-neutral-800 px-4 py-3 rounded text-white" 
+                            style={{fontSize: 14, border: cardValidationErrors.cvc ? '2px solid #ef4444' : 'none', width: '100%', boxSizing: 'border-box'}} 
+                          />
+                          {cardValidationErrors.cvc && (
+                            <p style={{color: '#ef4444', fontSize: 12, marginTop: '4px'}}>{cardValidationErrors.cvc}</p>
+                          )}
+                        </div>
                       </div>
                     </>
                   ) : (
@@ -873,6 +927,119 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                 </form>
               </div>
             )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Vista de Fidelización
+  const renderFidelizationView = () => {
+    const tiers = [
+      { range: '0-100', points: 100, benefits: ['5% descuento en bebidas', 'Acceso prioritario a estrenos'] },
+      { range: '101-250', points: 250, benefits: ['10% descuento en concesiones', 'Invitaciones a eventos especiales', 'Combo descuento'] },
+      { range: '251-500', points: 500, benefits: ['15% descuento general', 'Tickets VIP gratis', 'Asientos preferentes'] },
+      { range: '500+', points: 500, benefits: ['20% descuento permanente', 'Acceso sala VIP', 'Invitaciones premium', 'Soporte prioritario'] },
+    ];
+
+    const currentTier = tiers.find(t => {
+      if (t.range === '500+') return fidelityPoints >= 500;
+      const [min, max] = t.range.split('-').map(Number);
+      return fidelityPoints >= min && fidelityPoints <= max;
+    });
+
+    const nextMilestone = Math.ceil(fidelityPoints / 100) * 100;
+    const progressToNext = ((fidelityPoints % 100) / 100) * 100;
+
+    const formatDate = (dateString: string | undefined) => {
+      if (!dateString) return 'N/A';
+      try {
+        return new Date(dateString).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+      } catch {
+        return dateString;
+      }
+    };
+
+    return (
+      <div className="sub-panel-content">
+        <div className="sub-panel-header">
+          <button className="back-btn" onClick={() => setActiveView('mainProfile')} aria-label="Volver atrás">
+            <FaArrowLeft size={20} color="white" />
+          </button>
+          <h2 className="sub-panel-title">Fidelización CinePlus</h2>
+          <button className="close-btn" onClick={onClose} aria-label="Cerrar">
+            <FaTimes size={20} color="white" />
+          </button>
+        </div>
+
+        <div className="personal-info-section" style={{maxWidth: '100%', margin: '0 auto', padding: '24px'}}>
+          {/* Puntos y Tier Actual */}
+          <div style={{background: 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)', borderRadius: 12, padding: '24px', marginBottom: '24px', color: 'white', textAlign: 'center'}}>
+            <h3 style={{fontSize: 14, fontWeight: 500, marginBottom: 8, opacity: 0.9}}>Puntos de Fidelización</h3>
+            <p style={{fontSize: 48, fontWeight: 700, marginBottom: 8}}>{fidelityPoints}</p>
+            <p style={{fontSize: 14, opacity: 0.9}}>Tier Actual: <strong>{currentTier?.range || 'N/A'}</strong></p>
+          </div>
+
+          {/* Barra de Progreso */}
+          <div style={{marginBottom: '24px'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12}}>
+              <span>Progreso al siguiente hito:</span>
+              <span>{Math.round(progressToNext)}% ({fidelityPoints % 100}/100)</span>
+            </div>
+            <div style={{height: 12, background: '#3f3f46', borderRadius: 6, overflow: 'hidden', border: '1px solid #52525b'}}>
+              <div style={{height: '100%', width: `${progressToNext}%`, background: 'linear-gradient(90deg, #ef4444, #f97316)', transition: 'width 0.3s ease'}} />
+            </div>
+            <p style={{fontSize: 11, color: COLORS.textSecondary, marginTop: 6}}>Siguiente hito: {nextMilestone} puntos</p>
+          </div>
+
+          {/* Información de Compra */}
+          <div style={{background: COLORS.surface, borderRadius: 8, padding: '16px', marginBottom: '24px', border: `1px solid ${COLORS.border}`}}>
+            <p style={{fontSize: 12, color: COLORS.textSecondary, marginBottom: 8}}>Última compra:</p>
+            <p style={{fontSize: 14, fontWeight: 500, color: 'white'}}>{formatDate(currentUserData?.lastPurchaseDate)}</p>
+          </div>
+
+          {/* Beneficios por Tier */}
+          <h3 className="section-title">Beneficios por Nivel</h3>
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px'}}>
+            {tiers.map((tier) => (
+              <div
+                key={tier.range}
+                style={{
+                  background: currentTier?.range === tier.range ? 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)' : COLORS.surface,
+                  borderRadius: 8,
+                  padding: '16px',
+                  border: currentTier?.range === tier.range ? 'none' : `1px solid ${COLORS.border}`,
+                  opacity: currentTier?.range === tier.range ? 1 : 0.7,
+                }}
+              >
+                <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12}}>
+                  <FaStar size={18} color={currentTier?.range === tier.range ? 'white' : COLORS.accent} />
+                  <span style={{fontSize: 14, fontWeight: 600, color: currentTier?.range === tier.range ? 'white' : 'inherit'}}>
+                    {tier.range} pts
+                  </span>
+                </div>
+                <ul style={{listStyle: 'none', padding: 0, margin: 0}}>
+                  {tier.benefits.map((benefit, idx) => (
+                    <li key={idx} style={{fontSize: 12, color: currentTier?.range === tier.range ? 'white' : COLORS.textSecondary, marginBottom: 6, paddingLeft: 20, position: 'relative'}}>
+                      <span style={{position: 'absolute', left: 0}}>✓</span>
+                      {benefit}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          {/* Información General */}
+          <div style={{marginTop: '24px', padding: '16px', background: COLORS.surface, borderRadius: 8, border: `1px solid ${COLORS.border}`}}>
+            <h4 style={{fontSize: 14, fontWeight: 600, marginBottom: 12}}>Sobre Fidelización</h4>
+            <ul style={{listStyle: 'none', padding: 0, fontSize: 12, color: COLORS.textSecondary}}>
+              <li style={{marginBottom: 8}}>• Gana puntos con cada compra de tickets</li>
+              <li style={{marginBottom: 8}}>• 1 punto = S/ 1.00 en compras</li>
+              <li style={{marginBottom: 8}}>• Los puntos no expiran mientras haya actividad</li>
+              <li style={{marginBottom: 8}}>• Los beneficios se aplican automáticamente</li>
+              <li>• Consulta con el personal de cine para usar tus puntos</li>
+            </ul>
           </div>
         </div>
       </div>
@@ -1160,6 +1327,8 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
         return renderPurchasesView();
       case 'payment':
         return renderPaymentView();
+      case 'fidelization':
+        return renderFidelizationView();
       case 'contact':
         return renderContactView();
       default:
@@ -1172,6 +1341,7 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     if (activeView === 'account') return 'Mi perfil';
     if (activeView === 'purchases') return 'Últimas operaciones';
     if (activeView === 'payment') return 'Métodos de Pago';
+    if (activeView === 'fidelization') return 'Fidelización';
     if (activeView === 'contact') return 'Contáctanos';
     if (activeView === 'register') return 'Crear Cuenta';
 
@@ -1184,7 +1354,7 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     <div className="profile-panel-container">
       {/* El encabezado principal se muestra solo para Login/Perfil principal,
           los sub-paneles tienen su propio header */}
-      {!(activeView === 'account' || activeView === 'purchases' || activeView === 'payment' || activeView === 'contact' || activeView === 'register') && (
+      {!(activeView === 'account' || activeView === 'purchases' || activeView === 'payment' || activeView === 'fidelization' || activeView === 'contact' || activeView === 'register') && (
         <div className="profile-header">
           <h2 className="profile-title">{getPanelTitle()}</h2>
           <button className="close-btn" onClick={onClose} aria-label="Cerrar">

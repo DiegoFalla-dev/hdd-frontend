@@ -4,6 +4,11 @@ export interface JwtResponse {
   tokenType?: 'Bearer';
   expiresIn?: number; // segundos
   roles?: string[];
+  id?: number;
+  email?: string;
+  fullName?: string;
+  fidelityPoints?: number;
+  lastPurchaseDate?: string;
 }
 
 export interface LoginRequest {

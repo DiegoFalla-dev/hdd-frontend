@@ -38,33 +38,65 @@ const DetallePelicula: React.FC = () => {
     if (!f) return '';
     return f.replace(/^_+/, '').toUpperCase();
   };
-  const showtimesQuery = useShowtimes({ movieId: pelicula?.id, cinemaId: selectedCinemaData?.id, date: selectedDay || '' });
+  const showtimesQuery = useShowtimes({ 
+    movieId: pelicula?.id, 
+    cinemaId: selectedCinemaData?.id, 
+    date: selectedDay || undefined // Pasar undefined en lugar de string vacío
+  });
   const backendShowtimes = showtimesQuery.data || [];
+  
+  // Debug: ver qué datos tenemos
+  console.log('📊 Estado actual:', {
+    peliculaId: pelicula?.id,
+    cinemaId: selectedCinemaData?.id,
+    selectedDay,
+    showtimesCount: backendShowtimes.length,
+    showtimes: backendShowtimes
+  });
+  
+  // Helper: normaliza formatos para que siempre tengan el formato del backend (_2D, _3D)
+  const normalizeFormat = (f: string) => {
+    if (!f) return f;
+    // Si ya tiene guión bajo, devolverlo tal cual
+    if (f.startsWith('_')) return f;
+    // Si no, agregarlo
+    return '_' + f;
+  };
   
   // Obtener formatos disponibles SOLO para la fecha seleccionada
   const availableFormats = useMemo(() => {
-    if (!selectedDay) return []; // No mostrar formatos hasta que se seleccione una fecha
+    if (!selectedDay) return [];
     const formats = new Set<string>();
+    console.log('🔍 Calculando availableFormats para fecha:', selectedDay);
     backendShowtimes.forEach(s => { 
       if (s.format && s.startTime) {
         const showDate = new Date(s.startTime).toISOString().split('T')[0];
         if (showDate === selectedDay) {
+          console.log('  ✅ Agregando formato:', s.format, '(tipo:', typeof s.format, ')');
           formats.add(s.format);
         }
       }
     });
-    return Array.from(formats);
+    const result = Array.from(formats);
+    console.log('📋 availableFormats final:', result);
+    return result;
   }, [backendShowtimes, selectedDay]);
   
   // Si no hay formatos disponibles para la fecha seleccionada, mostrar los de la película como fallback
   const formatsToShow = useMemo(() => {
     if (availableFormats && availableFormats.length > 0) return availableFormats;
-    // Solo mostrar formatos fallback si NO se ha seleccionado fecha aún
-    if (!selectedDay) {
-      if (selectedCinemaData?.availableFormats && selectedCinemaData.availableFormats.length > 0) return selectedCinemaData.availableFormats;
-      return pelicula?.formats && pelicula.formats.length ? pelicula.formats : [];
+    // Si hay fecha seleccionada pero no formatos específicos, usar los formatos de la película/cine (normalizados)
+    if (selectedDay) {
+      if (selectedCinemaData?.availableFormats && selectedCinemaData.availableFormats.length > 0) {
+        return selectedCinemaData.availableFormats.map(normalizeFormat);
+      }
+      return pelicula?.formats && pelicula.formats.length ? pelicula.formats.map(normalizeFormat) : [];
     }
-    return [];
+    // Si no hay fecha seleccionada, mostrar formatos generales (normalizados)
+    if (selectedCinemaData?.availableFormats && selectedCinemaData.availableFormats.length > 0) {
+      return selectedCinemaData.availableFormats.map(normalizeFormat);
+    }
+    return pelicula?.formats && pelicula.formats.length ? pelicula.formats.map(normalizeFormat) : [];
   }, [availableFormats, selectedDay, selectedCinemaData?.availableFormats, pelicula?.formats]);
 
   // Si cambia el día, limpiamos el formato y la hora seleccionada
@@ -80,10 +112,29 @@ const DetallePelicula: React.FC = () => {
   const availableTimes = useMemo(() => {
     if (!selectedDay || !selectedFormat) return [];
     
+    // Debug: mostrar todos los showtimes para la fecha seleccionada
+    console.log('🔍 Debug showtimes para fecha:', selectedDay);
+    console.log('🔍 Formato seleccionado:', selectedFormat);
+    backendShowtimes.forEach((s, idx) => {
+      const showDate = s.startTime ? new Date(s.startTime).toISOString().split('T')[0] : 'sin fecha';
+      console.log(`  Showtime ${idx}: fecha=${showDate}, format="${s.format}" (tipo: ${typeof s.format})`);
+    });
+    
     const filteredShowtimes = backendShowtimes.filter(s => {
       if (!s.startTime) return false;
       const showDate = new Date(s.startTime).toISOString().split('T')[0];
-      return showDate === selectedDay && s.format === selectedFormat;
+      const dateMatch = showDate === selectedDay;
+      const formatMatch = s.format === selectedFormat;
+      
+      console.log(`    Comparando: fecha ${showDate} === ${selectedDay}? ${dateMatch}, formato "${s.format}" === "${selectedFormat}"? ${formatMatch}`);
+      
+      return dateMatch && formatMatch;
+    });
+    
+    console.log('✅ Showtimes filtrados:', filteredShowtimes.length);
+    filteredShowtimes.forEach((s, i) => {
+      const timeStr = new Date(s.startTime).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+      console.log(`  [${i}] id=${s.id}, teatro=${s.theaterId}, hora=${timeStr}`);
     });
     
     // Usar un Map para eliminar duplicados por hora, manteniendo el primer showtime de cada hora
@@ -94,6 +145,8 @@ const DetallePelicula: React.FC = () => {
         timeMap.set(timeStr, s);
       }
     });
+    
+    console.log('🕐 Horarios únicos en Map:', timeMap.size);
     
     // Convertir a array de [hora, showtime] y ordenar por hora
     return Array.from(timeMap.entries())
@@ -383,7 +436,10 @@ const DetallePelicula: React.FC = () => {
                       {formatsToShow.map((format) => (
                       <button
                         key={format}
-                        onClick={() => setSelectedFormat(format)}
+                        onClick={() => {
+                          console.log('🎬 Botón formato clickeado:', format, '(tipo:', typeof format, ')');
+                          setSelectedFormat(format);
+                        }}
                         className="px-3 py-1 rounded text-sm transition-colors"
                         style={{
                           backgroundColor: selectedFormat === format ? "#393A3A" : "#141113",
