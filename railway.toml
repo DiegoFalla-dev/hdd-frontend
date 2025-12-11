@@ -2,8 +2,7 @@
 # Docs: https://docs.railway.app/deploy/configure#builds-and-starts
 
 [build]
-# Skip build step (handled by custom start)
-command = "echo Skipping build step"
+builder = "NONE"
 
 [start]
 # Custom start command: build and preview in one step
