@@ -1,8 +1,90 @@
-.cineplus-home{background:#0b0b0b;color:#fff;min-height:100vh}
-.main-banner{height:360px;background:#222;display:flex;align-items:center;justify-content:center}
-.banner-placeholder{color:#bbb}
-.filters-section{display:flex;justify-content:center;padding:24px}
-.movies-section{padding:40px 24px}
-.movies-list{display:flex;gap:16px}
-.movie-poster{background:#222;width:220px;height:340px;display:flex;align-items:center;justify-content:center}
-.see-more-movies{width:220px;height:340px;background:linear-gradient(180deg,#bfbfbf,#8f8f8f);display:flex;align-items:center;justify-content:center;color:#fff}
+.cineplus-home {
+  background: linear-gradient(180deg, #0b0b0b 0%, #141113 100%);
+  color: #fff;
+  min-height: 100vh;
+}
+
+.main-banner {
+  height: 360px;
+  background: linear-gradient(135deg, #222 0%, #1a1a1a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.main-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(187, 34, 40, 0.1), transparent);
+  animation: softPulse 4s ease-in-out infinite;
+}
+
+.banner-placeholder {
+  color: #bbb;
+  font-size: 1.5rem;
+  font-weight: 600;
+  z-index: 10;
+}
+
+.filters-section {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(180deg, rgba(20, 17, 19, 0.5), transparent);
+}
+
+.movies-section {
+  padding: 40px 24px;
+}
+
+.movies-list {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.movie-poster {
+  background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+  width: 220px;
+  height: 340px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.movie-poster:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 32px rgba(187, 34, 40, 0.2);
+  border-color: rgba(187, 34, 40, 0.4);
+}
+
+.see-more-movies {
+  width: 220px;
+  height: 340px;
+  background: linear-gradient(135deg, #BB2228, #8B191E);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 24px rgba(187, 34, 40, 0.3);
+}
+
+.see-more-movies:hover {
+  background: linear-gradient(135deg, #D42730, #BB2228);
+  transform: translateY(-8px) scale(1.05);
+  box-shadow: 0 16px 40px rgba(187, 34, 40, 0.4);
+}

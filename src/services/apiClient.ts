@@ -68,30 +68,35 @@ api.interceptors.request.use((config: RetryRequestConfig) => {
       console.debug(`[apiClient] attaching Authorization Bearer ****${tail}`);
     }
   }
-  // cancellation of duplicates
-  const key = buildRequestKey(config);
-  config._requestKey = key;
-  if (pending.has(key)) {
-    // cancel previous identical request
-    pending.get(key)!.abort();
-    pending.delete(key);
-  }
-  const controller = new AbortController();
-  config.signal = controller.signal;
-  pending.set(key, controller);
+  
+  // DESHABILITADO: Cancelación de solicitudes duplicadas causa problemas con React
+  // const key = buildRequestKey(config);
+  // config._requestKey = key;
+  // if (pending.has(key)) {
+  //   // cancel previous identical request
+  //   pending.get(key)!.abort();
+  //   pending.delete(key);
+  // }
+  // const controller = new AbortController();
+  // config.signal = controller.signal;
+  // pending.set(key, controller);
+  
   return config;
 });
 
 // Response interceptor: clear pending map & handle 401 refresh
 api.interceptors.response.use(
   (response) => {
-    const cfg = response.config as RetryRequestConfig;
-    if (cfg._requestKey) pending.delete(cfg._requestKey);
+    // DESHABILITADO: Ya no usamos pending map
+    // const cfg = response.config as RetryRequestConfig;
+    // if (cfg._requestKey) pending.delete(cfg._requestKey);
     return response;
   },
   async (error) => {
+    // DESHABILITADO: Ya no usamos pending map
+    // const cfg = error.config as RetryRequestConfig | undefined;
+    // if (cfg?._requestKey) pending.delete(cfg._requestKey);
     const cfg = error.config as RetryRequestConfig | undefined;
-    if (cfg?._requestKey) pending.delete(cfg._requestKey);
     const status = error.response?.status;
     if (status === 401 && cfg && !cfg._retry) {
       // debug 401s in dev to understand why backend rejected the request

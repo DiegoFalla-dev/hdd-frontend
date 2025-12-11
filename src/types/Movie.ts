@@ -8,7 +8,8 @@ export interface Movie {
   imagenCard?: string;
   synopsis?: string;
   genre?: string;
-  durationMinutes?: number;
+  duration?: string; // Human readable: "1h 52min", "2h", etc.
+  classification?: string; // Rating: +14, +18, APT, etc.
   bannerUrl?: string;
   posterUrl?: string;
   trailerUrl?: string;
@@ -17,6 +18,7 @@ export interface Movie {
   languages?: string[];
   formats?: string[]; // 2D, 3D, IMAX
   rating?: number; // promedio
+  cast?: string[]; // Reparto de la película
 }
 
 export interface Paginated<T> {

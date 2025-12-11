@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"name": "hdd-frontend",
+			"path": "../../.."
+		},
+		{
+			"name": "hdd-backend",
+			"path": "../../../../../IntelliJ/hdd-backend"
+		}
+	]
+}

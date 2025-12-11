@@ -50,20 +50,25 @@ const Cines = () => {
   const uniqueFormats = Array.from(new Set(cinemas.flatMap(cinema => cinema.availableFormats || [])));
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--cinepal-gray-900)' }}>
+    <div className="min-h-screen pt-16 text-neutral-100" style={{ background: 'linear-gradient(180deg, #141113 0%, #0b0b0b 100%)' }}>
       <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-10">
-        <h1 className="text-4xl md:text-5xl font-extrabold mb-8 flex items-center gap-3" style={{ color: 'var(--cinepal-primary)' }}>
-          <FaBuilding className="inline-block text-[2.2rem]" /> Cines
-        </h1>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 animate-fade-in">
+        {/* Header premium con gradiente */}
+        <div className="mb-8 pb-4 border-b border-white/5 animate-slide-up">
+          <h1 className="text-5xl font-black tracking-tight mb-3 bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent flex items-center gap-3">
+            <FaBuilding className="inline-block text-[2.2rem]" /> Cines
+          </h1>
+          <p className="text-neutral-400 text-lg">Descubre todos nuestros cines y formatos disponibles</p>
+        </div>
 
-        <div className="mb-8 flex flex-col md:flex-row gap-4">
-          <div className="flex-1 --cinepal-gray-700/80 backdrop-blur-md p-4 rounded-xl shadow-md flex items-center gap-2 border border-[var(--cinepal-gray-700)]">
-            <FaBuilding className="text-[1.3rem] text-[var(--cinepal-primary)] mr-2" />
+        {/* Filtros con glassmorphism */}
+        <div className="mb-10 flex flex-col md:flex-row gap-4">
+          <div className="flex-1 card-glass p-4 rounded-xl shadow-md flex items-center gap-2 animate-slide-up">
+            <FaBuilding className="text-[1.3rem] text-[#BB2228] mr-2" />
             <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
-              className="w-full p-2 rounded-lg bg-transparent text-[var(--cinepal-bg-100)] focus:outline-none focus:ring-2 focus:ring-[var(--cinepal-primary)]"
+              className="w-full p-2 rounded-lg bg-transparent text-white focus:outline-none focus:ring-2 focus:ring-[#BB2228]"
               style={{ fontFamily: 'inherit' }}
             >
               <option value="Todas las ciudades">Todas las ciudades</option>
@@ -72,12 +77,12 @@ const Cines = () => {
               ))}
             </select>
           </div>
-          <div className="flex-1 --cinepal-gray-700/80 backdrop-blur-md p-4 rounded-xl shadow-md flex items-center gap-2 border border-[var(--cinepal-gray-700)]">
-            <FaFilm className="text-[1.3rem] text-[var(--cinepal-primary)] mr-2" />
+          <div className="flex-1 card-glass p-4 rounded-xl shadow-md flex items-center gap-2 animate-slide-up">
+            <FaFilm className="text-[1.3rem] text-[#BB2228] mr-2" />
             <select
               value={selectedFormat}
               onChange={(e) => setSelectedFormat(e.target.value)}
-              className="w-full p-2 rounded-lg bg-transparent text-[var(--cinepal-bg-100)] focus:outline-none focus:ring-2 focus:ring-[var(--cinepal-primary)]"
+              className="w-full p-2 rounded-lg bg-transparent text-white focus:outline-none focus:ring-2 focus:ring-[#BB2228]"
               style={{ fontFamily: 'inherit' }}
             >
               <option value="Todos los formatos">Todos los formatos</option>
@@ -88,37 +93,36 @@ const Cines = () => {
           </div>
         </div>
 
+        {/* Grid de cines con animación y glassmorphism */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8">
-          {filteredCinemas.map((cinema) => (
+          {filteredCinemas.map((cinema, idx) => (
             <div
               key={cinema.id}
-              className="cine-card bg-gray rounded-2xl shadow-lg p-0 cursor-pointer transform transition-transform hover:scale-105 hover:shadow-2xl border border-[var(--cinepal-gray-700)] group flex flex-col"
+              className="card-glass rounded-2xl shadow-xl p-0 cursor-pointer transform transition-transform hover:scale-105 hover:shadow-2xl group flex flex-col animate-scale-in"
+              style={{ minHeight: 340, animationDelay: `${idx * 0.07}s` }}
               onClick={() => handleCineClick(cinema.name)}
-              style={{ minHeight: 340 }}
             >
               <div className="relative">
                 <img
                   src={cinema.image}
                   alt={cinema.name}
                   className="w-full h-48 object-cover rounded-t-2xl group-hover:brightness-90 transition duration-200"
-                  style={{ borderBottom: '1px solid var(--cinepal-bg-100)' }}
+                  style={{ borderBottom: '1px solid #E3E1E2' }}
                 />
-                <span className="absolute top-3 left-3 bg-[var(--cinepal-primary)] text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
+                <span className="absolute top-3 left-3 bg-gradient-to-r from-[#BB2228] to-[#8B191E] text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
                   <FaBuilding className="inline-block mr-1" /> {cinema.city}
                 </span>
               </div>
               <div className="flex-1 flex flex-col justify-between p-4">
-                <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--cinepal-bg-100)' }}>{cinema.name}</h3>
-                <p className="text-gray-700 flex items-center gap-2 mb-2">
-                  <FaMapMarkerAlt className="text-[var(--cinepal-primary)]" /><p className="text-[var(--cinepal-bg-100)]">
-                    {cinema.address}
-                    </p> 
-                  </p>
-
-                <div className="flex flex-wrap gap-2 mt-2 --cinepal-bg-100">
+                <h3 className="text-xl font-bold mb-2 text-white group-hover:text-[#BB2228] transition-colors duration-300">{cinema.name}</h3>
+                <p className="text-neutral-400 flex items-center gap-2 mb-2">
+                  <FaMapMarkerAlt className="text-[#BB2228]" />
+                  <span>{cinema.address}</span>
+                </p>
+                <div className="flex flex-wrap gap-2 mt-2">
                   {cinema.availableFormats?.map((format, index) => (
-                    <span key={index} className="inline-flex items-center gap-1 bg-[var(--cinepal-bg-200)] rounded-full px-3 py-1 text-xs font-semibold text-[var(--cinepal-gray-700)] shadow">
-                      <FaFilm className="text-[var(--cinepal-primary-700)]" /> {format}
+                    <span key={index} className="inline-flex items-center gap-1 bg-white/10 rounded-full px-3 py-1 text-xs font-semibold text-[#BB2228] shadow">
+                      <FaFilm className="text-[#BB2228]" /> {format}
                     </span>
                   ))}
                 </div>
@@ -126,7 +130,7 @@ const Cines = () => {
             </div>
           ))}
         </div>
-      </div>
+      </main>
       <Footer />
     </div>
   );

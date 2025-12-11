@@ -139,115 +139,278 @@ export default function ShowtimesAdmin() {
 
   return (
     <ProtectedRoute roles={["STAFF", "ADMIN"]}>
-      <div style={{ background: "var(--cinepal-gray-900)", color: "var(--cinepal-bg-100)" }} className="min-h-screen pt-16">
-        <Navbar />
-        <div className="p-8 max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6">Funciones</h1>
+      <div style={{ background: "linear-gradient(180deg, #141113 0%, #0b0b0b 100%)" }} className="min-h-screen">
+        <Navbar variant="dark" />
+        
+        {/* Header */}
+        <div className="relative pt-24 pb-12 px-8 animate-fade-in">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center gap-6 mb-2">
+              <div className="text-5xl">🎞️</div>
+              <div className="flex-1">
+                <h1 className="text-5xl font-black bg-gradient-to-r from-[#BB2228] to-[#E3E1E2] bg-clip-text text-transparent">
+                  Gestión de Funciones
+                </h1>
+                <p className="text-lg text-[#E3E1E2]/70 mt-2 font-semibold">Programa horarios y precios de películas</p>
+              </div>
+            </div>
+            <div className="w-32 h-1.5 bg-gradient-to-r from-[#BB2228] to-[#8B191E] rounded-full mt-4"></div>
+          </div>
+        </div>
 
-          <form onSubmit={create} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="md:col-span-3">
-              <label className="block text-sm font-medium mb-1">Cine *</label>
-              <select className="p-2 rounded w-full" style={{ backgroundColor: 'var(--cinepal-bg-100)', color: 'var(--cinepal-gray-900)' }} value={form.cinemaId || ''} onChange={e => setForm(f => ({ ...f, cinemaId: Number(e.target.value) }))}>
-                <option value="">Seleccionar...</option>
-                {cinemas.map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Película *</label>
-              <select className="p-2 rounded w-full" disabled={!form.cinemaId} style={{ backgroundColor: 'var(--cinepal-bg-100)', color: 'var(--cinepal-gray-900)' }} value={form.movieId || ''} onChange={e => setForm(f => ({ ...f, movieId: Number(e.target.value) }))}>
-                <option value="">Seleccionar...</option>
-                {movies.map(m => (<option key={m.id} value={m.id}>{m.title}</option>))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Sala *</label>
-              <select className="p-2 rounded w-full" style={{ backgroundColor: 'var(--cinepal-bg-100)', color: 'var(--cinepal-gray-900)' }} value={form.theaterId || ''} onChange={e => setForm(f => ({ ...f, theaterId: Number(e.target.value) }))} disabled={!form.cinemaId || !theaters.length}>
-                <option value="">Seleccionar...</option>
-                {theaters.map(t => (<option key={t.id} value={t.id}>{t.name}</option>))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Fecha *</label>
-              <input className="p-2 rounded w-full" disabled={!form.cinemaId} style={{ backgroundColor: 'var(--cinepal-bg-100)', color: 'var(--cinepal-gray-900)' }} type="date" value={form.date || ''} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Hora *</label>
-              <select className="p-2 rounded w-full" disabled={!form.cinemaId} style={{ backgroundColor: 'var(--cinepal-bg-100)', color: 'var(--cinepal-gray-900)' }} value={form.time || ''} onChange={e => setForm(f => ({ ...f, time: e.target.value }))}>
-                <option value="">Seleccionar...</option>
-                {timeOptions.map(t => (<option key={t} value={t}>{t}</option>))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Formato *</label>
-              <select className="p-2 rounded w-full" disabled={!form.cinemaId} style={{ backgroundColor: 'var(--cinepal-bg-100)', color: 'var(--cinepal-gray-900)' }} value={form.format || ''} onChange={e => setForm(f => ({ ...f, format: e.target.value }))}>
-                <option value="">Seleccionar...</option>
-                {formatOptions.map(fm => (<option key={fm} value={fm}>{fm}</option>))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Idioma *</label>
-              <select className="p-2 rounded w-full" disabled={!form.cinemaId} style={{ backgroundColor: 'var(--cinepal-bg-100)', color: 'var(--cinepal-gray-900)' }} value={form.language || ''} onChange={e => setForm(f => ({ ...f, language: e.target.value }))}>
-                <option value="">Seleccionar...</option>
-                {languageOptions.map(l => (<option key={l} value={l}>{l}</option>))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Precio *</label>
-              <input className="p-2 rounded w-full" disabled={!form.cinemaId} style={{ backgroundColor: 'var(--cinepal-bg-100)', color: 'var(--cinepal-gray-900)' }} type="number" step="0.01" min="0" placeholder="10.00" value={form.price || ''} onChange={e => setForm(f => ({ ...f, price: Number(e.target.value) }))} />
-            </div>
-            <div className="flex items-end gap-2 md:col-span-1">
-              <button type="submit" disabled={saving} className="px-4 py-2 rounded flex-1" style={{ backgroundColor: 'var(--cinepal-primary)', color: 'var(--cinepal-bg-100)', opacity: saving ? 0.7 : 1 }}>
-                {saving ? (editingId ? 'Guardando...' : 'Creando...') : (editingId ? 'Guardar Cambios' : 'Crear Función')}
-              </button>
-              {editingId && (
-                <button type="button" onClick={cancelEdit} className="px-4 py-2 rounded" style={{ backgroundColor: 'var(--cinepal-gray-600)', color: 'var(--cinepal-bg-100)' }}>
-                  Cancelar
+        <div className="px-8 pb-12 max-w-7xl mx-auto -mt-8">
+          {/* Formulario */}
+          <form onSubmit={create} className="rounded-xl p-8 mb-8 relative overflow-hidden" style={{ 
+            backgroundColor: 'var(--cinepal-gray-800)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)'
+          }}>
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-red-700 to-red-800" />
+            
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <span className="text-2xl">{editingId ? '✏️' : '➕'}</span>
+              {editingId ? 'Editar Función' : 'Nueva Función'}
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="md:col-span-3">
+                <label className="block text-sm font-medium mb-2 text-gray-300">🏢 Cine *</label>
+                <select 
+                  className="p-4 rounded-lg w-full transition-all focus:ring-2 focus:ring-red-500" 
+                  style={{ backgroundColor: 'var(--cinepal-gray-700)', color: 'var(--cinepal-bg-100)', border: 'none' }} 
+                  value={form.cinemaId || ''} 
+                  onChange={e => setForm(f => ({ ...f, cinemaId: Number(e.target.value) }))}
+                >
+                  <option value="">Seleccionar cine...</option>
+                  {cinemas.map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-300">🎬 Película *</label>
+                <select 
+                  className="p-4 rounded-lg w-full transition-all focus:ring-2 focus:ring-red-500" 
+                  disabled={!form.cinemaId} 
+                  style={{ 
+                    backgroundColor: form.cinemaId ? 'var(--cinepal-gray-700)' : 'var(--cinepal-gray-600)', 
+                    color: 'var(--cinepal-bg-100)', 
+                    border: 'none',
+                    opacity: form.cinemaId ? 1 : 0.6
+                  }} 
+                  value={form.movieId || ''} 
+                  onChange={e => setForm(f => ({ ...f, movieId: Number(e.target.value) }))}
+                >
+                  <option value="">Seleccionar película...</option>
+                  {movies.map(m => (<option key={m.id} value={m.id}>{m.title}</option>))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-300">🎭 Sala *</label>
+                <select 
+                  className="p-4 rounded-lg w-full transition-all focus:ring-2 focus:ring-red-500" 
+                  style={{ 
+                    backgroundColor: (form.cinemaId && theaters.length) ? 'var(--cinepal-gray-700)' : 'var(--cinepal-gray-600)', 
+                    color: 'var(--cinepal-bg-100)', 
+                    border: 'none',
+                    opacity: (form.cinemaId && theaters.length) ? 1 : 0.6
+                  }} 
+                  value={form.theaterId || ''} 
+                  onChange={e => setForm(f => ({ ...f, theaterId: Number(e.target.value) }))} 
+                  disabled={!form.cinemaId || !theaters.length}
+                >
+                  <option value="">Seleccionar sala...</option>
+                  {theaters.map(t => (<option key={t.id} value={t.id}>{t.name}</option>))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-300">📅 Fecha *</label>
+                <input 
+                  className="p-4 rounded-lg w-full transition-all focus:ring-2 focus:ring-red-500" 
+                  disabled={!form.cinemaId} 
+                  style={{ 
+                    backgroundColor: form.cinemaId ? 'var(--cinepal-gray-700)' : 'var(--cinepal-gray-600)', 
+                    color: 'var(--cinepal-bg-100)', 
+                    border: 'none',
+                    opacity: form.cinemaId ? 1 : 0.6
+                  }} 
+                  type="date" 
+                  value={form.date || ''} 
+                  onChange={e => setForm(f => ({ ...f, date: e.target.value }))} 
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-300">⏰ Hora *</label>
+                <select 
+                  className="p-4 rounded-lg w-full transition-all focus:ring-2 focus:ring-red-500" 
+                  disabled={!form.cinemaId} 
+                  style={{ 
+                    backgroundColor: form.cinemaId ? 'var(--cinepal-gray-700)' : 'var(--cinepal-gray-600)', 
+                    color: 'var(--cinepal-bg-100)', 
+                    border: 'none',
+                    opacity: form.cinemaId ? 1 : 0.6
+                  }} 
+                  value={form.time || ''} 
+                  onChange={e => setForm(f => ({ ...f, time: e.target.value }))}
+                >
+                  <option value="">Seleccionar hora...</option>
+                  {timeOptions.map(t => (<option key={t} value={t}>{t}</option>))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-300">🎥 Formato *</label>
+                <select 
+                  className="p-4 rounded-lg w-full transition-all focus:ring-2 focus:ring-red-500" 
+                  disabled={!form.cinemaId} 
+                  style={{ 
+                    backgroundColor: form.cinemaId ? 'var(--cinepal-gray-700)' : 'var(--cinepal-gray-600)', 
+                    color: 'var(--cinepal-bg-100)', 
+                    border: 'none',
+                    opacity: form.cinemaId ? 1 : 0.6
+                  }} 
+                  value={form.format || ''} 
+                  onChange={e => setForm(f => ({ ...f, format: e.target.value }))}
+                >
+                  <option value="">Seleccionar formato...</option>
+                  {formatOptions.map(fm => (<option key={fm} value={fm}>{fm}</option>))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-300">🗣️ Idioma *</label>
+                <select 
+                  className="p-4 rounded-lg w-full transition-all focus:ring-2 focus:ring-red-500" 
+                  disabled={!form.cinemaId} 
+                  style={{ 
+                    backgroundColor: form.cinemaId ? 'var(--cinepal-gray-700)' : 'var(--cinepal-gray-600)', 
+                    color: 'var(--cinepal-bg-100)', 
+                    border: 'none',
+                    opacity: form.cinemaId ? 1 : 0.6
+                  }} 
+                  value={form.language || ''} 
+                  onChange={e => setForm(f => ({ ...f, language: e.target.value }))}
+                >
+                  <option value="">Seleccionar idioma...</option>
+                  {languageOptions.map(l => (<option key={l} value={l}>{l}</option>))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-300">💰 Precio *</label>
+                <input 
+                  className="p-4 rounded-lg w-full transition-all focus:ring-2 focus:ring-red-500" 
+                  disabled={!form.cinemaId} 
+                  style={{ 
+                    backgroundColor: form.cinemaId ? 'var(--cinepal-gray-700)' : 'var(--cinepal-gray-600)', 
+                    color: 'var(--cinepal-bg-100)', 
+                    border: 'none',
+                    opacity: form.cinemaId ? 1 : 0.6
+                  }} 
+                  type="number" 
+                  step="0.01" 
+                  min="0" 
+                  placeholder="10.00" 
+                  value={form.price || ''} 
+                  onChange={e => setForm(f => ({ ...f, price: Number(e.target.value) }))} 
+                />
+              </div>
+
+              <div className="md:col-span-3 flex items-center gap-3 flex-wrap">
+                <button 
+                  type="submit" 
+                  disabled={saving} 
+                  className="px-6 py-3 rounded-lg font-semibold transition-all hover:scale-105 bg-gradient-to-r from-red-600 to-red-700 text-white"
+                  style={{ opacity: saving ? 0.7 : 1 }}
+                >
+                  {saving ? (editingId ? '⏳ Guardando...' : '⏳ Creando...') : (editingId ? '✓ Guardar Cambios' : '+ Crear Función')}
                 </button>
-              )}
+                {editingId && (
+                  <button 
+                    type="button" 
+                    onClick={cancelEdit} 
+                    className="px-6 py-3 rounded-lg font-semibold transition-all hover:scale-105" 
+                    style={{ backgroundColor: 'var(--cinepal-gray-700)', color: 'var(--cinepal-bg-100)' }}
+                  >
+                    ✕ Cancelar
+                  </button>
+                )}
+                {errorMsg && (
+                  <div className="flex items-center px-4 py-3 rounded-lg bg-red-500/20 text-red-300">
+                    {errorMsg}
+                  </div>
+                )}
+              </div>
             </div>
           </form>
 
-          {errorMsg && (
-            <div className="mt-2 text-sm opacity-80">{errorMsg}</div>
-          )}
-
-          <div className="mt-6">
-            <h2 className="text-2xl font-bold mb-4">Funciones existentes</h2>
-            {/* Agrupar por cineId y mostrar título del cine si está seleccionado */}
-            {form.cinemaId ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {existing
-                  .filter(s => s.cinemaId === form.cinemaId)
-                  .map(s => (
-                    <div key={s.id} className="rounded p-4" style={{ backgroundColor: 'var(--cinepal-gray-700)' }}>
-                      <div className="font-bold">Sala: {s.theaterName || s.theaterId}</div>
-                      <div>Inicio: {s.startTime}</div>
-                      <div>Formato: {s.format} | Idioma: {s.language}</div>
-                      <div className="flex gap-2 mt-2">
-                        <button className="px-3 py-2 rounded flex-1" style={{ backgroundColor: 'var(--cinepal-secondary)', color: 'var(--cinepal-bg-100)' }} onClick={() => editShowtime(s)}>Editar</button>
-                        <button className="px-3 py-2 rounded flex-1" style={{ backgroundColor: 'var(--cinepal-primary)', color: 'var(--cinepal-bg-100)' }} onClick={() => removeShowtime(s.id!)}>Borrar</button>
+          {/* Listado de Funciones */}
+          <div>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+              <span className="text-2xl">📋</span>
+              {form.cinemaId 
+                ? `Funciones de ${cinemas.find(c => c.id === form.cinemaId)?.name || 'este cine'} (${existing.filter(s => s.cinemaId === form.cinemaId).length})`
+                : `Todas las Funciones (${existing.length})`
+              }
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {(form.cinemaId 
+                ? existing.filter(s => s.cinemaId === form.cinemaId)
+                : existing
+              ).map(s => (
+                <div 
+                  key={s.id} 
+                  className="rounded-xl p-6 group hover:scale-105 transition-all duration-300 relative overflow-hidden" 
+                  style={{ 
+                    backgroundColor: 'var(--cinepal-gray-800)',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)'
+                  }}
+                >
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-red-600/20 to-transparent rounded-bl-full" />
+                  
+                  <div className="relative z-10">
+                    {!form.cinemaId && (
+                      <div className="font-bold text-lg mb-2 text-red-400">
+                        🏢 {cinemas.find(c => c.id === s.cinemaId)?.name || `Cine ${s.cinemaId}`}
                       </div>
+                    )}
+                    <div className="font-bold text-xl mb-3">
+                      🎭 {s.theaterName || `Sala ${s.theaterId}`}
                     </div>
-                  ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {existing.map(s => (
-                  <div key={s.id} className="rounded p-4" style={{ backgroundColor: 'var(--cinepal-gray-700)' }}>
-                    <div className="font-bold">Cine: {cinemas.find(c => c.id === s.cinemaId)?.name || s.cinemaId}</div>
-                    <div className="font-bold">Sala: {s.theaterName || s.theaterId}</div>
-                    <div>Inicio: {s.startTime}</div>
-                    <div>Formato: {s.format} | Idioma: {s.language}</div>
-                    <div className="flex gap-2 mt-2">
-                      <button className="px-3 py-2 rounded flex-1" style={{ backgroundColor: 'var(--cinepal-secondary)', color: 'var(--cinepal-bg-100)' }} onClick={() => editShowtime(s)}>Editar</button>
-                      <button className="px-3 py-2 rounded flex-1" style={{ backgroundColor: 'var(--cinepal-primary)', color: 'var(--cinepal-bg-100)' }} onClick={() => removeShowtime(s.id!)}>Borrar</button>
+                    <div className="space-y-2 mb-4 text-sm">
+                      <div className="text-gray-300">⏰ {s.startTime}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="bg-red-500/20 text-red-300 px-2 py-1 rounded font-medium">{s.format}</span>
+                        <span className="bg-gray-700 text-gray-300 px-2 py-1 rounded">{s.language}</span>
+                      </div>
+                      <div className="text-lg font-bold text-red-400">💰 ${s.price?.toFixed(2)}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        className="flex-1 px-4 py-2 rounded-lg font-medium transition-all hover:scale-105" 
+                        style={{ backgroundColor: 'var(--cinepal-gray-700)', color: 'var(--cinepal-bg-100)' }} 
+                        onClick={() => editShowtime(s)}
+                      >
+                        ✏️ Editar
+                      </button>
+                      <button 
+                        className="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 bg-gradient-to-r from-red-600 to-red-700 text-white" 
+                        onClick={() => removeShowtime(s.id!)}
+                      >
+                        🗑️
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                  
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-red-700 to-red-800 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
+        
         <Footer />
       </div>
     </ProtectedRoute>

@@ -44,6 +44,7 @@ export default {
   getRefreshToken,
   setAuthTokens,
   clearAuthTokens,
+  clearOrderStorage,
   clearAllAppStorage,
 };
 
@@ -68,6 +69,33 @@ export function getRefreshToken(): string | null {
 export function clearAuthTokens() {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
+// Clears order-related data from localStorage without affecting auth tokens
+export function clearOrderStorage() {
+  try {
+    // Only remove specific order-related keys - be conservative!
+    const orderKeys = [
+      'pendingOrder',
+      'selectedEntradas',
+      'cartStore',
+      'seatSelections',
+      'movieSelection',
+      'showtimeSelection',
+    ];
+    
+    orderKeys.forEach(key => {
+      try {
+        localStorage.removeItem(key);
+      } catch (e) {
+        // Ignore individual key errors
+      }
+    });
+    
+    console.log('✓ Order storage cleared');
+  } catch (e) {
+    console.warn('clearOrderStorage failed', e);
+  }
 }
 
 // Clears all local storage related to the app and session, and best-effort caches

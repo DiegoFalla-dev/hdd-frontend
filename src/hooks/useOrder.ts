@@ -10,13 +10,21 @@ export function useOrder(orderId: number | undefined) {
       return orderService.getOrder(orderId);
     },
     enabled: !!orderId,
-    retry: 1,
-    refetchInterval: (data) => {
+    retry: (failureCount, error) => {
+      // No retry en 404 (orden no encontrada)
+      if (error instanceof Error && 'status' in error) {
+        const status = (error as any).status;
+        if (status === 404) return false;
+      }
+      return failureCount < 2;
+    },
+    refetchInterval: (query) => {
+      const data = query.state.data;
       if (!data) return 5000; // mientras carga
-      // `data` may be typed differently by react-query; coerce safely
-      const d = data as unknown as OrderDTO | undefined;
-      return d?.orderStatus === 'PENDING' ? 5000 : false;
+      // Refetch cada 5s si está pendiente
+      return data.orderStatus === 'PENDING' ? 5000 : false;
     },
     refetchIntervalInBackground: true,
+    staleTime: 30_000, // 30s para órdenes
   });
 }
