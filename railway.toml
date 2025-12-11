@@ -1,9 +1,8 @@
-# Railway configuration for custom build and start commands
-# Docs: https://docs.railway.app/deploy/configure#builds-and-starts
-
+# Disable Railpack / Nixpacks completely
 [build]
 builder = "NONE"
+buildCommand = "echo 'Skipping build step'"
 
+# Start server directly (no build step)
 [start]
-# Custom start command: build and preview in one step
 command = "npm run preview -- --host 0.0.0.0 --port $PORT"
