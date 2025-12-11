@@ -7,4 +7,4 @@ command = "echo Skipping build step"
 
 [start]
 # Custom start command: build and preview in one step
-command = "npm run build && npm run preview -- --host 0.0.0.0 --port $PORT"
+command = "npm run preview -- --host 0.0.0.0 --port $PORT"
