@@ -152,18 +152,25 @@ const Navbar: React.FC<NavbarProps> = ({ variant = 'light' }) => {
           </ul>
         </nav>
         <div className="navbar-right">
-          {user && user.favoriteCinema ? (
-            <div className="cinema-selector-selected">
-              <FaMapMarkerAlt size={16} color={(isHome || forceDark) ? 'white' : 'black'} />
-              <span>{typeof user.favoriteCinema === 'object' ? user.favoriteCinema || '' : user.favoriteCinema}</span>
-            </div>
-          ) : (
-            <button className={`cinema-selector ${(isHome || forceDark) ? 'bg-white/20 text-white' : ''}`} onClick={handleOpenModal}>
-              <FaMapMarkerAlt size={16} color={(isHome || forceDark) ? 'white' : 'black'} />
-              <span>{selectedCinema ? selectedCinema.name : 'ELEGIR CINE'}</span>
-              <FaChevronDown size={12} color={(isHome || forceDark) ? 'white' : 'black'} />
-            </button>
-          )}
+          {/* Mantener SIEMPRE como botón seleccionable, incluso logueado */}
+          <button className={`cinema-selector ${(isHome || forceDark) ? 'bg-white/20 text-white' : ''}`} onClick={handleOpenModal}>
+            <FaMapMarkerAlt size={16} color={(isHome || forceDark) ? 'white' : 'black'} />
+            <span>
+              {(() => {
+                // Prioridad para mostrar nombre:
+                // 1) Cine seleccionado (state/localStorage)
+                // 2) favoriteCinema del usuario (string o objeto con name)
+                // 3) placeholder
+                const fav = user
+                  ? (typeof user.favoriteCinema === 'string'
+                      ? user.favoriteCinema
+                      : (user as any)?.favoriteCinema?.name ?? null)
+                  : null;
+                return (selectedCinema ? selectedCinema.name : (fav || 'ELEGIR CINE'));
+              })()}
+            </span>
+            <FaChevronDown size={12} color={(isHome || forceDark) ? 'white' : 'black'} />
+          </button>
           <button type="button" className="icon-user" aria-label="Perfil usuario" onClick={() => setIsProfileOpen(true)}>
             <FaUser size={20} color={(isHome || forceDark) ? 'white' : 'black'} />
           </button>

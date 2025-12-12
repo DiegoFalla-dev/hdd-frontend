@@ -18,18 +18,11 @@ function safeParse<T>(raw: string | null): T | null {
 }
 
 export function getFavoriteCinema(): string | null {
-
   const userDataString = localStorage.getItem(LOCAL_STORAGE_KEY);
-  if (!userDataString){
-    console.warn(`La clave '${LOCAL_STORAGE_KEY}' no existe en localStorage.`);
-    return null;
-  }try {
-    const userObject: User = JSON.parse(userDataString) as User;
-    return userObject.favoriteCinema || null;
-  } catch (error) {
-    console.error('Error al parsear el JSON de usuario en localStorage: ', error);
-    return null;
-  }
+  if (!userDataString) return null; // sin usuario guardado, devolvemos null sin ruido en consola
+
+  const userObject = safeParse<User>(userDataString);
+  return userObject?.favoriteCinema ?? null;
 }
 // Deprecated legacy selection helpers (cine + movie). Flow migrated to Zustand stores.
 // Kept as no-op stubs to avoid accidental runtime import failures during transition.

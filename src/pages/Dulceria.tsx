@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import SideModal from '../components/SideModal';
@@ -9,7 +9,6 @@ import { useConcessions } from '../hooks/useConcessions';
 import { useCinemas } from '../hooks/useCinemas';
 import { useShowtimeSelectionStore } from '../store/showtimeSelectionStore';
 import { useCartStore } from '../store/cartStore';
-import { useAuth } from '../context/AuthContext';
 
 type ProductsByCategory = {
   COMBOS: ConcessionProduct[];
@@ -19,8 +18,7 @@ type ProductsByCategory = {
 };
 
 export default function Dulceria() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  // const navigate = useNavigate();
   const selection = useShowtimeSelectionStore(s => s.selection);
   const [selectedCine, setSelectedCine] = useState<Cinema | null>(null);
   const [productos, setProductos] = useState<ProductsByCategory | null>(null);
@@ -28,18 +26,16 @@ export default function Dulceria() {
   const [showCineModal, setShowCineModal] = useState(false);
   // error state removed (not used)
   const { data: cines = [], isLoading: loadingCines } = useCinemas();
-  const { data: concessionProducts = [], isLoading: loadingProductos } = useConcessions(selectedCine?.id);
+  const { data: concessionProducts, isLoading: loadingProductos } = useConcessions(selectedCine?.id);
 
   // Agrupar productos por categoría cuando llegan
   useEffect(() => {
-    if (!concessionProducts || concessionProducts.length === 0) {
-      setProductos(null);
-      return;
-    }
+    if (!concessionProducts) return;
     const grouped: ProductsByCategory = { COMBOS: [], CANCHITA: [], BEBIDAS: [], SNACKS: [] };
     concessionProducts.forEach(p => {
       if (grouped[p.category]) grouped[p.category].push(p); else console.warn('Categoría no reconocida:', p.category);
     });
+    // Incluso si llega vacío, establecemos grouped para mostrar mensaje “sin productos” en vez de skeleton infinito
     setProductos(grouped);
   }, [concessionProducts]);
 
@@ -50,10 +46,15 @@ export default function Dulceria() {
 
   const handleApply = () => {
     if (selectedCine) {
+      // Persistir selección para que Navbar la lea y refleje
+      try {
+        localStorage.setItem('selectedCine', JSON.stringify(selectedCine));
+      } catch (e) {
+        console.warn('No se pudo persistir selectedCine:', e);
+      }
       setShowCineModal(false);
-      // Cerrar modal y mantener selección sin recargar la página
-      // Si otros componentes necesitan saber el cine, deberían leerlo del store
-      // o de un contexto compartido. Evitamos reload para no entrar en bucle.
+      // Forzar refresco para que Navbar la muestre inmediatamente (mismo comportamiento que Navbar)
+      window.location.reload();
     }
   };
 
@@ -66,28 +67,26 @@ export default function Dulceria() {
       const found = cines.find(c => c.id === selection.cinemaId);
       if (found) { setSelectedCine(found); return; }
     }
-    
-    // Si está logueado, intentar cargar cine guardado localmente
-    if (user) {
-      try {
-        const savedCine = localStorage.getItem('selectedCine');
-        if (savedCine) {
-          const parsedCine = JSON.parse(savedCine);
-          // Buscar cine por nombre
-          const found = cines.find(c => c.name === parsedCine.name);
-          if (found) { 
-            setSelectedCine(found);
-            return; 
-          }
+
+    // Intentar cargar cine guardado localmente (aplica con o sin sesión)
+    try {
+      const savedCine = localStorage.getItem('selectedCine');
+      if (savedCine) {
+        const parsedCine = JSON.parse(savedCine);
+        // Buscar cine por id o por nombre
+        const found = cines.find(c => c.id === parsedCine.id) || cines.find(c => c.name === parsedCine.name);
+        if (found) {
+          setSelectedCine(found);
+          return;
         }
-      } catch (e) {
-        console.warn('Error parsing saved cinema:', e);
       }
+    } catch (e) {
+      console.warn('Error parsing saved cinema:', e);
     }
     
     // Si no hay selección previa mostrar modal
     setShowCineModal(true);
-  }, [cines, selection, user]);
+  }, [cines, selection]);
 
   // Eliminado listener a localStorage; migración a store.
 
@@ -113,7 +112,7 @@ export default function Dulceria() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 animate-fade-in">
         {/* Header premium con gradiente */}
         <div className="mb-8 pb-4 border-b border-white/5 animate-slide-up text-center">
-          <h1 className="text-5xl font-black tracking-tight mb-3 bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent inline-block">
+          <h1 className="text-5xl font-black tracking-tight mb-3 bg-linear-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent inline-block">
             🍿 Dulcería
           </h1>
           {selectedCine && (
@@ -140,9 +139,9 @@ export default function Dulceria() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {[1, 2, 3, 4].map((skeleton) => (
                 <div key={skeleton} className="card-glass rounded-2xl p-4 animate-pulse">
-                  <div className="w-full h-48 rounded-xl mb-4 bg-gradient-to-br from-[#393A3A] to-[#141113]"></div>
-                  <div className="h-6 rounded-lg mb-3 bg-gradient-to-r from-[#393A3A] to-[#141113]"></div>
-                  <div className="h-4 rounded-lg w-3/4 bg-gradient-to-r from-[#393A3A] to-[#141113]"></div>
+                  <div className="w-full h-48 rounded-xl mb-4 bg-linear-to-br from-[#393A3A] to-[#141113]"></div>
+                  <div className="h-6 rounded-lg mb-3 bg-linear-to-r from-[#393A3A] to-[#141113]"></div>
+                  <div className="h-4 rounded-lg w-3/4 bg-linear-to-r from-[#393A3A] to-[#141113]"></div>
                 </div>
               ))}
             </div>
@@ -179,7 +178,7 @@ export default function Dulceria() {
                       alt={producto.name}
                       className="w-full h-52 object-cover img-hover-zoom"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#141113] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute inset-0 bg-linear-to-t from-[#141113] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </div>
                   <div className="p-5">
                     <h3 className="text-xl font-bold text-white mb-2 line-clamp-1 group-hover:text-[#BB2228] transition-colors duration-300">{producto.name}</h3>
@@ -215,7 +214,7 @@ export default function Dulceria() {
       </main>
       <SideModal 
         isOpen={showCineModal} 
-        onClose={() => navigate('/')}
+        onClose={() => setShowCineModal(false)}
         title="Seleccionar Cine"
       >
         {loadingCines ? (
