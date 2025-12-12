@@ -35,6 +35,7 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren, Stat
             <p className="text-sm text-gray-400 mb-6">
               Lo sentimos, algo salió mal. Por favor recarga la página o intenta más tarde.
             </p>
+            {/* Comentado: process.env no está disponible sin tipos de Node
             {process.env.NODE_ENV === 'development' && this.state.error && (
               <details className="text-left bg-gray-900 p-4 rounded mb-4 text-xs">
                 <summary className="cursor-pointer font-semibold mb-2">Detalles del error (dev)</summary>
@@ -44,6 +45,7 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren, Stat
                 )}
               </details>
             )}
+            */}
             <button 
               onClick={() => window.location.reload()} 
               className="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition"

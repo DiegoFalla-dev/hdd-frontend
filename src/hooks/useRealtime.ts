@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { fetchAllMovies } from '../services/moviesService';
-import type { Movie } from '../types/Movie';
+// Comentado: Movie no se usa
+// import type { Movie } from '../types/Movie';
 
 /**
  * Hook para sincronización en tiempo real de la cartelera

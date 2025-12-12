@@ -1,5 +1,6 @@
 import axios from 'axios';
-import type { AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
+// Comentado: AxiosRequestConfig no se usa
+import type { InternalAxiosRequestConfig } from 'axios';
 import { API_BASE_URL } from '../config/env';
 import { getAccessToken, getRefreshToken, setAuthTokens, clearAuthTokens } from '../utils/storage';
 
@@ -9,11 +10,15 @@ interface RetryRequestConfig extends InternalAxiosRequestConfig {
 }
 
 // Map to handle duplicate request cancellation
-const pending = new Map<string, AbortController>();
+// Comentado: pending no se usa
+// const pending = new Map<string, AbortController>();
 
+// Comentado: buildRequestKey no se usa
+/*
 function buildRequestKey(config: AxiosRequestConfig) {
   return [config.method, config.url, JSON.stringify(config.params || {}), JSON.stringify(config.data || {})].join('|');
 }
+*/
 
 let refreshPromise: Promise<string | null> | null = null;
 

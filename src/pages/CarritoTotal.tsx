@@ -14,7 +14,7 @@ import { usePaymentMethods } from '../hooks/usePaymentMethods';
 import paymentMethodService from '../services/paymentMethodService';
 import { getUserById, updateBillingInfo } from '../services/userService';
 import { getAccessToken, clearOrderStorage } from '../utils/storage';
-import type { Seat } from '../types/Seat';
+import type { ShowtimeSeat } from '../types/ShowtimeSeat';
 import type { CreateOrderItemDTO } from '../services/orderService';
 // OrderConfirmation type not used here
 
@@ -102,7 +102,9 @@ const CarritoTotal: React.FC = () => {
     const loadUser = async () => {
       if (!user?.id) return;
       try {
-        const data = await getUserById(user.id);
+        // Comentado: conversión de user.id que puede ser string o number
+        const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+        const data = await getUserById(userId);
         setUserProfile(data);
         setBillingRuc(data?.ruc || '');
         setBillingRazonSocial(data?.razonSocial || '');
@@ -113,6 +115,8 @@ const CarritoTotal: React.FC = () => {
     loadUser();
   }, [user?.id]);
 
+  // Comentado: handleRedeemFidelity no se usa
+  /*
   const handleRedeemFidelity = async () => {
     if (!user?.id) {
       toast.error('Debes iniciar sesión para canjear puntos');
@@ -150,6 +154,7 @@ const CarritoTotal: React.FC = () => {
       setIsRedeeming(false);
     }
   };
+  */
 
   const preview = orderPreviewQuery.data;
     // Prefetch del preview cuando se modifica el carrito (optimiza recalculo)
@@ -314,7 +319,9 @@ const CarritoTotal: React.FC = () => {
     setBillingError(null);
     setBillingSaving(true);
     try {
-      await updateBillingInfo(user.id, billingRuc.trim(), billingRazonSocial.trim());
+      // Comentado: conversión de user.id que puede ser string o number
+      const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+      await updateBillingInfo(userId, billingRuc.trim(), billingRazonSocial.trim());
       setBillingMessage('Datos guardados. Tu cuenta no ha sido verificada, contacte con un asesor.');
       setUserProfile((prev: any) => ({ ...prev, ruc: billingRuc.trim(), razonSocial: billingRazonSocial.trim() }));
       toast.success('Información de facturación guardada');
@@ -515,13 +522,13 @@ const CarritoTotal: React.FC = () => {
     );
 
     // Obtener datos de asientos para mapear seatCode -> seatId
-    let seatCodeToIdMap: Record<string, number> = {};
+    let seatCodeToIdMap: Record<string, string | number> = {};
     try {
       // Fetch seats for all showtimes
       const seatsPromises = ticketShowtimeIdsForSeats.map(async (showtimeId) => {
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/showtimes/${showtimeId}/seats`);
         if (!response.ok) throw new Error(`Failed to fetch seats for showtime ${showtimeId}`);
-        const seats: Seat[] = await response.json();
+        const seats: ShowtimeSeat[] = await response.json();
         return seats;
       });
       
@@ -581,7 +588,7 @@ const CarritoTotal: React.FC = () => {
 
         return {
           showtimeId: it.showtimeId!,
-          seatId: seatId,
+          seatId: typeof seatId === 'string' ? parseInt(seatId, 10) : seatId,
           price: price,
           ticketType: it.seatCode ? seatTypeMap[it.seatCode] : undefined,
         };

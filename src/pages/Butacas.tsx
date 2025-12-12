@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams, useParams } from "react-router-dom";
 import { FiX } from "react-icons/fi";
 import { getMovies, type Pelicula } from "../services/moviesService";
-import { useSeats } from "../hooks/useSeats";
+import useSeats from "../hooks/useSeats";
 import { useShowtimes } from "../hooks/useShowtimes";
 import { useSeatSelectionStore } from "../store/seatSelectionStore";
 import { useShowtimeSelectionStore } from "../store/showtimeSelectionStore";
@@ -93,9 +93,10 @@ const Butacas: React.FC = () => {
   });
   const derivedShowtimeId = matchingShowtime?.id;
   const showtimeId = showtimeIdParam ? Number(showtimeIdParam) : (showtimeSelection?.showtimeId || derivedShowtimeId);
-  const { data: remoteSeats, isLoading: seatsLoading } = useSeats(showtimeId || undefined);
-  const { data: occupiedCodes } = useOccupiedSeats(showtimeId || undefined);
-  useSeatOccupancySocket(showtimeId || undefined);
+  const validShowtimeId = typeof showtimeId === 'number' && !isNaN(showtimeId) ? showtimeId : 0;
+  const { data: remoteSeats, isLoading: seatsLoading } = useSeats(validShowtimeId);
+  const { data: occupiedCodes } = useOccupiedSeats(validShowtimeId);
+  useSeatOccupancySocket(validShowtimeId);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const setTicketGroup = useCartStore(s => s.setTicketGroup);
@@ -227,7 +228,8 @@ const Butacas: React.FC = () => {
     return { id, cantidad: Number(qty) || 0 };
   }) : [];
   const totalEntradas = parsedEntradasFromParam.reduce((acc, e) => acc + e.cantidad, 0) || entradas.reduce((acc, e) => acc + e.cantidad, 0);
-  const total = entradas.reduce((acc, e) => acc + e.precio * e.cantidad, 0);
+  // Comentado: total no se usa
+  // const total = entradas.reduce((acc, e) => acc + e.precio * e.cantidad, 0);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
