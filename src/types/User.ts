@@ -8,4 +8,5 @@ export interface User {
   createdAt?: string;
   fidelityPoints?: number;
   lastPurchaseDate?: string;
+  favoriteCinema?: string;
 }

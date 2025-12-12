@@ -44,35 +44,35 @@ const FilterBar: React.FC = () => {
   useEffect(() => {
     let isCancelled = false;
     let timeoutId: ReturnType<typeof setTimeout>;
-    
+
     const fetchData = async () => {
       try {
         console.log('[FilterBar] Starting data fetch...');
-        
+
         const [moviesData, cinemasData] = await Promise.all([
           fetchAllMovies(),
           getAllCinemas()
         ]);
-        
+
         if (isCancelled) {
           console.log('[FilterBar] Component unmounted, ignoring data');
           return;
         }
-        
+
         console.log('[FilterBar] Data received - Movies:', moviesData?.length || 0, 'Cinemas:', cinemasData?.length || 0);
-        
+
         // Actualizar siempre, incluso si está vacío (para salir del loading)
         setMovies(moviesData || []);
         setCinemas(cinemasData || []);
-        
+
         if (!moviesData || moviesData.length === 0) {
           console.warn('[FilterBar] No movies received');
         }
-        
+
         if (!cinemasData || cinemasData.length === 0) {
           console.warn('[FilterBar] No cinemas received');
         }
-        
+
         setLoading(false);
         console.log('[FilterBar] Loading complete');
       } catch (error) {
@@ -80,7 +80,7 @@ const FilterBar: React.FC = () => {
           console.log('[FilterBar] Component unmounted during fetch');
           return;
         }
-        
+
         // Para errores de cancelación en React Strict Mode
         if (axios.isAxiosError(error) && (error.code === 'ERR_CANCELED' || error.name === 'CanceledError')) {
           console.log('[FilterBar] Request cancelled - this happens in React Strict Mode');
@@ -94,7 +94,7 @@ const FilterBar: React.FC = () => {
           }, 1000);
           return;
         }
-        
+
         console.error('[FilterBar] Error fetching data:', error);
         setLoading(false);
       }
@@ -109,7 +109,19 @@ const FilterBar: React.FC = () => {
     }, 10000);
 
     fetchData();
-    
+
+    // Hidratar cine favorito tras login
+    const storedCine = localStorage.getItem('selectedCine');
+    if (storedCine) {
+      try {
+        const cineObj = JSON.parse(storedCine);
+        setCinema(cineObj.id?.toString() || "");
+        setCity(cinemaToCity[cineObj.location] || cineObj.location || "");
+      } catch (e) {
+        // Si hay error, no hacer nada
+      }
+    }
+
     return () => {
       isCancelled = true;
       clearTimeout(timeoutId);

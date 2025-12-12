@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getAccessToken } from '../utils/storage';
-import { API_BASE_URL } from '../config/env';
+import { api } from '../config/env';
 
 interface FidelityRedeemModalProps {
   isOpen: boolean;
   onClose: () => void;
   availablePoints: number;
-  onRedeemSuccess: (pointsRedeemed: number, discountAmount: number) => void;
+  onRedeemSuccess: (discountAmount: number) => void;
 }
 
 export const FidelityRedeemModal: React.FC<FidelityRedeemModalProps> = ({
@@ -44,19 +44,13 @@ export const FidelityRedeemModal: React.FC<FidelityRedeemModalProps> = ({
 
     setIsLoading(true);
     try {
-      const token = getAccessToken();
-      if (!token) {
-        setMessage({ type: 'error', text: 'No hay sesión activa' });
-        setIsLoading(false);
-        return;
-      }
       const response = await fetch(
-        `${API_BASE_URL}/users/${user.id}/redeem-points`,
+        `${api.baseURL}/api/users/${user.id}/redeem-points`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
           },
           body: JSON.stringify({ points: pointsToRedeem }),
         }
@@ -71,7 +65,7 @@ export const FidelityRedeemModal: React.FC<FidelityRedeemModalProps> = ({
 
       setMessage({ type: 'success', text: `¡${pointsToRedeem} puntos canjeados por S/ ${discountValue.toFixed(2)}!` });
       setTimeout(() => {
-        onRedeemSuccess(pointsToRedeem, discountValue);
+        onRedeemSuccess(discountValue);
         onClose();
       }, 1000);
     } catch (error) {

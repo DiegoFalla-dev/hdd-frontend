@@ -1,7 +1,6 @@
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 import type { OrderDTO } from '../services/orderService';
-import api from '../services/apiClient';
 
 const LOGO_URL = 'https://i.imgur.com/K9o09F6.png';
 
@@ -301,22 +300,19 @@ export const generateOrderPDF = async (confirmation: OrderDTO) => {
 
   if (confirmation.orderItems && confirmation.orderItems.length > 0) {
     confirmation.orderItems.forEach((item, idx) => {
-      const seatType = item.seat?.seatType || 'Regular';
-      const seatCode = item.seat?.code || item.seat?.id || 'N/A';
+
       const ticketTypeName = getTicketTypeName(item.ticketType) || 'Regular';
 
       console.log(`Entrada ${idx}:`, {
         ticketType: item.ticketType,
         ticketTypeName,
-        seatCode,
-        seatType,
+
         price: item.price,
       });
 
       pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
       pdf.text(`${idx + 1}`, margin, y);
-      pdf.text(`${ticketTypeName} (${seatType})`, margin + 20, y);
-      pdf.text(seatCode, margin + 280, y);
+
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(COLORS.primaryDark.r, COLORS.primaryDark.g, COLORS.primaryDark.b);
       pdf.text(`S/ ${item.price?.toFixed(2) || '0.00'}`, pageWidth - margin - 60, y, { align: 'right' });
@@ -364,7 +360,6 @@ export const generateOrderPDF = async (confirmation: OrderDTO) => {
     confirmation.orderConcessions.forEach((concession, idx) => {
       pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
       pdf.text(`${idx + 1}`, margin, y);
-      pdf.text(concession.productName, margin + 20, y);
       pdf.text(`${concession.quantity}`, margin + 280, y);
       pdf.text(`S/ ${concession.unitPrice?.toFixed(2) || '0.00'}`, margin + 340, y);
       pdf.setFont('helvetica', 'bold');
@@ -426,41 +421,45 @@ export const generateOrderPDF = async (confirmation: OrderDTO) => {
   pdf.setFont('helvetica', 'normal');
   y += 12;
 
+  const discountAmount = confirmation.discountAmount || 0;
   const fidelityDiscount = confirmation.fidelityDiscountAmount || 0;
+  const promotionDiscountAmount = confirmation.promotion?.value || confirmation.promotion?.discountAmount || 0;
   
-  // LÓGICA DE DESCUENTOS:
-  // 1. Si hay promotion (con promotion_id), mostrar descuento de promoción
-  // 2. Si NO hay promotion pero hay fidelityDiscountAmount, mostrar descuento de fidelización
-  // 3. Si no hay ninguno, no mostrar descuentos
-  
+  // Log para debugging
   console.log('Descuentos en PDF:', {
-    hasPromotion: !!confirmation.promotion,
-    promotion: confirmation.promotion,
+    discountAmount,
     fidelityDiscount,
+    promotionDiscountAmount,
+    promotion: confirmation.promotion,
   });
   
-  // Mostrar descuento por promoción (si existe promotion_id)
-  if (confirmation.promotion && confirmation.promotion.id) {
-    const promotionCode = confirmation.promotion.code || 'PROMOCIÓN APLICADA';
-    const promotionValue = confirmation.promotion.value || confirmation.promotion.discountAmount || 0;
-    
-    if (promotionValue > 0) {
-      pdf.setTextColor(34, 197, 94); // Verde para descuento
-      pdf.text(`Descuento (${promotionCode})`, margin, y);
-      pdf.text(`- S/ ${promotionValue.toFixed(2)}`, rightCol, y, { align: 'right' });
-      pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
-      y += 12;
-    }
-  } 
-  // Si NO hay promoción pero hay descuento por fidelización
-  else if (fidelityDiscount > 0) {
-    pdf.setTextColor(34, 197, 94); // Verde para descuento
+  // Mostrar descuento por promoción
+  if (promotionDiscountAmount > 0) {
+    pdf.setTextColor(34, 197, 94);
+    const promotionText = confirmation.promotion?.code ? `Descuento Promoción (${confirmation.promotion.code})` : 'Descuento Promoción';
+    pdf.text(promotionText, margin, y);
+    pdf.text(`- S/ ${promotionDiscountAmount.toFixed(2)}`, rightCol, y, { align: 'right' });
+    pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+    y += 12;
+  }
+
+  // Mostrar descuento por fidelización
+  if (fidelityDiscount > 0) {
+    pdf.setTextColor(34, 197, 94);
     pdf.text('Descuento Fidelización', margin, y);
     pdf.text(`- S/ ${fidelityDiscount.toFixed(2)}`, rightCol, y, { align: 'right' });
     pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
     y += 12;
   }
-  // Si no hay promoción ni fidelización, no mostrar descuentos
+
+  // Mostrar otro tipo de descuento genérico si existe
+  if (discountAmount > 0 && discountAmount !== promotionDiscountAmount && discountAmount !== fidelityDiscount) {
+    pdf.setTextColor(34, 197, 94);
+    pdf.text('Descuento', margin, y);
+    pdf.text(`- S/ ${discountAmount.toFixed(2)}`, rightCol, y, { align: 'right' });
+    pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
+    y += 12;
+  }
 
   pdf.text('IGV (18%):', margin, y);
   pdf.text(`S/ ${igv.toFixed(2)}`, rightCol, y, { align: 'right' });

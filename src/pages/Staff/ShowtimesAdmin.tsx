@@ -132,10 +132,10 @@ export default function ShowtimesAdmin() {
   };
 
   const timeOptions = useMemo(() => (
-    ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00"]
+    ["14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00"]
   ), []);
   const formatOptions = ["2D","3D","XD"];
-  const languageOptions = ["Español","Inglés","Subtitulado"];
+  const languageOptions = ["Doblada","Subtitulada"];
 
   return (
     <ProtectedRoute roles={["STAFF", "ADMIN"]}>
@@ -376,13 +376,14 @@ export default function ShowtimesAdmin() {
                         🏢 {cinemas.find(c => c.id === s.cinemaId)?.name || `Cine ${s.cinemaId}`}
                       </div>
                     )}
-                    <div className="font-bold text-xl mb-3">
+                    <div className=" text-gray-300 font-bold text-xl mb-3">
                       🎭 {s.theaterName || `Sala ${s.theaterId}`}
                     </div>
                     <div className="space-y-2 mb-4 text-sm">
-                      <div className="text-gray-300">⏰ {s.startTime}</div>
+                      <div className="text-gray-300 font-semibold">🎬 {movies.find(m => m.id === s.movieId)?.title || `Película ${s.movieId}`}</div>
+                      <div className="text-gray-300">⏰ {s.time}</div>
                       <div className="flex items-center gap-2">
-                        <span className="bg-red-500/20 text-red-300 px-2 py-1 rounded font-medium">{s.format}</span>
+                        <span className="bg-red-500/20 text-red-300 px-2 py-1 rounded font-medium">{s.format.replace(/_/g, ' ')}</span>
                         <span className="bg-gray-700 text-gray-300 px-2 py-1 rounded">{s.language}</span>
                       </div>
                       <div className="text-lg font-bold text-red-400">💰 ${s.price?.toFixed(2)}</div>
@@ -410,7 +411,6 @@ export default function ShowtimesAdmin() {
             </div>
           </div>
         </div>
-        
         <Footer />
       </div>
     </ProtectedRoute>

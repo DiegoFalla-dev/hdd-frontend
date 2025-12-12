@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { getAccessToken } from '../utils/storage';
-import { API_BASE_URL } from '../config/env';
+import { api } from '../config/env';
 
 interface FidelityData {
   fidelityPoints: number;
@@ -18,11 +18,9 @@ export const FidelityBadge: React.FC = () => {
     queryKey: ['fidelityPoints', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const token = getAccessToken();
-      if (!token) return null;
-      const response = await fetch(`${API_BASE_URL}/users/${user.id}/fidelity-points`, {
+      const response = await fetch(`${api.baseURL}/api/users/${user.id}/fidelity-points`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
       if (!response.ok) throw new Error('Error fetching fidelity points');

@@ -1,4 +1,4 @@
-import QRCode from 'qrcode';
+﻿import QRCode from 'qrcode';
 
 import React, { useEffect, useState } from 'react';
 import Navbar from '../components/Navbar';
@@ -6,14 +6,13 @@ import { FiX } from 'react-icons/fi';
 import { useOrder } from '../hooks/useOrder';
 import { useParams } from 'react-router-dom';
 import jsPDF from 'jspdf';
-import QRCode from 'qrcode';
 import { useToast } from '../components/ToastProvider';
 import { clearOrderStorage } from '../utils/storage';
 import { useCartStore } from '../store/cartStore';
 import { useSeatSelectionStore } from '../store/seatSelectionStore';
 import { useTicketTypes } from '../hooks/useTicketTypes';
 
-const Confirmacion: React.FC = () => {
+const Confirmacion: React.FC = () => { 
   const { orderId: orderIdParam } = useParams();
   const toast = useToast();
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);

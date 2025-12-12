@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { getFavoriteCinema } from '../utils/storage';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import './Navbar.css';
@@ -27,7 +28,13 @@ const Navbar: React.FC<NavbarProps> = ({ variant = 'light' }) => {
   const [loading, setLoading] = useState(false);
   const [closeNavigate, setCloseNavigate] = useState(false);
   const navigate = useNavigate();
+  const [favoriteCinema, setFavoriteCinema] = useState<string | null>(null);
 
+  useEffect(() => {
+    const cinema = getFavoriteCinema();
+    setFavoriteCinema(cinema);
+  }, []);
+  
   useEffect(() => {
     // Lógica para obtener el usuario actual
     const u = authService.getCurrentUser();
@@ -145,11 +152,18 @@ const Navbar: React.FC<NavbarProps> = ({ variant = 'light' }) => {
           </ul>
         </nav>
         <div className="navbar-right">
-          <button className={`cinema-selector ${(isHome || forceDark) ? 'bg-white/20 text-white' : ''}`} onClick={handleOpenModal}>
-            <FaMapMarkerAlt size={16} color={(isHome || forceDark) ? 'white' : 'black'} />
-            <span>{selectedCinema ? selectedCinema.name : 'ELEGIR CINE'}</span>
-            <FaChevronDown size={12} color={(isHome || forceDark) ? 'white' : 'black'} />
-          </button>
+          {user && user.favoriteCinema ? (
+            <div className="cinema-selector-selected">
+              <FaMapMarkerAlt size={16} color={(isHome || forceDark) ? 'white' : 'black'} />
+              <span>{typeof user.favoriteCinema === 'object' ? user.favoriteCinema.name : user.favoriteCinema}</span>
+            </div>
+          ) : (
+            <button className={`cinema-selector ${(isHome || forceDark) ? 'bg-white/20 text-white' : ''}`} onClick={handleOpenModal}>
+              <FaMapMarkerAlt size={16} color={(isHome || forceDark) ? 'white' : 'black'} />
+              <span>{selectedCinema ? selectedCinema.name : 'ELEGIR CINE'}</span>
+              <FaChevronDown size={12} color={(isHome || forceDark) ? 'white' : 'black'} />
+            </button>
+          )}
           <button type="button" className="icon-user" aria-label="Perfil usuario" onClick={() => setIsProfileOpen(true)}>
             <FaUser size={20} color={(isHome || forceDark) ? 'white' : 'black'} />
           </button>
