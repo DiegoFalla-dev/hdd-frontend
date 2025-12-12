@@ -227,7 +227,8 @@ const Butacas: React.FC = () => {
     return { id, cantidad: Number(qty) || 0 };
   }) : [];
   const totalEntradas = parsedEntradasFromParam.reduce((acc, e) => acc + e.cantidad, 0) || entradas.reduce((acc, e) => acc + e.cantidad, 0);
-  const total = entradas.reduce((acc, e) => acc + e.precio * e.cantidad, 0);
+  // Comentado: total no se usa
+  // const total = entradas.reduce((acc, e) => acc + e.precio * e.cantidad, 0);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';

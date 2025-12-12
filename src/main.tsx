@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+// import { StrictMode } from 'react' // Comentado: no se usa en el render
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App'

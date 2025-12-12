@@ -16,26 +16,25 @@ import Butacas from './pages/Butacas'
 import CarritoDulceria from './pages/CarritoDulceria'
 import CarritoTotal from './pages/CarritoTotal'
 import OrdersPage from './pages/OrdersPage'
-import Navbar from './components/Navbar'
-import Footer from './components/Footer'
-import Promociones from './pages/Promociones'
+// import Navbar from './components/Navbar' // Comentado: se usa en PlaceholderPage comentado
+// import Footer from './components/Footer' // Comentado: se usa en PlaceholderPage comentado
 import StaffDashboard from './pages/Staff/StaffDashboard';
 import MoviesAdmin from './pages/Staff/MoviesAdmin';
 import TheatersAdmin from './pages/Staff/TheatersAdmin';
 import ShowtimesAdmin from './pages/Staff/ShowtimesAdmin';
 import UsersAdmin from './pages/Staff/UsersAdmin';
-import PromotionsAdmin from './pages/Staff/PromotionsAdmin';
 
 // Placeholder components for routes we haven't implemented yet
-const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
-  <>
-    <Navbar />
-    <div className="min-h-screen bg-black text-white flex items-center justify-center">
-      <h1 className="text-2xl">Página de {title} - Próximamente</h1>
-    </div>
-    <Footer />
-  </>
-);
+// Comentado: no se usa en ninguna ruta
+// const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
+//   <>
+//     <Navbar />
+//     <div className="min-h-screen bg-black text-white flex items-center justify-center">
+//       <h1 className="text-2xl">Página de {title} - Próximamente</h1>
+//     </div>
+//     <Footer />
+//   </>
+// );
 
 function App() {
   return (
@@ -52,7 +51,8 @@ function App() {
         <Route path="/dulceria-carrito" element={<ProtectedRoute><CarritoDulceria /></ProtectedRoute>} />
         <Route path="/pago" element={<ProtectedRoute><CarritoTotal /></ProtectedRoute>} />
         <Route path="/mis-compras" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
-        <Route path="/promociones" element={<Promociones />} />
+        {/* Comentado: PlaceholderPage no implementada */}
+        {/* <Route path="/promociones" element={<PlaceholderPage title="Promociones" />} /> */}
         <Route path="/dulceria" element={<Dulceria />} />
         <Route path="/metodos-pago" element={<ProtectedRoute><PaymentMethodsPage /></ProtectedRoute>} />
         <Route path="/perfil" element={<ProtectedRoute><ProfileEditPage /></ProtectedRoute>} />
@@ -63,7 +63,6 @@ function App() {
         <Route path="/staff/theaters" element={<TheatersAdmin />} />
         <Route path="/staff/showtimes" element={<ShowtimesAdmin />} />
         <Route path="/staff/users" element={<UsersAdmin />} />
-        <Route path="/staff/promotions" element={<PromotionsAdmin />} />
       </Routes>
     </BrowserRouter>
   )

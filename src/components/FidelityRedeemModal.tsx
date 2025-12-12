@@ -171,8 +171,8 @@ export const FidelityRedeemModal: React.FC<FidelityRedeemModalProps> = ({
     </div>
   );
 };
-
-// Estilos para agregar en un archivo CSS dedicado o en el componente principal
+// Comentado: styles no se usa en el componente
+/*
 const styles = `
 .fidelity-redeem-overlay {
   position: fixed;
@@ -515,3 +515,4 @@ button:disabled {
   }
 }
 `;
+*/

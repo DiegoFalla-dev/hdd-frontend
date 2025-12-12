@@ -170,8 +170,11 @@ const Confirmacion: React.FC = () => {
       pdf.setFont('helvetica', 'normal');
 
       // Datos de la orden en dos columnas
-      const fecha = confirmation.orderDate || confirmation.createdAt
-        ? new Date(confirmation.orderDate || confirmation.createdAt).toLocaleString('es-PE', {
+      // Comentado: manejo seguro de undefined en la fecha
+      // const fecha = confirmation.orderDate || confirmation.createdAt
+      //   ? new Date(confirmation.orderDate || confirmation.createdAt).toLocaleString('es-PE', {
+      const fecha = (confirmation.orderDate || confirmation.createdAt)
+        ? new Date(confirmation.orderDate || confirmation.createdAt || new Date()).toLocaleString('es-PE', {
             dateStyle: 'long',
             timeStyle: 'short'
           })
@@ -275,8 +278,10 @@ const Confirmacion: React.FC = () => {
       pdf.text('Formato:', margin, y);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
-      const format = (confirmation.orderItems?.[0]?.showtime?.format || 'N/A').replace(/^_/, '');
-      pdf.text(format, margin + 70, y);
+      // Comentado: manejo seguro del format que puede ser undefined
+      const format = (confirmation.orderItems?.[0]?.showtime?.format || 'N/A');
+      const formatClean = typeof format === 'string' ? format.replace(/^_/, '') : format;
+      pdf.text(formatClean, margin + 70, y);
       y += 12;
 
       // Duración
@@ -351,8 +356,11 @@ const Confirmacion: React.FC = () => {
 
       if (confirmation.orderItems && confirmation.orderItems.length > 0) {
         confirmation.orderItems.forEach((item, idx) => {
-          const seatType = item.seat?.seatType || 'Regular';
-          const seatCode = item.seat?.code || item.seat?.id || 'N/A';
+          // Comentado: item.seat no existe, se usa seatCode y seatId
+          // const seatType = item.seat?.seatType || 'Regular';
+          // const seatCode = item.seat?.code || item.seat?.id || 'N/A';
+          const seatCode = item.seatCode || item.seatId?.toString() || 'N/A';
+          const seatType = 'Regular'; // Comentado: no viene en OrderItemDTO
           const ticketTypeName = getTicketTypeName(item.ticketType) || 'Regular';
 
           pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
@@ -408,7 +416,7 @@ const Confirmacion: React.FC = () => {
         confirmation.orderConcessions.forEach((concession, idx) => {
           pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
           pdf.text(`${idx + 1}`, margin, y);
-          pdf.text(concession.productName, margin + 20, y);
+          pdf.text(concession.productName || 'Producto N/A', margin + 20, y);
           pdf.text(`${concession.quantity}`, margin + 280, y);
           pdf.text(`S/ ${concession.unitPrice?.toFixed(2) || '0.00'}`, margin + 340, y);
           pdf.setFont('helvetica', 'bold');
@@ -540,7 +548,8 @@ const Confirmacion: React.FC = () => {
     }
   };
   const orderStatus = confirmation.orderStatus || 'COMPLETED';
-  const statusColor = orderStatus === 'CANCELLED' ? 'bg-red-600' : orderStatus === 'PENDING' ? 'bg-yellow-500' : 'bg-green-600';
+  // Comentado: statusColor no se usa
+  // const statusColor = orderStatus === 'CANCELLED' ? 'bg-red-600' : orderStatus === 'PENDING' ? 'bg-yellow-500' : 'bg-green-600';
   const statusLabel = orderStatus === 'CANCELLED' ? 'Cancelado' : orderStatus === 'PENDING' ? 'Pendiente' : orderStatus === 'REFUNDED' ? 'Reembolsado' : 'Completado';
 
   return (
@@ -577,10 +586,12 @@ const Confirmacion: React.FC = () => {
                   }
 
                   return confirmation.orderItems.map((item, idx) => {
-                    const seatCode = item.seat?.code || (pendingOrder?.seats?.[idx]);
-                    let ticketType = item.ticketType || item.seat?.ticketType;
-                    if (!ticketType && pendingOrder?.entradas?.[idx]) {
-                      ticketType = pendingOrder.entradas[idx].nombre || pendingOrder.entradas[idx].code;
+                    const seatCode = item.seatCode || item.seatId?.toString() || ((pendingOrder?.seats as any[])?.[idx]);
+                    // Comentado: item no tiene seat, usar directamente del item
+                    let ticketType = item.ticketType || item.seatCode;
+                    if (!ticketType && pendingOrder && (pendingOrder.entradas as any[])?.[idx]) {
+                      const entrada = (pendingOrder.entradas as any[])[idx];
+                      ticketType = entrada?.nombre || entrada?.code;
                     }
                     
                     return (

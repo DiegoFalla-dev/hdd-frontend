@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { usePaymentMethods, useAddPaymentMethod, useDeletePaymentMethod, useSetDefaultPaymentMethod, useUpdatePaymentMethod } from '../hooks/usePaymentMethods';
 import authService, { type LoginRequest, type JwtResponse, type RegisterRequest } from '../services/authService';
-import { validateCardNumber, validateExpiry, formatCardNumber, formatExpiry, getCardType } from '../utils/cardValidator';
+// Comentado: getCardType no se usa en ProfilePanel
+import { validateCardNumber, validateExpiry, formatCardNumber, formatExpiry } from '../utils/cardValidator';
 import { useAuth } from '../context/AuthContext';
 import './ProfilePanel.css';
 import { getAllCinemas } from '../services/cinemaService';
 import type { Cinema } from '../types/Cinema';
-import { getUserName, getUserById, updateBillingInfo, updateUser } from '../services/userService';
+// Comentado: getUserName no se usa en ProfilePanel
+import { getUserById, updateBillingInfo, updateUser } from '../services/userService';
 import { useOrders } from '../hooks/useOrders';
 import { generateOrderPDF } from '../utils/pdfGenerator';
 import { COLORS } from '../styles/colors';
@@ -84,7 +86,8 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   // General
   const [setDefault, setSetDefault] = useState(false);
   const [fidelityPoints, setFidelityPoints] = useState(0);
-  const [showRedeemModal, setShowRedeemModal] = useState(false);
+  // Comentado: showRedeemModal y setShowRedeemModal no se usan
+  // const [showRedeemModal, setShowRedeemModal] = useState(false);
   const [redeemQuantity, setRedeemQuantity] = useState(1);
   const [redeemSuccess, setRedeemSuccess] = useState(false);
   const [showRedeemForm, setShowRedeemForm] = useState(false);
@@ -787,7 +790,8 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
         setDownloadingId(orderId);
         const order = orders.find(o => o.id === orderId);
         if (order) {
-          await generateOrderPDF(order);
+          // Cast OrderSummary a OrderDTO para compatibilidad con generateOrderPDF
+          await generateOrderPDF(order as any);
         }
       } catch (error) {
         console.error('Error descargando PDF:', error);
@@ -1219,8 +1223,7 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                         setShowAddForm(false);
                         setCardNumber('');
                         setHolderName('');
-                        setExpMonth('');
-                        setExpYear('');
+                        setExpiry('');
                         setCvc('');
                         setYapePhone('');
                         setYapeCode('');
@@ -1288,7 +1291,8 @@ const ProfilePanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
         });
 
         if (response.ok) {
-          const result = await response.json();
+          // Comentado: result no se usa
+          // const result = await response.json();
           setFidelityPoints(Math.max(0, fidelityPoints - pointsToRedeem));
           setRedeemSuccess(true);
           setRedeemQuantity(1);

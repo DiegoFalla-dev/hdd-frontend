@@ -66,7 +66,12 @@ export function useCartValidation(cinemaId?: number) {
         });
         
         // Advertencias sobre tiempo
-        const now = new Date();
+        // Comentado: now no se usa en el código comentado
+        // const now = new Date();
+        // CartTicketGroup no tiene showtime completo, solo showtimeId
+        // Por lo tanto, no podemos validar el tiempo sin una consulta adicional
+        // Comentado: necesitaría cargar showtime por showtimeId si fuera necesario
+        /*
         const showtimeDate = group.showtime ? new Date(group.showtime.showDate) : null;
         
         if (showtimeDate) {
@@ -82,6 +87,7 @@ export function useCartValidation(cinemaId?: number) {
             warnings.push(`La función comienza en menos de 30 minutos. Completa tu compra pronto`);
           }
         }
+        */
       });
       
       return {

@@ -1,7 +1,8 @@
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 import type { OrderDTO } from '../services/orderService';
-import api from '../services/apiClient';
+// Comentado: api no se usa
+// import api from '../services/apiClient';
 
 const LOGO_URL = 'https://i.imgur.com/K9o09F6.png';
 
@@ -41,16 +42,17 @@ const getTicketTypeName = (ticketTypeStr: string | undefined | { name?: string; 
  */
 export const generateOrderPDF = async (confirmation: OrderDTO) => {
   // Si el usuario no viene en la orden, intentar obtenerlo del usuario actual
-  if (!confirmation.user && confirmation.id) {
-    try {
-      const userResponse = await api.get(`/users/${confirmation.userId || 'current'}`);
-      if (userResponse.data) {
-        confirmation.user = userResponse.data;
-      }
-    } catch (e) {
-      console.error('Error cargando datos del usuario:', e);
-    }
-  }
+  // Comentado: confirmation.userId no existe, se usa confirmation.user directamente
+  // if (!confirmation.user && confirmation.id) {
+  //   try {
+  //     const userResponse = await api.get(`/users/${confirmation.userId || 'current'}`);
+  //     if (userResponse.data) {
+  //       confirmation.user = userResponse.data;
+  //     }
+  //   } catch (e) {
+  //     console.error('Error cargando datos del usuario:', e);
+  //   }
+  // }
   // Generar QR
   let qrDataUrl: string | null = null;
   try {
@@ -132,8 +134,9 @@ export const generateOrderPDF = async (confirmation: OrderDTO) => {
   pdf.setFontSize(10);
   pdf.setFont('helvetica', 'normal');
 
-  const fecha = confirmation.orderDate || confirmation.createdAt
-    ? new Date(confirmation.orderDate || confirmation.createdAt).toLocaleString('es-PE', {
+  // Comentado: manejo seguro de undefined en la fecha
+  const fecha = (confirmation.orderDate || confirmation.createdAt)
+    ? new Date(confirmation.orderDate || confirmation.createdAt || new Date()).toLocaleString('es-PE', {
         dateStyle: 'long',
         timeStyle: 'short'
       })
@@ -235,8 +238,10 @@ export const generateOrderPDF = async (confirmation: OrderDTO) => {
   pdf.text('Formato:', margin, y);
   pdf.setFont('helvetica', 'normal');
   pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
-  const format = (confirmation.orderItems?.[0]?.showtime?.format || 'N/A').replace(/^_/, '');
-  pdf.text(format, margin + 70, y);
+  // Comentado: manejo seguro del format que puede ser undefined
+  const format = (confirmation.orderItems?.[0]?.showtime?.format || 'N/A');
+  const formatClean = typeof format === 'string' ? format.replace(/^_/, '') : format;
+  pdf.text(formatClean, margin + 70, y);
   y += 12;
 
   pdf.setFont('helvetica', 'bold');
@@ -301,8 +306,11 @@ export const generateOrderPDF = async (confirmation: OrderDTO) => {
 
   if (confirmation.orderItems && confirmation.orderItems.length > 0) {
     confirmation.orderItems.forEach((item, idx) => {
-      const seatType = item.seat?.seatType || 'Regular';
-      const seatCode = item.seat?.code || item.seat?.id || 'N/A';
+      // Comentado: item.seat no existe, se usa seatCode y seatId
+      // const seatType = item.seat?.seatType || 'Regular';
+      // const seatCode = item.seat?.code || item.seat?.id || 'N/A';
+      const seatCode = item.seatCode || item.seatId?.toString() || 'N/A';
+      const seatType = 'Regular'; // Comentado: no viene en OrderItemDTO
       const ticketTypeName = getTicketTypeName(item.ticketType) || 'Regular';
 
       console.log(`Entrada ${idx}:`, {
@@ -364,7 +372,7 @@ export const generateOrderPDF = async (confirmation: OrderDTO) => {
     confirmation.orderConcessions.forEach((concession, idx) => {
       pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
       pdf.text(`${idx + 1}`, margin, y);
-      pdf.text(concession.productName, margin + 20, y);
+      pdf.text(concession.productName || 'Producto N/A', margin + 20, y);
       pdf.text(`${concession.quantity}`, margin + 280, y);
       pdf.text(`S/ ${concession.unitPrice?.toFixed(2) || '0.00'}`, margin + 340, y);
       pdf.setFont('helvetica', 'bold');
