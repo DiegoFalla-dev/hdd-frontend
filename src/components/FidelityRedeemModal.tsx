@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getAccessToken } from '../utils/storage';
-import { api } from '../config/env';
+import { API_BASE_URL } from '../config/env';
 
 interface FidelityRedeemModalProps {
   isOpen: boolean;
@@ -45,7 +44,7 @@ export const FidelityRedeemModal: React.FC<FidelityRedeemModalProps> = ({
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${api.baseURL}/api/users/${user.id}/redeem-points`,
+        `${API_BASE_URL}/api/users/${user.id}/redeem-points`,
         {
           method: 'POST',
           headers: {

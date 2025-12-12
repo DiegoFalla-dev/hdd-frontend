@@ -309,8 +309,7 @@ export const generateOrderPDF = async (confirmation: OrderDTO) => {
       // Comentado: item.seat no existe, se usa seatCode y seatId
       // const seatType = item.seat?.seatType || 'Regular';
       // const seatCode = item.seat?.code || item.seat?.id || 'N/A';
-      const seatCode = item.seatCode || item.seatId?.toString() || 'N/A';
-      const seatType = 'Regular'; // Comentado: no viene en OrderItemDTO
+      
       const ticketTypeName = getTicketTypeName(item.ticketType) || 'Regular';
 
       console.log(`Entrada ${idx}:`, {

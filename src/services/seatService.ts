@@ -1,5 +1,5 @@
 import api from './apiClient';
-import type { Seat } from '../types/Seat';
+import type { ShowtimeSeat } from '../types/ShowtimeSeat';
 
 // Backend actualmente expone endpoints de ocupación /occupied y operaciones de reserva temporal.
 // No existe endpoint de listado completo de asientos aún, se asume que ya fueron generados y que
@@ -60,8 +60,23 @@ export async function confirmSeats(showtimeId: number, seatCodes: string[]): Pro
 }
 
 // Placeholder para futuro listado completo
-export async function getSeatsByShowtime(_showtimeId: number): Promise<Seat[]> {
-  return [];
+
+// Devuelve asientos de ejemplo para pruebas locales
+export async function getSeatsByShowtime(_showtimeId: number): Promise<ShowtimeSeat[]> {
+  // 5 filas (A-E), 8 columnas (1-8)
+  const seats: ShowtimeSeat[] = [];
+  const rows = ['A','B','C','D','E'];
+  for (const row of rows) {
+    for (let num = 1; num <= 8; num++) {
+      seats.push({
+        id: `${row}${num}`,
+        row,
+        number: num,
+        status: 'AVAILABLE',
+      });
+    }
+  }
+  return seats;
 }
 
 export default {

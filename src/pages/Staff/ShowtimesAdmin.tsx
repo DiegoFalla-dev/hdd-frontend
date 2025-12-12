@@ -383,7 +383,7 @@ export default function ShowtimesAdmin() {
                       <div className="text-gray-300 font-semibold">🎬 {movies.find(m => m.id === s.movieId)?.title || `Película ${s.movieId}`}</div>
                       <div className="text-gray-300">⏰ {s.time}</div>
                       <div className="flex items-center gap-2">
-                        <span className="bg-red-500/20 text-red-300 px-2 py-1 rounded font-medium">{s.format.replace(/_/g, ' ')}</span>
+                        <span className="bg-red-500/20 text-red-300 px-2 py-1 rounded font-medium">{s.format?.replace(/_/g, ' ')}</span>
                         <span className="bg-gray-700 text-gray-300 px-2 py-1 rounded">{s.language}</span>
                       </div>
                       <div className="text-lg font-bold text-red-400">💰 ${s.price?.toFixed(2)}</div>

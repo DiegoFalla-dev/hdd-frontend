@@ -5,7 +5,7 @@ export interface Showtime {
   theaterId: number;
   startTime: string; // ISO
   format?: string; // 2D, 3D, IMAX
-  language: string; // Doblada/Subtitulada
+  language?: string; // Doblada/Subtitulada
   availableSeats?: number;
   totalSeats?: number;
   theaterName?: string;

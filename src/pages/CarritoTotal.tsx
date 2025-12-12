@@ -14,7 +14,7 @@ import { usePaymentMethods } from '../hooks/usePaymentMethods';
 import paymentMethodService from '../services/paymentMethodService';
 import { getUserById, updateBillingInfo } from '../services/userService';
 import { getAccessToken, clearOrderStorage } from '../utils/storage';
-import type { Seat } from '../types/Seat';
+import type { ShowtimeSeat } from '../types/ShowtimeSeat';
 import type { CreateOrderItemDTO } from '../services/orderService';
 // OrderConfirmation type not used here
 
@@ -522,13 +522,13 @@ const CarritoTotal: React.FC = () => {
     );
 
     // Obtener datos de asientos para mapear seatCode -> seatId
-    let seatCodeToIdMap: Record<string, number> = {};
+    let seatCodeToIdMap: Record<string, string | number> = {};
     try {
       // Fetch seats for all showtimes
       const seatsPromises = ticketShowtimeIdsForSeats.map(async (showtimeId) => {
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/showtimes/${showtimeId}/seats`);
         if (!response.ok) throw new Error(`Failed to fetch seats for showtime ${showtimeId}`);
-        const seats: Seat[] = await response.json();
+        const seats: ShowtimeSeat[] = await response.json();
         return seats;
       });
       
@@ -588,7 +588,7 @@ const CarritoTotal: React.FC = () => {
 
         return {
           showtimeId: it.showtimeId!,
-          seatId: seatId,
+          seatId: typeof seatId === 'string' ? parseInt(seatId, 10) : seatId,
           price: price,
           ticketType: it.seatCode ? seatTypeMap[it.seatCode] : undefined,
         };

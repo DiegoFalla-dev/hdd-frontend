@@ -28,7 +28,7 @@ const Navbar: React.FC<NavbarProps> = ({ variant = 'light' }) => {
   const [loading, setLoading] = useState(false);
   const [closeNavigate, setCloseNavigate] = useState(false);
   const navigate = useNavigate();
-  const [favoriteCinema, setFavoriteCinema] = useState<string | null>(null);
+  const [, setFavoriteCinema] = useState<string | null>(null);
 
   useEffect(() => {
     const cinema = getFavoriteCinema();
@@ -155,7 +155,7 @@ const Navbar: React.FC<NavbarProps> = ({ variant = 'light' }) => {
           {user && user.favoriteCinema ? (
             <div className="cinema-selector-selected">
               <FaMapMarkerAlt size={16} color={(isHome || forceDark) ? 'white' : 'black'} />
-              <span>{typeof user.favoriteCinema === 'object' ? user.favoriteCinema.name : user.favoriteCinema}</span>
+              <span>{typeof user.favoriteCinema === 'object' ? user.favoriteCinema || '' : user.favoriteCinema}</span>
             </div>
           ) : (
             <button className={`cinema-selector ${(isHome || forceDark) ? 'bg-white/20 text-white' : ''}`} onClick={handleOpenModal}>
