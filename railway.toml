@@ -1,8 +1,0 @@
-# Disable Railpack / Nixpacks completely
-[build]
-builder = "NONE"
-buildCommand = "echo 'Skipping build step'"
-
-# Start server directly (no build step)
-[start]
-command = "npm run preview -- --host 0.0.0.0 --port $PORT"
