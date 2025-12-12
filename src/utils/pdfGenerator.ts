@@ -1,11 +1,8 @@
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 import type { OrderDTO } from '../services/orderService';
-<<<<<<< HEAD
-=======
 // Comentado: api no se usa
 // import api from '../services/apiClient';
->>>>>>> f36d5c719808a96ef31ee35c5386be6a390c0321
 
 const LOGO_URL = 'https://i.imgur.com/K9o09F6.png';
 
@@ -309,15 +306,11 @@ export const generateOrderPDF = async (confirmation: OrderDTO) => {
 
   if (confirmation.orderItems && confirmation.orderItems.length > 0) {
     confirmation.orderItems.forEach((item, idx) => {
-<<<<<<< HEAD
-
-=======
       // Comentado: item.seat no existe, se usa seatCode y seatId
       // const seatType = item.seat?.seatType || 'Regular';
       // const seatCode = item.seat?.code || item.seat?.id || 'N/A';
       const seatCode = item.seatCode || item.seatId?.toString() || 'N/A';
       const seatType = 'Regular'; // Comentado: no viene en OrderItemDTO
->>>>>>> f36d5c719808a96ef31ee35c5386be6a390c0321
       const ticketTypeName = getTicketTypeName(item.ticketType) || 'Regular';
 
       console.log(`Entrada ${idx}:`, {
@@ -377,10 +370,7 @@ export const generateOrderPDF = async (confirmation: OrderDTO) => {
     confirmation.orderConcessions.forEach((concession, idx) => {
       pdf.setTextColor(COLORS.textDefault.r, COLORS.textDefault.g, COLORS.textDefault.b);
       pdf.text(`${idx + 1}`, margin, y);
-<<<<<<< HEAD
-=======
       pdf.text(concession.productName || 'Producto N/A', margin + 20, y);
->>>>>>> f36d5c719808a96ef31ee35c5386be6a390c0321
       pdf.text(`${concession.quantity}`, margin + 280, y);
       pdf.text(`S/ ${concession.unitPrice?.toFixed(2) || '0.00'}`, margin + 340, y);
       pdf.setFont('helvetica', 'bold');
