@@ -5,6 +5,47 @@ import ProtectedRoute from '../../components/ProtectedRoute';
 import { getAllCinemas } from '../../services/cinemaService';
 import { fetchAllMovies } from '../../services/moviesService';
 import api from '../../services/apiClient';
+import { generateSeatsForShowtime } from '../../services/seatService';
+  // Generar asientos para una función
+  const handleGenerateSeats = async (showtime: Showtime) => {
+    try {
+      // Buscar el theater correspondiente
+      let theater = undefined;
+      // Si tienes un array de theaters en el estado, usa ese nombre; si no, elimina este bloque
+      // if (typeof theaters !== 'undefined' && Array.isArray(theaters)) {
+      //   theater = theaters.find((t: any) => t.id === showtime.theaterId);
+      // }
+      if (!theater) {
+        // Si no se encuentra en el estado, buscarlo por API
+        try {
+          const resp = await api.get(`/theaters/${showtime.theaterId}`);
+          theater = resp.data;
+          console.log('[Asientos] Theater obtenido por API:', theater);
+        } catch (err) {
+          alert('No se encontró la sala asociada (ni en estado ni por API).');
+          return;
+        }
+      }
+      if (!theater) {
+        alert('No se encontró la sala asociada.');
+        return;
+      }
+      const colCount = theater.colCount || theater.columns || 0;
+      const rowCount = theater.rowCount || theater.rows || 0;
+      if (!colCount || !rowCount) {
+        alert('No se encontró la configuración de filas/columnas de la sala.');
+        return;
+      }
+      // Confirmar acción
+      if (!confirm(`¿Generar asientos para la función en sala ${theater.name} (${colCount} columnas, ${rowCount} filas)?`)) return;
+      // Llamar endpoint backend para generar asientos
+      await generateSeatsForShowtime(showtime.id);
+      alert('Asientos generados correctamente.');
+    } catch (err) {
+      const msg = typeof err === 'object' && err !== null && 'message' in err ? (err as any).message : String(err);
+      alert('Error generando asientos: ' + msg);
+    }
+  };
 import { getTheatersByCinema } from '../../services/theaterService';
 import type { Showtime } from '../../types/Showtime';
 import type { Cinema } from '../../types/Cinema';
@@ -381,6 +422,7 @@ export default function ShowtimesAdmin() {
                     </div>
                     <div className="space-y-2 mb-4 text-sm">
                       <div className="text-gray-300 font-semibold">🎬 {movies.find(m => m.id === s.movieId)?.title || `Película ${s.movieId}`}</div>
+                      <div className="text-gray-300">📅 {s.date}</div>
                       <div className="text-gray-300">⏰ {s.time}</div>
                       <div className="flex items-center gap-2">
                         <span className="bg-red-500/20 text-red-300 px-2 py-1 rounded font-medium">{s.format?.replace(/_/g, ' ')}</span>
@@ -401,6 +443,12 @@ export default function ShowtimesAdmin() {
                         onClick={() => removeShowtime(s.id!)}
                       >
                         🗑️
+                      </button>
+                      <button
+                        className="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 bg-gradient-to-r from-green-600 to-green-700 text-white"
+                        onClick={() => handleGenerateSeats(s)}
+                      >
+                        🪑 Asientos
                       </button>
                     </div>
                   </div>

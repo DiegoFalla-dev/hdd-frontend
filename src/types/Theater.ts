@@ -1,10 +1,10 @@
-import type { ShowtimeSeat } from './ShowtimeSeat';
+import type { Seat } from './Seat';
 
 export interface Theater {
   id: number;
   name: string;
   capacity: number;
-  seats?: ShowtimeSeat[];
+  seats?: Seat[];
   type?: 'SMALL' | 'MEDIUM' | 'LARGE' | 'XL';
   rows?: number;
   columns?: number;

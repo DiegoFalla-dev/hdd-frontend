@@ -14,7 +14,7 @@ import { usePaymentMethods } from '../hooks/usePaymentMethods';
 import paymentMethodService from '../services/paymentMethodService';
 import { getUserById, updateBillingInfo } from '../services/userService';
 import { getAccessToken, clearOrderStorage } from '../utils/storage';
-import type { ShowtimeSeat } from '../types/ShowtimeSeat';
+import type { Seat } from '../types/Seat';
 import type { CreateOrderItemDTO } from '../services/orderService';
 // OrderConfirmation type not used here
 
@@ -528,7 +528,7 @@ const CarritoTotal: React.FC = () => {
       const seatsPromises = ticketShowtimeIdsForSeats.map(async (showtimeId) => {
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/showtimes/${showtimeId}/seats`);
         if (!response.ok) throw new Error(`Failed to fetch seats for showtime ${showtimeId}`);
-        const seats: ShowtimeSeat[] = await response.json();
+        const seats: Seat[] = await response.json();
         return seats;
       });
       
@@ -569,30 +569,37 @@ const CarritoTotal: React.FC = () => {
 
     // Construir items en el formato esperado por el backend (solo TICKETS)
     // El backend actual solo soporta tickets, no concesiones
-    const orderItems: CreateOrderItemDTO[] = paymentItems
+    // Validar que todos los seatCodes existan en el mapa antes de continuar
+    const missingSeatCodes = paymentItems
+      .filter(it => it.type === 'TICKET')
+      .map(it => it.seatCode)
+      .filter(code => code && !seatCodeToIdMap[code]);
+
+    if (missingSeatCodes.length > 0) {
+      toast.error(`Algunos asientos ya no están disponibles: ${missingSeatCodes.join(', ')}. Actualiza tu selección.`);
+      setIsProcessing(false);
+      return;
+    }
+
+    const orderItems = paymentItems
       .filter(it => it.type === 'TICKET')
       .map((it, index) => {
         const seatId = it.seatCode ? seatCodeToIdMap[it.seatCode] : undefined;
-        
-        if (!seatId) {
-          throw new Error(`No se pudo encontrar el ID del asiento para el código: ${it.seatCode}`);
-        }
-
         // Usar el precio de la entrada seleccionada correspondiente al índice del asiento
         // Si no hay precio disponible, usar el unitPrice del item o un default
         const price = ticketPrices[index] || it.unitPrice || 10.00;
-        
         if (!ticketPrices[index]) {
           console.warn(`Seat ${it.seatCode} has no matched ticket price, using fallback: ${price}`);
         }
-
+        if (typeof seatId === 'undefined') return undefined; // Filtrar los que no tengan seatId
         return {
           showtimeId: it.showtimeId!,
           seatId: typeof seatId === 'string' ? parseInt(seatId, 10) : seatId,
           price: price,
           ticketType: it.seatCode ? seatTypeMap[it.seatCode] : undefined,
         };
-      });
+      })
+      .filter(Boolean) as CreateOrderItemDTO[];
 
     if (orderItems.length === 0) {
       toast.error('No hay tickets válidos en la orden');

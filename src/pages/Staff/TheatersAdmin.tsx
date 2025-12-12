@@ -17,10 +17,10 @@ export default function TheatersAdmin() {
   const [errorMsg, setErrorMsg] = useState<string>('');
 
   const TYPE_PRESETS: Record<'SMALL'|'MEDIUM'|'LARGE'|'XL', { rows: number; columns: number }> = {
-    SMALL: { rows: 6, columns: 6 },
-    MEDIUM: { rows: 7, columns: 7 },
-    LARGE: { rows: 8, columns: 8 },
-    XL: { rows: 9, columns: 9 },
+    SMALL: { rows: 6, columns: 7 },
+    MEDIUM: { rows: 8, columns: 10 },
+    LARGE: { rows: 12, columns: 16 },
+    XL: { rows: 16, columns: 20 },
   };
 
   const capacityComputed = useMemo(() => {

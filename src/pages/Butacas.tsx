@@ -7,7 +7,6 @@ import { useShowtimes } from "../hooks/useShowtimes";
 import { useSeatSelectionStore } from "../store/seatSelectionStore";
 import { useShowtimeSelectionStore } from "../store/showtimeSelectionStore";
 import { useOccupiedSeats } from "../hooks/useOccupiedSeats";
-import { useSeatOccupancySocket } from "../hooks/useSeatOccupancySocket";
 import seatService from "../services/seatService";
 import type { TemporarySeatReservationResponse } from "../services/seatService";
 import { useToast } from "../components/ToastProvider";
@@ -96,7 +95,6 @@ const Butacas: React.FC = () => {
   const validShowtimeId = typeof showtimeId === 'number' && !isNaN(showtimeId) ? showtimeId : 0;
   const { data: remoteSeats, isLoading: seatsLoading } = useSeats(validShowtimeId);
   const { data: occupiedCodes } = useOccupiedSeats(validShowtimeId);
-  useSeatOccupancySocket(validShowtimeId);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const setTicketGroup = useCartStore(s => s.setTicketGroup);
@@ -161,28 +159,18 @@ const Butacas: React.FC = () => {
 
   // Si hay asientos remotos, mapearlos al UI local; si no, usar la matriz generada aleatoria como fallback temporal
   useEffect(() => {
-    // Construir matriz base (remota futura o fallback local) y overlay ocupados reales
-    const rows = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q'];
+    // Solo mostrar asientos si vienen del backend
     const occupiedSet = new Set(occupiedCodes || []);
     const selectedSet = new Set(showtimeId ? (seatSelectionStore.selections[showtimeId]?.seatCodes || []) : []);
-    
     if (remoteSeats && remoteSeats.length) {
       setSeats(remoteSeats.map(s => {
-        // prefer backend-provided code (e.g. 'F7'), otherwise build from row+number
         const code = (s as any).code || `${s.row}${s.number}`;
-        
-        // Determinar el estado del asiento
         let status: 'available' | 'occupied' | 'selected' = 'available';
-        
-        // Primero verificar si está ocupado en la BD
         if (occupiedSet.has(String(code)) || (s.status && s.status !== 'AVAILABLE')) {
           status = 'occupied';
-        } 
-        // Luego verificar si está seleccionado localmente (solo si no está ocupado)
-        else if (selectedSet.has(String(code))) {
+        } else if (selectedSet.has(String(code))) {
           status = 'selected';
         }
-        
         return {
           id: String(code),
           row: s.row,
@@ -191,33 +179,7 @@ const Butacas: React.FC = () => {
         };
       }));
     } else {
-      const matrix = SEAT_MATRICES[seatMatrix];
-      const newSeats: LocalSeatUI[] = [];
-      for (let r = 0; r < matrix.rows; r++) {
-        for (let c = 1; c <= matrix.cols; c++) {
-          const seatId = `${rows[r]}${c}`;
-          
-          // Determinar el estado del asiento
-          let status: 'available' | 'occupied' | 'selected' = 'available';
-          
-          // Primero verificar si está ocupado
-          if (occupiedSet.has(seatId)) {
-            status = 'occupied';
-          }
-          // Luego verificar si está seleccionado (solo si no está ocupado)
-          else if (selectedSet.has(seatId)) {
-            status = 'selected';
-          }
-          
-          newSeats.push({
-            id: seatId,
-            row: rows[r],
-            number: c,
-            status
-          });
-        }
-      }
-      setSeats(newSeats);
+      setSeats([]); // No mostrar matriz local si no hay asientos remotos
     }
   }, [remoteSeats, seatMatrix, occupiedCodes, showtimeId, seatSelectionStore.selections]);
 
@@ -228,8 +190,6 @@ const Butacas: React.FC = () => {
     return { id, cantidad: Number(qty) || 0 };
   }) : [];
   const totalEntradas = parsedEntradasFromParam.reduce((acc, e) => acc + e.cantidad, 0) || entradas.reduce((acc, e) => acc + e.cantidad, 0);
-  // Comentado: total no se usa
-  // const total = entradas.reduce((acc, e) => acc + e.precio * e.cantidad, 0);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';

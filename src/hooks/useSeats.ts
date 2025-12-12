@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import seatService from '../services/seatService';
 
 export default function useSeats(showtimeId: number) {
-  return useQuery<import('../types/ShowtimeSeat').ShowtimeSeat[]>({
+  return useQuery<import('../types/Seat').Seat[]>({
     queryKey: ['showtime', showtimeId, 'seats'],
     queryFn: () => seatService.getSeatsByShowtime(showtimeId!),
     enabled: typeof showtimeId === 'number' && showtimeId > 0,
