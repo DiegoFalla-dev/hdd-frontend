@@ -14,8 +14,8 @@ export function useConcessions(cinemaId: number | undefined): UseQueryResult<Con
     staleTime: 2 * 60 * 1000, // 2 min - inventario cambia frecuentemente
     refetchInterval: 3 * 60 * 1000, // Refetch cada 3 min para stock actualizado
     select: (products) => {
-      // Filtrar productos inactivos o sin stock
-      return products.filter(p => p.isActive && (p.stockQuantity == null || p.stockQuantity > 0));
+      // Filtrar productos inactivos o sin stock; si isActive viene indefinido, lo consideramos activo
+      return products.filter(p => (p.isActive ?? true) && (p.stockQuantity == null || p.stockQuantity > 0));
     },
   });
 }
