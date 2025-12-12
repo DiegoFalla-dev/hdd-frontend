@@ -633,6 +633,7 @@ const CarritoTotal: React.FC = () => {
 
     orderConfirmMutation.mutate(payload, {
       onSuccess: async (confirmation) => {
+        // El backend reserva los asientos al crear la orden; no es necesario confirmarlos aquí
         // Invalidate any future order list / caches
         queryClient.invalidateQueries({ queryKey: ['order', confirmation.id] });
         queryClient.invalidateQueries({ queryKey: ['orders'] });
@@ -675,6 +676,13 @@ const CarritoTotal: React.FC = () => {
         } else {
           const errorMsg = err?.response?.data?.message || err?.message || 'Error confirmando la orden';
           toast.error(errorMsg);
+          // Si el backend indica que el asiento ya está ocupado, invitar a reseleccionar
+          const msg = (err?.response?.data?.message || '').toString().toLowerCase();
+          if (msg.includes('asiento') && msg.includes('ocup') ) {
+            toast.warning('Algunos asientos ya no están disponibles. Vuelve a seleccionar.');
+            try { localStorage.removeItem('pendingOrder'); } catch {}
+            navigate('/butacas/' + (cartSnapshot.ticketGroups[0]?.showtimeId || ''));
+          }
         }
       }
     });
