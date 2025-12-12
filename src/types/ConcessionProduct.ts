@@ -8,4 +8,7 @@ export interface ConcessionProduct {
     imageUrl: string;
     category: ProductCategory;
     cinemaId?: number;
+    // Propiedades adicionales para validación
+    isActive?: boolean;
+    stockQuantity?: number;
 }

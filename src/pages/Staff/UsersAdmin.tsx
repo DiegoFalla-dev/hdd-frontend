@@ -94,7 +94,9 @@ export default function UsersAdmin() {
         email: form.email,
         birthDate: form.birthDate,
         avatar: form.avatar || null,
-        roles: form.roles
+        roles: form.roles,
+        // username es requerido en UserDTO
+        username: form.email.split('@')[0] || form.firstName.toLowerCase()
       };
 
       if (editing?.id) {

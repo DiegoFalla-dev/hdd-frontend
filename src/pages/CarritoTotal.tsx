@@ -102,7 +102,9 @@ const CarritoTotal: React.FC = () => {
     const loadUser = async () => {
       if (!user?.id) return;
       try {
-        const data = await getUserById(user.id);
+        // Comentado: conversión de user.id que puede ser string o number
+        const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+        const data = await getUserById(userId);
         setUserProfile(data);
         setBillingRuc(data?.ruc || '');
         setBillingRazonSocial(data?.razonSocial || '');
@@ -113,6 +115,8 @@ const CarritoTotal: React.FC = () => {
     loadUser();
   }, [user?.id]);
 
+  // Comentado: handleRedeemFidelity no se usa
+  /*
   const handleRedeemFidelity = async () => {
     if (!user?.id) {
       toast.error('Debes iniciar sesión para canjear puntos');
@@ -150,6 +154,7 @@ const CarritoTotal: React.FC = () => {
       setIsRedeeming(false);
     }
   };
+  */
 
   const preview = orderPreviewQuery.data;
     // Prefetch del preview cuando se modifica el carrito (optimiza recalculo)
@@ -314,7 +319,9 @@ const CarritoTotal: React.FC = () => {
     setBillingError(null);
     setBillingSaving(true);
     try {
-      await updateBillingInfo(user.id, billingRuc.trim(), billingRazonSocial.trim());
+      // Comentado: conversión de user.id que puede ser string o number
+      const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+      await updateBillingInfo(userId, billingRuc.trim(), billingRazonSocial.trim());
       setBillingMessage('Datos guardados. Tu cuenta no ha sido verificada, contacte con un asesor.');
       setUserProfile((prev: any) => ({ ...prev, ruc: billingRuc.trim(), razonSocial: billingRazonSocial.trim() }));
       toast.success('Información de facturación guardada');

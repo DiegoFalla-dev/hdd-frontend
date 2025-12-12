@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import type { ConcessionProduct } from '../types/ConcessionProduct';
 import type { Promotion } from '../types/Promotion';
-import { calculatePriceBreakdown, IGV_RATE } from '../utils/priceCalculation';
+// Comentado: IGV_RATE no se usa
+import { calculatePriceBreakdown } from '../utils/priceCalculation';
 
 const STORAGE_KEY = 'cartStore';
 

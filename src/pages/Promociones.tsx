@@ -53,6 +53,8 @@ const PromocionesCodigos: React.FC = () => {
     });
   };
 
+  // Comentado: formatDiscount no se usa
+  /*
   const formatDiscount = (type: string, value: number) => {
     if (type === 'PERCENTAGE') {
       return `${value}% de descuento`;
@@ -60,6 +62,7 @@ const PromocionesCodigos: React.FC = () => {
       return `S/ ${value.toFixed(2)} de descuento`;
     }
   };
+  */
 
   const getDaysRemaining = (endDate: string) => {
     const today = new Date();
