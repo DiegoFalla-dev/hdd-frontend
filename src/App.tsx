@@ -61,11 +61,11 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/staff" element={<StaffDashboard />} />
-        <Route path="/staff/promociones" element={<PromotionsAdmin />} />
         <Route path="/staff/movies" element={<MoviesAdmin />} />
         <Route path="/staff/theaters" element={<TheatersAdmin />} />
         <Route path="/staff/showtimes" element={<ShowtimesAdmin />} />
         <Route path="/staff/users" element={<UsersAdmin />} />
+        <Route path="/staff/promotions" element={<PromotionsAdmin />} />
       </Routes>
     </BrowserRouter>
   )
