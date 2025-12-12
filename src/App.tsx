@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Cartelera from './pages/Cartelera'
 import Cines from './pages/Cines'
 import Dulceria from './pages/Dulceria'
+import Promociones from './pages/Promociones'
 import DetallePelicula from './pages/DetallePelicula'
 import Confirmacion from './pages/Confirmacion'
 import PaymentMethodsPage from './pages/PaymentMethodsPage'
@@ -23,6 +24,7 @@ import MoviesAdmin from './pages/Staff/MoviesAdmin';
 import TheatersAdmin from './pages/Staff/TheatersAdmin';
 import ShowtimesAdmin from './pages/Staff/ShowtimesAdmin';
 import UsersAdmin from './pages/Staff/UsersAdmin';
+import PromotionsAdmin from './pages/Staff/PromotionsAdmin'
 
 // Placeholder components for routes we haven't implemented yet
 // Comentado: no se usa en ninguna ruta
@@ -52,13 +54,14 @@ function App() {
         <Route path="/pago" element={<ProtectedRoute><CarritoTotal /></ProtectedRoute>} />
         <Route path="/mis-compras" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
         {/* Comentado: PlaceholderPage no implementada */}
-        {/* <Route path="/promociones" element={<PlaceholderPage title="Promociones" />} /> */}
+        <Route path="/promociones" element={<Promociones />} />
         <Route path="/dulceria" element={<Dulceria />} />
         <Route path="/metodos-pago" element={<ProtectedRoute><PaymentMethodsPage /></ProtectedRoute>} />
         <Route path="/perfil" element={<ProtectedRoute><ProfileEditPage /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/staff" element={<StaffDashboard />} />
+        <Route path="/staff/promociones" element={<PromotionsAdmin />} />
         <Route path="/staff/movies" element={<MoviesAdmin />} />
         <Route path="/staff/theaters" element={<TheatersAdmin />} />
         <Route path="/staff/showtimes" element={<ShowtimesAdmin />} />
